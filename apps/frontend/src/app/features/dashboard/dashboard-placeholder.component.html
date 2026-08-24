@@ -1,0 +1,155 @@
+<div class="dashboard-layout">
+  <!-- Top Navigation Bar -->
+  <header class="topbar">
+    <div class="brand-left">
+      <div class="logo-circle">
+        <svg viewBox="0 0 48 48" fill="none" width="28" height="28" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="24" cy="24" r="22" stroke="#d49b28" stroke-width="2.5" stroke-dasharray="4 2" />
+          <path d="M24 6C15 12 14 26 24 42C34 26 33 12 24 6Z" fill="#1b4d36" />
+          <path d="M24 12C21 16 21 22 24 26C27 22 27 16 24 12Z" fill="#f5c563" />
+        </svg>
+      </div>
+      <div class="brand-title">
+        <h3>Rice Mill ERP</h3>
+        <span>Operations Hub</span>
+      </div>
+
+      <!-- Nav Links (Super Admin Exclusive) -->
+      <nav class="nav-links" *ngIf="isSuperAdmin()">
+        <a routerLink="/dashboard" class="nav-item active">
+          <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+            <rect x="3" y="3" width="7" height="7"></rect>
+            <rect x="14" y="3" width="7" height="7"></rect>
+            <rect x="14" y="14" width="7" height="7"></rect>
+            <rect x="3" y="14" width="7" height="7"></rect>
+          </svg>
+          <span>Dashboard</span>
+        </a>
+        <a routerLink="/users" class="nav-item" id="nav-user-directory">
+          <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+            <circle cx="9" cy="7" r="4"></circle>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+          </svg>
+          <span>User Directory</span>
+        </a>
+      </nav>
+    </div>
+
+    <div class="topbar-right" *ngIf="user()">
+      <div class="user-badge-container">
+        <div class="user-avatar" [class.avatar-super]="isSuperAdmin()">
+          {{ user()?.name?.charAt(0) || 'U' }}
+        </div>
+        <div class="user-info">
+          <div class="user-name-row">
+            <span class="user-name">{{ user()?.name }}</span>
+            <span class="emp-tag" *ngIf="user()?.employeeId">[{{ user()?.employeeId }}]</span>
+          </div>
+          <span class="user-role" [class.role-super]="isSuperAdmin()">{{ user()?.role }}</span>
+        </div>
+      </div>
+
+      <button type="button" class="logout-btn" (click)="logout()" id="logout-button">
+        <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+          <polyline points="16 17 21 12 16 7"></polyline>
+          <line x1="21" y1="12" x2="9" y2="12"></line>
+        </svg>
+        <span>Logout</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Content Area -->
+  <main class="content-container">
+    <div class="placeholder-card">
+      <div class="card-hero-icon">
+        <span>🌾</span>
+      </div>
+      <h2>Dashboard coming soon</h2>
+      <p class="subtitle">
+        Enterprise RBAC, Super Admin Bootstrap, and Private User Governance are active.
+      </p>
+
+      <!-- Active Session Information Box -->
+      <div class="session-info-card" *ngIf="user()">
+        <h4>Authenticated Session Profile</h4>
+        <div class="info-grid">
+          <div class="info-row" *ngIf="user()?.employeeId">
+            <span class="info-label">Employee ID:</span>
+            <span class="info-val emp-highlight">{{ user()?.employeeId }}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Full Name:</span>
+            <span class="info-val">{{ user()?.name }}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Work Email:</span>
+            <span class="info-val">{{ user()?.email }}</span>
+          </div>
+          <div class="info-row" *ngIf="user()?.mobile">
+            <span class="info-label">Mobile Contact:</span>
+            <span class="info-val">{{ user()?.mobile }}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Assigned Role:</span>
+            <span class="role-pill" [class.super-pill]="isSuperAdmin()">
+              {{ isSuperAdmin() ? '👑 ' : '' }}{{ user()?.role }}
+            </span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Account Governance:</span>
+            <span class="status-active">● Active & Admin Controlled</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Super Admin Governance Card (Exclusively For Super Admin) -->
+      <div class="admin-governance-box" *ngIf="isSuperAdmin()">
+        <div class="gov-header">
+          <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+            <circle cx="9" cy="7" r="4"></circle>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+          </svg>
+          <h4>Super Admin User Governance & Provisioning</h4>
+        </div>
+        <p>
+          As the Executive Super Admin, you hold exclusive authorization to manage all enterprise accounts, provision personnel with automatic sequential IDs, deactivate accounts, and govern role privileges.
+        </p>
+        <div class="gov-cta">
+          <a routerLink="/users" class="gov-btn" id="btn-open-user-mgmt">
+            <span>👥 Open Super Admin User Directory</span>
+            <span>→</span>
+          </a>
+        </div>
+      </div>
+
+      <!-- RBAC Permissions Assigned -->
+      <div class="permissions-box" *ngIf="permissions().length > 0">
+        <h4>Active Role Permissions ({{ permissions().length }})</h4>
+        <div class="perm-chips">
+          <span class="perm-chip" *ngFor="let perm of permissions()">{{ perm }}</span>
+        </div>
+      </div>
+
+      <!-- Modules Roadmap preview -->
+      <div class="roadmap-preview">
+        <h4>Future Business Modules In Roadmap</h4>
+        <div class="modules-grid">
+          <span class="module-chip">🌾 Paddy Procurement</span>
+          <span class="module-chip">⚖️ Weighbridge Entry</span>
+          <span class="module-chip">🏭 Milling Operations</span>
+          <span class="module-chip">📦 Rice Stock & Godowns</span>
+          <span class="module-chip">🔬 Quality Inspection</span>
+          <span class="module-chip">🧾 GST Invoicing & Billing</span>
+          <span class="module-chip">👥 Farmers & Suppliers</span>
+          <span class="module-chip">📊 Management Reports</span>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>

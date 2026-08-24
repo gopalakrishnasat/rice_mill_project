@@ -1,0 +1,129 @@
+/* ==========================================================================
+   RICE MILL ERP — GLOBAL DESIGN SYSTEM & VARIABLES
+   ========================================================================== */
+
+:root {
+  /* Brand Color Palette: Deep Agricultural Forest Green */
+  --primary-950: #071910;
+  --primary-900: #0c2518;
+  --primary-800: #143d2b;
+  --primary-700: #1b4d36;
+  --primary-600: #246447;
+  --primary-500: #2e825d;
+  --primary-400: #3fa579;
+  --primary-300: #68c49d;
+  --primary-200: #a3dec3;
+  --primary-100: #d4f2e3;
+  --primary-50:  #eff9f4;
+
+  /* Accent Color Palette: Golden Paddy / Harvest Amber */
+  --gold-700: #8c600b;
+  --gold-600: #b58017;
+  --gold-500: #d49b28;
+  --gold-400: #e5ab35;
+  --gold-300: #f5c563;
+  --gold-200: #fce19f;
+  --gold-100: #fef5dc;
+  --gold-50:  #fffdf7;
+
+  /* Neutral & Surface Tones */
+  --bg-main: #f5f8f5;
+  --surface-card: #ffffff;
+  --surface-subtle: #f8faf8;
+  --text-primary: #122119;
+  --text-secondary: #4a5d53;
+  --text-muted: #73877d;
+  --border-light: #e3ece6;
+  --border-focus: #246447;
+
+  /* Status Colors */
+  --status-success: #16a34a;
+  --status-success-bg: #ecfdf5;
+  --status-error: #dc2626;
+  --status-error-bg: #fef2f2;
+  --status-warning: #d97706;
+  --status-info: #0284c7;
+
+  /* Typography */
+  --font-heading: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-body: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgba(12, 37, 24, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(12, 37, 24, 0.08), 0 2px 4px -2px rgba(12, 37, 24, 0.04);
+  --shadow-lg: 0 10px 15px -3px rgba(12, 37, 24, 0.1), 0 4px 6px -4px rgba(12, 37, 24, 0.05);
+  --shadow-xl: 0 20px 25px -5px rgba(12, 37, 24, 0.12), 0 8px 10px -6px rgba(12, 37, 24, 0.06);
+  --shadow-2xl: 0 25px 50px -12px rgba(12, 37, 24, 0.25);
+
+  /* Border Radii */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-full: 9999px;
+
+  /* Transitions */
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  height: 100%;
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--text-primary);
+  background-color: var(--bg-main);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+}
+
+input, button, select, textarea {
+  font-family: inherit;
+  font-size: inherit;
+}
+
+button {
+  cursor: pointer;
+  border: none;
+  background: none;
+}
+
+a {
+  color: var(--primary-700);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+  &:hover {
+    color: var(--primary-500);
+  }
+}
+
+/* Custom modern scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--surface-subtle);
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: var(--radius-full);
+  &:hover {
+    background: #94a3b8;
+  }
+}
