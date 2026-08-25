@@ -1,0 +1,433 @@
+<div class="workspace-page">
+  <!-- Workspace Container (Two Panes) -->
+  <div class="workspace-container">
+    <!-- Top Action Bar -->
+    <div class="workspace-top-bar">
+      <div class="top-titles">
+        <a routerLink="/invoices" class="back-link">← Back to Invoices</a>
+        <h2>{{ isEditMode() ? 'Edit Invoice' : 'New Sales Bill / Tax Invoice' }} — <span class="text-gold">{{ autoInvoiceNumber() }}</span></h2>
+      </div>
+
+      <div class="workspace-actions">
+        <button
+          type="button"
+          class="btn-secondary"
+          (click)="saveInvoice(false)"
+          [disabled]="isSubmitting()"
+        >
+          <span class="spinner" *ngIf="isSubmitting()"></span>
+          <span>💾 Save Changes to DB</span>
+        </button>
+
+        <button
+          type="button"
+          class="btn-primary"
+          (click)="saveInvoice(true)"
+          [disabled]="isSubmitting()"
+        >
+          <span class="spinner" *ngIf="isSubmitting()"></span>
+          <span>🖨️ Save & Print Bill</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Alert Banner -->
+    <div class="alert-banner" [class.alert-success]="alertMessage()?.type === 'success'" [class.alert-error]="alertMessage()?.type === 'error'" *ngIf="alertMessage()">
+      <span>{{ alertMessage()?.text }}</span>
+      <button type="button" class="alert-close" (click)="alertMessage.set(null)">✕</button>
+    </div>
+
+    <!-- Two-Pane Layout -->
+    <div class="two-pane-layout">
+      <!-- LEFT PANE: INTERACTIVE BILLING FORM -->
+      <div class="form-pane">
+        <form [formGroup]="invoiceForm" class="bill-form" novalidate>
+          <!-- Section 1: Customer & Invoice Type -->
+          <div class="form-section">
+            <div class="section-header">
+              <span class="section-num">1</span>
+              <h4>Buyer & Invoice Details</h4>
+            </div>
+
+            <!-- Customer Selection + Quick Add -->
+            <div class="form-group" [class.has-error]="invoiceForm.get('customerId')?.invalid && invoiceForm.get('customerId')?.touched">
+              <div class="label-row">
+                <label>Select Buyer / Customer *</label>
+                <button type="button" class="btn-quick-add" (click)="openQuickCustomerModal()">
+                  + Quick Add Buyer
+                </button>
+              </div>
+              <select formControlName="customerId" class="form-select" id="select-customer">
+                <option value="" disabled>-- Choose Registered Buyer --</option>
+                <option *ngFor="let c of customers()" [value]="c.id">
+                  {{ c.customerCode }} — {{ c.companyName }} ({{ c.billingAddress?.city || 'Pune' }})
+                </option>
+              </select>
+            </div>
+
+            <!-- Invoice Type & Date -->
+            <div class="form-row">
+              <div class="form-group flex-1">
+                <label>Invoice Category *</label>
+                <select formControlName="invoiceType" class="form-select">
+                  <option value="TAX_INVOICE">Tax Invoice (B2B GST)</option>
+                  <option value="DELIVERY_CHALLAN">Delivery Challan / Cash Memo</option>
+                </select>
+              </div>
+              <div class="form-group flex-1">
+                <label>Invoice Date *</label>
+                <input type="date" formControlName="invoiceDate" />
+              </div>
+            </div>
+
+            <!-- Vehicle Number, Transport, Reference -->
+            <div class="form-row">
+              <div class="form-group flex-1">
+                <label>Vehicle Number</label>
+                <input type="text" formControlName="vehicleNumber" placeholder="e.g. MH14LB3947" uppercase />
+              </div>
+              <div class="form-group flex-1">
+                <label>PO / Order Reference</label>
+                <input type="text" formControlName="reference" placeholder="e.g. PO-8821" />
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Transport / Carrier Agency</label>
+              <input type="text" formControlName="transportDetails" placeholder="e.g. Laxmi Roadways / Direct Delivery" />
+            </div>
+          </div>
+
+          <!-- Section 2: Line Items -->
+          <div class="form-section">
+            <div class="section-header">
+              <div class="flex-align-center gap-sm">
+                <span class="section-num">2</span>
+                <h4>Rice Mill Line Items (Bags & Varieties)</h4>
+              </div>
+              <button type="button" class="btn-add-item" (click)="addItemRow()">
+                + Add Another Item
+              </button>
+            </div>
+
+            <div formArrayName="items" class="items-array">
+              <div *ngFor="let row of itemsFormArray.controls; let i = index" [formGroupName]="i" class="item-form-row">
+                <div class="item-row-header">
+                  <span class="item-index-badge">Item #{{ i + 1 }}</span>
+                  <button
+                    type="button"
+                    class="btn-remove-row"
+                    *ngIf="itemsFormArray.length > 1"
+                    (click)="removeItemRow(i)"
+                    title="Remove item"
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                <div class="item-grid">
+                  <!-- Quick Product Preset Dropdown -->
+                  <div class="form-group grid-full">
+                    <label>Product Variety Preset</label>
+                    <select (change)="onProductSelect(i, $event)" class="form-select-sm">
+                      <option value="">-- Choose Standard Mill Product (Auto-Fills Rate & HSN) --</option>
+                      <option *ngFor="let p of products()" [value]="p.id">
+                        {{ p.name }} (HSN: {{ p.hsnCode }} | ₹{{ p.defaultRate }}/{{ p.unit }})
+                      </option>
+                    </select>
+                  </div>
+
+                  <!-- Description -->
+                  <div class="form-group grid-desc">
+                    <label>Description *</label>
+                    <input type="text" formControlName="description" placeholder="Enter item name (e.g. Sona Masoori Rice - 25kg)" />
+                  </div>
+
+                  <!-- HSN Code -->
+                  <div class="form-group grid-hsn">
+                    <label>HSN Code</label>
+                    <input type="text" formControlName="hsnCode" placeholder="e.g. 1006" />
+                  </div>
+
+                  <!-- Qty -->
+                  <div class="form-group grid-qty">
+                    <label>Quantity *</label>
+                    <input type="number" formControlName="qty" placeholder="Qty" min="0.1" />
+                  </div>
+
+                  <!-- Unit -->
+                  <div class="form-group grid-unit">
+                    <label>Unit</label>
+                    <select formControlName="unit">
+                      <option value="Bag">Bag</option>
+                      <option value="Kg">Kg</option>
+                      <option value="Qtl">Quintal</option>
+                    </select>
+                  </div>
+
+                  <!-- Rate -->
+                  <div class="form-group grid-rate">
+                    <label>Rate (₹) *</label>
+                    <input type="number" formControlName="rate" placeholder="Rate in ₹" min="0" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section 3: Transport Charges & Discounts -->
+          <div class="form-section">
+            <div class="section-header">
+              <span class="section-num">3</span>
+              <h4>Additional Charges & Taxes</h4>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group flex-1">
+                <label>Transport / Freight (₹)</label>
+                <input type="number" formControlName="transportCharges" placeholder="0" min="0" />
+              </div>
+              <div class="form-group flex-1">
+                <label>Hamali / Loading (₹)</label>
+                <input type="number" formControlName="hamaliCharges" placeholder="0" min="0" />
+              </div>
+              <div class="form-group flex-1">
+                <label>Discount (₹)</label>
+                <input type="number" formControlName="discount" placeholder="0" min="0" />
+              </div>
+            </div>
+
+            <!-- Inter-State IGST Checkbox -->
+            <div class="checkbox-row" *ngIf="liveIsTaxInvoice()">
+              <label class="check-label">
+                <input type="checkbox" formControlName="isInterState" />
+                <span>Inter-State Supply (Apply IGST 5.0% instead of CGST 2.5% + SGST 2.5%)</span>
+              </label>
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <!-- RIGHT PANE: LIVE WYSIWYG BILL PREVIEW -->
+      <div class="preview-pane">
+        <div class="preview-card-header">
+          <span class="preview-title">👁️ Live WYSIWYG Bill Preview (Instant Real-time Sync)</span>
+          <span class="preview-badge">Live Print Format</span>
+        </div>
+
+        <!-- The Exact Shree Laxminarayan Rice Mill Bill Design -->
+        <div class="mill-bill-sheet">
+          <!-- Devotional Header Banner -->
+          <div class="devotional-header">
+            <span>|| Perantal Mata Prasana ||</span>
+            <span>|| Shree Ganeshya Namha ||</span>
+            <span>|| Shree Mukatai Prasana ||</span>
+          </div>
+
+          <!-- Main Mill Entity Header -->
+          <div class="mill-header">
+            <div class="mill-title-group">
+              <h1 class="mill-name">SHREE LAXMINARAYAN RICE MILL</h1>
+              <p class="mill-address">Hivare Tarfe Narayangaon, Khodad Road, Tal:- Junnar, Dist:- Pune 410504</p>
+              <div class="mill-compliance">
+                <span><strong>GSTIN:</strong> 27ACHFS3445C1Z8</span>
+                <span><strong>FSSAI:</strong> 21526038000229</span>
+              </div>
+              <div class="mill-contact">
+                <span><strong>Mob:</strong> 9960186123 / 9970901007</span>
+                <span><strong>Email:</strong> slricemill&#64;gmail.com</span>
+              </div>
+            </div>
+
+            <!-- Copy indicators -->
+            <div class="copy-box">
+              <label><input type="checkbox" checked disabled /> Original for Recipient</label>
+              <label><input type="checkbox" disabled /> Duplicate for transporter</label>
+              <label><input type="checkbox" disabled /> Triplicate for suppliers</label>
+            </div>
+          </div>
+
+          <!-- Maroon Banner -->
+          <div class="tax-invoice-banner">
+            <span>{{ liveIsTaxInvoice() ? 'Tax Invoice' : 'Bill Invoice / Delivery Challan' }}</span>
+          </div>
+
+          <!-- Bill To & Invoice Details 2-Column Box -->
+          <div class="invoice-meta-grid">
+            <div class="bill-to-box">
+              <span class="meta-label">Bill To:</span>
+              <strong class="buyer-company">{{ selectedCustomerObj()?.companyName || 'Select a Buyer...' }}</strong>
+              <p class="buyer-address-text">
+                {{ selectedCustomerObj()?.billingAddress?.line1 }}<br />
+                <span *ngIf="selectedCustomerObj()?.billingAddress?.line2">{{ selectedCustomerObj()?.billingAddress?.line2 }}<br /></span>
+                {{ selectedCustomerObj()?.billingAddress?.city || 'Pune' }} - {{ selectedCustomerObj()?.billingAddress?.pincode || '411033' }}
+              </p>
+              <p class="buyer-gst" *ngIf="selectedCustomerObj()?.gstin">
+                <strong>GSTIN:</strong> {{ selectedCustomerObj()?.gstin }}
+              </p>
+            </div>
+
+            <div class="invoice-specs-box">
+              <table class="specs-table">
+                <tr>
+                  <th>Invoice No</th>
+                  <td><strong>{{ autoInvoiceNumber() }}</strong></td>
+                </tr>
+                <tr>
+                  <th>Date</th>
+                  <td>{{ liveInvoiceDate() | date:'dd MMM yyyy' }}</td>
+                </tr>
+                <tr>
+                  <th>Reference</th>
+                  <td>{{ liveReference() }}</td>
+                </tr>
+                <tr>
+                  <th>Vehicle No</th>
+                  <td><strong class="text-vehicle">{{ liveVehicleNumber() }}</strong></td>
+                </tr>
+                <tr>
+                  <th>Transport</th>
+                  <td>{{ liveTransportDetails() }}</td>
+                </tr>
+              </table>
+            </div>
+          </div>
+
+          <!-- Items Table -->
+          <table class="bill-items-table">
+            <thead>
+              <tr>
+                <th class="col-desc">Items Table / Description</th>
+                <th class="col-hsn">HSN</th>
+                <th class="col-qty">Qty</th>
+                <th class="col-rate">Rate</th>
+                <th class="col-amt">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let item of liveItems()">
+                <td class="col-desc"><strong>{{ item.description || '—' }}</strong></td>
+                <td class="col-hsn">{{ item.hsnCode || '—' }}</td>
+                <td class="col-qty">{{ item.qty > 0 ? (item.qty + ' ' + item.unit) : '—' }}</td>
+                <td class="col-rate">{{ item.rate > 0 ? ('₹' + (item.rate | number:'1.2-2')) : '—' }}</td>
+                <td class="col-amt font-bold">{{ item.amount > 0 ? ('₹' + (item.amount | number:'1.2-2')) : '—' }}</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <!-- Transport Summary Bar -->
+          <div class="transport-summary-bar" *ngIf="liveTransport() > 0 || liveHamali() > 0">
+            <span class="bar-title">Transport & Handling Summary</span>
+            <span>Freight: ₹{{ liveTransport() | number:'1.2-2' }}</span>
+            <span>Hamali: ₹{{ liveHamali() | number:'1.2-2' }}</span>
+            <span class="bar-total">₹{{ (liveTransport() + liveHamali()) | number:'1.2-2' }}</span>
+          </div>
+
+          <!-- Calculation & Tax Box -->
+          <div class="tax-calculation-block">
+            <div class="bank-details-box">
+              <span class="box-title">Bank Account Details (Supplier)</span>
+              <p><strong>Bank:</strong> HDFC Bank Ltd</p>
+              <p><strong>A/C No:</strong> 50200067891234</p>
+              <p><strong>IFSC Code:</strong> HDFC0001234</p>
+              <p><strong>Branch:</strong> Narayangaon, Pune</p>
+              <p><strong>UPI ID:</strong> slricemill&#64;hdfcbank</p>
+            </div>
+
+            <div class="totals-table-box">
+              <table class="totals-table">
+                <tr>
+                  <th>Sub Total</th>
+                  <td>₹{{ liveSubTotal() | number:'1.2-2' }}</td>
+                </tr>
+                <tr *ngIf="liveTransport() > 0 || liveHamali() > 0">
+                  <th>Transport & Handling</th>
+                  <td>₹{{ (liveTransport() + liveHamali()) | number:'1.2-2' }}</td>
+                </tr>
+                <tr *ngIf="liveDiscount() > 0">
+                  <th>Discount</th>
+                  <td>-₹{{ liveDiscount() | number:'1.2-2' }}</td>
+                </tr>
+                <tr *ngIf="liveIsTaxInvoice() && !liveIsInterState()">
+                  <th>SGST (2.5%)</th>
+                  <td>₹{{ liveSgstAmount() | number:'1.2-2' }}</td>
+                </tr>
+                <tr *ngIf="liveIsTaxInvoice() && !liveIsInterState()">
+                  <th>CGST (2.5%)</th>
+                  <td>₹{{ liveCgstAmount() | number:'1.2-2' }}</td>
+                </tr>
+                <tr *ngIf="liveIsTaxInvoice() && liveIsInterState()">
+                  <th>IGST (5.0%)</th>
+                  <td>₹{{ liveIgstAmount() | number:'1.2-2' }}</td>
+                </tr>
+                <tr class="grand-total-row">
+                  <th>Total Amount</th>
+                  <td>₹{{ liveTotalAmount() | number:'1.2-2' }}</td>
+                </tr>
+              </table>
+            </div>
+          </div>
+
+          <!-- Signatory Footer -->
+          <div class="bill-footer-row">
+            <div class="footer-left">
+              <span>Shree Laxminarayan Rice Mill</span>
+              <span>Hivare Tarfe Narayangaon, Khodad Road</span>
+            </div>
+            <div class="footer-sign">
+              <span>For Shree Laxminarayan Rice Mill</span>
+              <div class="sign-space"></div>
+              <strong>Authorized Signature</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- QUICK ADD BUYER MODAL -->
+  <div class="modal-backdrop" *ngIf="showQuickCustomerModal()">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Quick Add New Buyer</h3>
+        <button type="button" class="modal-close-btn" (click)="closeQuickCustomerModal()">✕</button>
+      </div>
+
+      <form [formGroup]="quickCustomerForm" (ngSubmit)="onQuickCustomerSubmit()" class="modal-form">
+        <div class="form-group">
+          <label>Firm / Company Name *</label>
+          <input type="text" formControlName="companyName" placeholder="e.g. Ramesh Trading Co" />
+        </div>
+
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label>Mobile Contact *</label>
+            <input type="tel" formControlName="mobile" placeholder="e.g. 9822114455" />
+          </div>
+          <div class="form-group flex-1">
+            <label>GSTIN</label>
+            <input type="text" formControlName="gstin" placeholder="27XXXXX" />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group flex-2">
+            <label>City *</label>
+            <input type="text" formControlName="city" placeholder="Pune" />
+          </div>
+          <div class="form-group flex-1">
+            <label>Pincode *</label>
+            <input type="text" formControlName="pincode" placeholder="411001" />
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn-cancel" (click)="closeQuickCustomerModal()">Cancel</button>
+          <button type="submit" class="btn-submit" [disabled]="isSubmitting() || quickCustomerForm.invalid">
+            <span>Add & Select Buyer</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

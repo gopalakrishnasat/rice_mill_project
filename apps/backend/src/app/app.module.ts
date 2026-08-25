@@ -6,6 +6,9 @@ import { AuthModule } from './auth/auth.module';
 import { SetupModule } from './setup/setup.module';
 import { SeedModule } from './common/seed/seed.module';
 import { AuditModule } from './common/audit/audit.module';
+import { CustomersModule } from './customers/customers.module';
+import { ProductsModule } from './products/products.module';
+import { InvoicesModule } from './invoices/invoices.module';
 
 @Module({
   imports: [
@@ -25,6 +28,9 @@ import { AuditModule } from './common/audit/audit.module';
     AuthModule,
     SetupModule,
     SeedModule,
+    CustomersModule,
+    ProductsModule,
+    InvoicesModule,
   ],
   controllers: [],
   providers: [],

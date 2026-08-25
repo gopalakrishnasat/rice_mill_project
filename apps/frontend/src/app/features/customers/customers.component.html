@@ -1,0 +1,387 @@
+<div class="customers-page">
+  <!-- Main Container -->
+  <main class="page-container">
+    <!-- Header Row -->
+    <div class="page-header-row">
+      <div class="header-titles">
+        <h2>Buyers & Customer Directory</h2>
+        <p>Manage rice wholesale traders, retailers, GST details, payment terms, and Khata ledger statements</p>
+      </div>
+
+      <div class="header-actions">
+        <a routerLink="/invoices/new" class="btn-new-bill" id="btn-create-invoice">
+          <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="12" y1="18" x2="12" y2="12"></line>
+            <line x1="9" y1="15" x2="15" y2="15"></line>
+          </svg>
+          <span>Create New Bill</span>
+        </a>
+
+        <button
+          type="button"
+          class="create-btn"
+          (click)="openCreateModal()"
+          id="btn-add-customer"
+        >
+          <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+          <span>Add New Buyer</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Toast / Alert Notification -->
+    <div class="alert-banner" [class.alert-success]="alertMessage()?.type === 'success'" [class.alert-error]="alertMessage()?.type === 'error'" *ngIf="alertMessage()">
+      <span>{{ alertMessage()?.text }}</span>
+      <button type="button" class="alert-close" (click)="alertMessage.set(null)">✕</button>
+    </div>
+
+    <!-- Metric Cards Grid -->
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <span class="metric-label">Total Registered Buyers</span>
+        <span class="metric-val">{{ totalCustomersCount() }}</span>
+      </div>
+      <div class="metric-card">
+        <span class="metric-label">Total Sales Billed</span>
+        <span class="metric-val text-green">₹{{ totalBilledSum() | number:'1.2-2' }}</span>
+      </div>
+      <div class="metric-card">
+        <span class="metric-label">Total Receivables (Pending ₹)</span>
+        <span class="metric-val text-red">₹{{ totalReceivables() | number:'1.2-2' }}</span>
+      </div>
+      <div class="metric-card">
+        <span class="metric-label">Next Buyer Code</span>
+        <span class="metric-val text-gold" id="next-cust-code">{{ autoCustomerCode() }}</span>
+      </div>
+    </div>
+
+    <!-- Search and Filters Bar -->
+    <div class="filters-card">
+      <div class="search-box">
+        <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <input
+          type="text"
+          placeholder="Search by Buyer Name, ID, Mobile, City, or GSTIN..."
+          [ngModel]="searchTerm()"
+          (ngModelChange)="searchTerm.set($event)"
+          id="customer-search-input"
+        />
+      </div>
+
+      <div class="filters-group">
+        <button
+          type="button"
+          class="filter-pill"
+          [class.active]="selectedFilter() === 'ALL'"
+          (click)="selectedFilter.set('ALL')"
+        >
+          All Buyers ({{ customers().length }})
+        </button>
+        <button
+          type="button"
+          class="filter-pill pill-balance"
+          [class.active]="selectedFilter() === 'BALANCE'"
+          (click)="selectedFilter.set('BALANCE')"
+        >
+          Outstanding Balance ({{ customersWithBalanceCount() }})
+        </button>
+        <button
+          type="button"
+          class="filter-pill"
+          [class.active]="selectedFilter() === 'CLEAR'"
+          (click)="selectedFilter.set('CLEAR')"
+        >
+          All Clear (₹0)
+        </button>
+
+        <button type="button" class="refresh-btn" (click)="loadCustomers()" title="Refresh">
+          <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+            <polyline points="23 4 23 10 17 10"></polyline>
+            <polyline points="1 20 1 14 7 14"></polyline>
+            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Customers Table Card -->
+    <div class="table-card">
+      <div class="table-responsive" *ngIf="!isLoading()">
+        <table class="data-table" *ngIf="filteredCustomers().length > 0">
+          <thead>
+            <tr>
+              <th>Buyer Code</th>
+              <th>Trade / Firm Name</th>
+              <th>Contact Person & Mobile</th>
+              <th>City / State</th>
+              <th>GSTIN</th>
+              <th class="text-right">Total Billed</th>
+              <th class="text-right">Balance Due (₹)</th>
+              <th class="text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let c of filteredCustomers()">
+              <td>
+                <span class="code-badge">{{ c.customerCode }}</span>
+              </td>
+              <td>
+                <div class="firm-name" (click)="openCustomer360(c)">
+                  <strong>{{ c.companyName }}</strong>
+                </div>
+              </td>
+              <td>
+                <div class="contact-info">
+                  <span class="person-name">{{ c.contactPerson || '—' }}</span>
+                  <span class="mobile-num">📞 {{ c.mobile }}</span>
+                </div>
+              </td>
+              <td>
+                <span class="location-badge">📍 {{ c.billingAddress?.city }}, {{ c.billingAddress?.state }}</span>
+              </td>
+              <td>
+                <span class="gst-text font-mono">{{ c.gstin || 'Unregistered' }}</span>
+              </td>
+              <td class="text-right font-medium">
+                ₹{{ (c.totalBilled || 0) | number:'1.2-2' }}
+              </td>
+              <td class="text-right">
+                <span
+                  class="balance-pill"
+                  [class.balance-due]="c.currentBalance > 0"
+                  [class.balance-clear]="c.currentBalance <= 0"
+                >
+                  ₹{{ (c.currentBalance || 0) | number:'1.2-2' }}
+                </span>
+              </td>
+              <td class="text-right">
+                <div class="actions-cell">
+                  <button
+                    type="button"
+                    class="btn-action btn-bill"
+                    (click)="createInvoiceForCustomer(c)"
+                    title="Generate New Bill"
+                  >
+                    + Bill
+                  </button>
+                  <button
+                    type="button"
+                    class="btn-action btn-khata"
+                    (click)="openCustomer360(c)"
+                    title="View Customer 360 & Khata Ledger"
+                  >
+                    Khata
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- Empty State -->
+        <div class="empty-state" *ngIf="filteredCustomers().length === 0">
+          <span class="empty-icon">🔍</span>
+          <h4>No Buyers Found</h4>
+          <p>No customer records match your filter criteria.</p>
+        </div>
+      </div>
+
+      <!-- Loading State -->
+      <div class="loading-state" *ngIf="isLoading()">
+        <span class="spinner"></span>
+        <p>Loading buyer directory...</p>
+      </div>
+    </div>
+  </main>
+
+  <!-- MODAL 1: REGISTER NEW BUYER -->
+  <div class="modal-backdrop" *ngIf="showCreateModal()">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <h3>Register New Buyer / Customer</h3>
+          <p>Sequential ID is automatically allocated for new buyers</p>
+        </div>
+        <button type="button" class="modal-close-btn" (click)="closeCreateModal()">✕</button>
+      </div>
+
+      <form [formGroup]="createCustomerForm" (ngSubmit)="onCreateSubmit()" class="modal-form" novalidate>
+        <!-- Auto Customer Code -->
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label>
+              <span>Buyer ID / Code</span>
+              <span class="auto-badge">⚡ Auto-Sequential</span>
+            </label>
+            <input type="text" [value]="autoCustomerCode()" readonly class="readonly-input" />
+          </div>
+          <div class="form-group flex-2" [class.has-error]="createCustomerForm.get('companyName')?.invalid && createCustomerForm.get('companyName')?.touched">
+            <label>Trade / Firm Name *</label>
+            <input type="text" formControlName="companyName" placeholder="e.g. Lunkad Foods Private Limited" />
+          </div>
+        </div>
+
+        <!-- Contact Person & Mobile -->
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label>Contact Person</label>
+            <input type="text" formControlName="contactPerson" placeholder="e.g. Vijay Lunkad" />
+          </div>
+          <div class="form-group flex-1" [class.has-error]="createCustomerForm.get('mobile')?.invalid && createCustomerForm.get('mobile')?.touched">
+            <label>Mobile Number *</label>
+            <input type="tel" formControlName="mobile" placeholder="e.g. +91 9822012345" />
+          </div>
+        </div>
+
+        <!-- Work Email & GSTIN -->
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label>Email Address</label>
+            <input type="email" formControlName="email" placeholder="e.g. orders@lunkadfoods.com" />
+          </div>
+          <div class="form-group flex-1">
+            <label>GSTIN (Optional for Retail)</label>
+            <input type="text" formControlName="gstin" placeholder="e.g. 27ACHFS3445C1Z8" uppercase />
+          </div>
+        </div>
+
+        <!-- Billing Address Line 1 -->
+        <div class="form-group" [class.has-error]="createCustomerForm.get('line1')?.invalid && createCustomerForm.get('line1')?.touched">
+          <label>Address Line 1 *</label>
+          <input type="text" formControlName="line1" placeholder="e.g. S. No. 24/6, Jai Ganesh Colony, Chinchwade Nagar" />
+        </div>
+
+        <!-- Address Line 2 -->
+        <div class="form-group">
+          <label>Address Line 2 / Landmark</label>
+          <input type="text" formControlName="line2" placeholder="e.g. Walhekarwadi Road, Chinchwad" />
+        </div>
+
+        <!-- City, State, Pincode -->
+        <div class="form-row">
+          <div class="form-group flex-1" [class.has-error]="createCustomerForm.get('city')?.invalid && createCustomerForm.get('city')?.touched">
+            <label>City *</label>
+            <input type="text" formControlName="city" placeholder="e.g. Pune" />
+          </div>
+          <div class="form-group flex-1">
+            <label>State *</label>
+            <input type="text" formControlName="state" placeholder="Maharashtra" />
+          </div>
+          <div class="form-group flex-1" [class.has-error]="createCustomerForm.get('pincode')?.invalid && createCustomerForm.get('pincode')?.touched">
+            <label>Pincode *</label>
+            <input type="text" formControlName="pincode" placeholder="411033" />
+          </div>
+        </div>
+
+        <!-- Opening Balance & Credit Limit -->
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label>Opening Balance (₹)</label>
+            <input type="number" formControlName="openingBalance" placeholder="0" />
+          </div>
+          <div class="form-group flex-1">
+            <label>Credit Limit (₹)</label>
+            <input type="number" formControlName="creditLimit" placeholder="0" />
+          </div>
+        </div>
+
+        <!-- Modal Actions -->
+        <div class="modal-actions">
+          <button type="button" class="btn-cancel" (click)="closeCreateModal()">Cancel</button>
+          <button type="submit" class="btn-submit" [disabled]="isSubmitting() || createCustomerForm.invalid">
+            <span class="spinner" *ngIf="isSubmitting()"></span>
+            <span>{{ isSubmitting() ? 'Registering...' : 'Register Buyer' }}</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL 2: CUSTOMER 360 & KHATA LEDGER STATEMENT -->
+  <div class="modal-backdrop" *ngIf="selectedCustomer()">
+    <div class="drawer-card">
+      <div class="drawer-header">
+        <div class="drawer-titles">
+          <div class="flex-align-center gap-sm">
+            <span class="code-badge">{{ selectedCustomer()?.customerCode }}</span>
+            <h3>{{ selectedCustomer()?.companyName }}</h3>
+          </div>
+          <p>📞 {{ selectedCustomer()?.mobile }} &nbsp;|&nbsp; 📍 {{ selectedCustomer()?.billingAddress?.city }}, {{ selectedCustomer()?.billingAddress?.state }} &nbsp;|&nbsp; GST: {{ selectedCustomer()?.gstin || 'Unregistered' }}</p>
+        </div>
+        <button type="button" class="modal-close-btn" (click)="closeCustomer360()">✕</button>
+      </div>
+
+      <!-- Financial Metrics Ribbon -->
+      <div class="drawer-metrics">
+        <div class="drawer-stat">
+          <span class="stat-lbl">Total Purchases Billed</span>
+          <span class="stat-num text-green">₹{{ (selectedCustomer()?.totalBilled || 0) | number:'1.2-2' }}</span>
+        </div>
+        <div class="drawer-stat">
+          <span class="stat-lbl">Total Payments Received</span>
+          <span class="stat-num text-dark">₹{{ (selectedCustomer()?.totalPaid || 0) | number:'1.2-2' }}</span>
+        </div>
+        <div class="drawer-stat">
+          <span class="stat-lbl">Current Balance Due (Khata)</span>
+          <span class="stat-num text-red">₹{{ (selectedCustomer()?.currentBalance || 0) | number:'1.2-2' }}</span>
+        </div>
+      </div>
+
+      <!-- Khata Ledger Table -->
+      <div class="ledger-container">
+        <div class="ledger-header-row">
+          <h4>Account Statement / Khata Ledger</h4>
+          <button
+            type="button"
+            class="btn-new-bill"
+            (click)="createInvoiceForCustomer(selectedCustomer()!)"
+          >
+            + Create Bill
+          </button>
+        </div>
+
+        <div class="table-responsive" *ngIf="!isLedgerLoading()">
+          <table class="ledger-table" *ngIf="customerLedger().length > 0">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Voucher / Ref #</th>
+                <th>Transaction Description</th>
+                <th class="text-right">Debit (₹)</th>
+                <th class="text-right">Credit (₹)</th>
+                <th class="text-right">Running Balance (₹)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let entry of customerLedger()">
+                <td class="text-muted">{{ entry.date | date:'dd MMM yyyy' }}</td>
+                <td><span class="ref-badge">{{ entry.referenceNo }}</span></td>
+                <td>{{ entry.description }}</td>
+                <td class="text-right font-medium text-red">{{ entry.debit > 0 ? ('₹' + (entry.debit | number:'1.2-2')) : '—' }}</td>
+                <td class="text-right font-medium text-green">{{ entry.credit > 0 ? ('₹' + (entry.credit | number:'1.2-2')) : '—' }}</td>
+                <td class="text-right font-bold">₹{{ entry.runningBalance | number:'1.2-2' }}</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="empty-state" *ngIf="customerLedger().length === 0">
+            <p>No transaction entries found for this buyer yet.</p>
+          </div>
+        </div>
+
+        <div class="loading-state" *ngIf="isLedgerLoading()">
+          <span class="spinner"></span>
+          <p>Loading ledger entries...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

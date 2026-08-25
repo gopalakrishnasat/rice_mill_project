@@ -1,0 +1,231 @@
+<div class="invoices-page">
+  <!-- Main Container -->
+  <main class="page-container">
+    <!-- Header Row -->
+    <div class="page-header-row">
+      <div class="header-titles">
+        <h2>Sales Invoices & Billing</h2>
+        <p>Generate, edit, and print GST tax invoices, delivery challans, and record payments against mill dispatches
+        </p>
+      </div>
+
+      <div class="header-actions">
+        <a routerLink="/invoices/new" class="create-btn" id="btn-new-tax-invoice">
+          <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+          <span>Create New Bill</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- Alert Banner -->
+    <div class="alert-banner" [class.alert-success]="alertMessage()?.type === 'success'"
+      [class.alert-error]="alertMessage()?.type === 'error'" *ngIf="alertMessage()">
+      <span>{{ alertMessage()?.text }}</span>
+      <button type="button" class="alert-close" (click)="alertMessage.set(null)">✕</button>
+    </div>
+
+    <!-- Metrics Grid -->
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <span class="metric-label">Total Invoices Raised</span>
+        <span class="metric-val">{{ totalInvoicesCount() }}</span>
+      </div>
+      <div class="metric-card">
+        <span class="metric-label">Total Sales Revenue</span>
+        <span class="metric-val text-green">₹{{ totalBilled() | number:'1.2-2' }}</span>
+      </div>
+      <div class="metric-card">
+        <span class="metric-label">Payments Collected</span>
+        <span class="metric-val text-blue">₹{{ totalPaid() | number:'1.2-2' }}</span>
+      </div>
+      <div class="metric-card">
+        <span class="metric-label">Outstanding Due (Receivables)</span>
+        <span class="metric-val text-red">₹{{ totalPendingReceivables() | number:'1.2-2' }}</span>
+      </div>
+    </div>
+
+    <!-- Filters & Search Bar -->
+    <div class="filters-card">
+      <div class="search-box">
+        <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <input type="text" placeholder="Search by Invoice No, Vehicle No, or Buyer Name..." [ngModel]="searchTerm()"
+          (ngModelChange)="searchTerm.set($event)" id="invoice-search-input" />
+      </div>
+
+      <div class="filters-group">
+        <button type="button" class="filter-pill" [class.active]="selectedPaymentFilter() === 'ALL'"
+          (click)="selectedPaymentFilter.set('ALL')">
+          All Invoices
+        </button>
+        <button type="button" class="filter-pill pill-unpaid" [class.active]="selectedPaymentFilter() === 'UNPAID'"
+          (click)="selectedPaymentFilter.set('UNPAID')">
+          Unpaid
+        </button>
+        <button type="button" class="filter-pill" [class.active]="selectedPaymentFilter() === 'PARTIAL'"
+          (click)="selectedPaymentFilter.set('PARTIAL')">
+          Partially Paid
+        </button>
+        <button type="button" class="filter-pill pill-paid" [class.active]="selectedPaymentFilter() === 'PAID'"
+          (click)="selectedPaymentFilter.set('PAID')">
+          Fully Paid
+        </button>
+
+        <button type="button" class="refresh-btn" (click)="loadInvoices()" title="Refresh Invoices">
+          <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+            <polyline points="23 4 23 10 17 10"></polyline>
+            <polyline points="1 20 1 14 7 14"></polyline>
+            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Invoices Table Card -->
+    <div class="table-card">
+      <div class="table-responsive" *ngIf="!isLoading()">
+        <table class="data-table" *ngIf="filteredInvoices().length > 0">
+          <thead>
+            <tr>
+              <th>Invoice Number</th>
+              <th>Date</th>
+              <th>Buyer Name</th>
+              <th>Vehicle Number</th>
+              <th>Type</th>
+              <th class="text-right">Total Amount (₹)</th>
+              <th>Payment Status</th>
+              <th class="text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let inv of filteredInvoices()">
+              <td>
+                <span class="code-badge">{{ inv.invoiceNumber }}</span>
+              </td>
+              <td class="text-muted text-sm">
+                {{ inv.invoiceDate | date:'dd MMM yyyy' }}
+              </td>
+              <td>
+                <div class="buyer-meta">
+                  <strong>{{ inv.customerSnapshot?.companyName }}</strong>
+                  <span class="buyer-sub">{{ inv.customerSnapshot?.billingAddress?.city || 'Pune' }}</span>
+                </div>
+              </td>
+              <td>
+                <span class="vehicle-badge">🚛 {{ inv.vehicleNumber || '—' }}</span>
+              </td>
+              <td>
+                <span class="type-pill" [class.type-tax]="inv.invoiceType === 'TAX_INVOICE'"
+                  [class.type-challan]="inv.invoiceType === 'DELIVERY_CHALLAN'">
+                  {{ inv.invoiceType === 'TAX_INVOICE' ? 'Tax GST' : 'Challan' }}
+                </span>
+              </td>
+              <td class="text-right font-bold font-mono">
+                ₹{{ inv.totalAmount | number:'1.2-2' }}
+              </td>
+              <td>
+                <span class="pay-pill" [class.pay-unpaid]="inv.paymentStatus === 'UNPAID'"
+                  [class.pay-partial]="inv.paymentStatus === 'PARTIAL'" [class.pay-paid]="inv.paymentStatus === 'PAID'">
+                  <span class="status-dot"></span>
+                  {{ inv.paymentStatus }}
+                </span>
+              </td>
+              <td class="text-right">
+                <div class="actions-cell">
+                  <button type="button" class="btn-action btn-pdf" (click)="downloadInvoiceDirectly(inv)"
+                    title="Download PDF Invoice directly">
+                    ⬇️ PDF
+                  </button>
+                  <button type="button" class="btn-action btn-print" (click)="printInvoice(inv)" title="Print Bill">
+                    🖨️ Print
+                  </button>
+                  <button type="button" class="btn-action btn-edit" (click)="editInvoice(inv)"
+                    title="Edit Invoice on the fly">
+                    ✏️ Edit
+                  </button>
+                  <button type="button" class="btn-action btn-pay" *ngIf="inv.paymentStatus !== 'PAID'"
+                    (click)="openPaymentModal(inv)" title="Record Payment">
+                    + ₹ Pay
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- Empty State -->
+        <div class="empty-state" *ngIf="filteredInvoices().length === 0">
+          <span class="empty-icon">🧾</span>
+          <h4>No Invoices Found</h4>
+          <p>No billing records match your search or filter selection.</p>
+        </div>
+      </div>
+
+      <div class="loading-state" *ngIf="isLoading()">
+        <span class="spinner"></span>
+        <p>Loading invoice records...</p>
+      </div>
+    </div>
+  </main>
+
+  <!-- MODAL: RECORD PAYMENT RECEIPT -->
+  <div class="modal-backdrop" *ngIf="selectedInvoiceForPayment()">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <h3>Record Payment Receipt</h3>
+          <p>Invoice: <strong>{{ selectedInvoiceForPayment()?.invoiceNumber }}</strong> (Due: ₹{{
+            selectedInvoiceForPayment()?.balanceAmount | number:'1.2-2' }})</p>
+        </div>
+        <button type="button" class="modal-close-btn" (click)="closePaymentModal()">✕</button>
+      </div>
+
+      <form [formGroup]="paymentForm" (ngSubmit)="onPaymentSubmit()" class="modal-form" novalidate>
+        <div class="form-group"
+          [class.has-error]="paymentForm.get('amount')?.invalid && paymentForm.get('amount')?.touched">
+          <label>Payment Amount (₹) *</label>
+          <input type="number" formControlName="amount" placeholder="0" />
+        </div>
+
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label>Payment Date *</label>
+            <input type="date" formControlName="paymentDate" />
+          </div>
+          <div class="form-group flex-1">
+            <label>Payment Mode *</label>
+            <select formControlName="paymentMode" class="form-select">
+              <option value="UPI">UPI / QR Code</option>
+              <option value="NEFT_RTGS">Bank Transfer (NEFT/RTGS)</option>
+              <option value="CASH">Cash</option>
+              <option value="CHEQUE">Cheque</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Transaction / UTR / Cheque Reference</label>
+          <input type="text" formControlName="transactionReference" placeholder="e.g. UTR-9988224411" />
+        </div>
+
+        <div class="form-group">
+          <label>Payment Remarks / Notes</label>
+          <input type="text" formControlName="notes" placeholder="e.g. Advance payment for dispatch" />
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn-cancel" (click)="closePaymentModal()">Cancel</button>
+          <button type="submit" class="btn-submit" [disabled]="isSubmitting() || paymentForm.invalid">
+            <span class="spinner" *ngIf="isSubmitting()"></span>
+            <span>{{ isSubmitting() ? 'Recording...' : 'Record Payment' }}</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

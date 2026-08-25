@@ -1,67 +1,4 @@
 <div class="user-mgmt-layout">
-  <!-- Topbar Header Navigation -->
-  <header class="topbar">
-    <div class="brand-left">
-      <div class="logo-circle">
-        <svg viewBox="0 0 48 48" fill="none" width="28" height="28" xmlns="http://www.w3.org/2000/svg">
-          <circle cx="24" cy="24" r="22" stroke="#d49b28" stroke-width="2.5" stroke-dasharray="4 2" />
-          <path d="M24 6C15 12 14 26 24 42C34 26 33 12 24 6Z" fill="#1b4d36" />
-          <path d="M24 12C21 16 21 22 24 26C27 22 27 16 24 12Z" fill="#f5c563" />
-        </svg>
-      </div>
-      <div class="brand-title">
-        <h3>Rice Mill ERP</h3>
-        <span>Operations Hub</span>
-      </div>
-
-      <!-- Navigation Tabs (Super Admin Only) -->
-      <nav class="nav-links" *ngIf="isSuperAdmin()">
-        <a routerLink="/dashboard" class="nav-item">
-          <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
-            <rect x="3" y="3" width="7" height="7"></rect>
-            <rect x="14" y="3" width="7" height="7"></rect>
-            <rect x="14" y="14" width="7" height="7"></rect>
-            <rect x="3" y="14" width="7" height="7"></rect>
-          </svg>
-          <span>Dashboard</span>
-        </a>
-        <a routerLink="/users" class="nav-item active">
-          <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
-            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-            <circle cx="9" cy="7" r="4"></circle>
-            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-          </svg>
-          <span>User Directory</span>
-        </a>
-      </nav>
-    </div>
-
-    <div class="topbar-right" *ngIf="currentUser()">
-      <div class="user-badge-container">
-        <div class="user-avatar" [class.avatar-super]="isSuperAdmin()">
-          {{ currentUser()?.name?.charAt(0) || 'U' }}
-        </div>
-        <div class="user-info">
-          <div class="user-name-row">
-            <span class="user-name">{{ currentUser()?.name }}</span>
-            <span class="emp-tag" *ngIf="currentUser()?.employeeId">[{{ currentUser()?.employeeId }}]</span>
-          </div>
-          <span class="user-role" [class.role-super]="isSuperAdmin()">{{ currentUser()?.role }}</span>
-        </div>
-      </div>
-
-      <button type="button" class="logout-btn" (click)="logout()" id="logout-button">
-        <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-          <polyline points="16 17 21 12 16 7"></polyline>
-          <line x1="21" y1="12" x2="9" y2="12"></line>
-        </svg>
-        <span>Logout</span>
-      </button>
-    </div>
-  </header>
-
   <!-- Main Container -->
   <main class="page-container">
     <!-- Header Row -->
@@ -71,13 +8,9 @@
         <p>Executive Super Admin employee provisioning, role assignment, and sequential ID governance</p>
       </div>
 
-      <button
-        type="button"
-        class="create-emp-btn"
-        (click)="openCreateModal()"
-        id="btn-add-employee"
-      >
-        <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <button type="button" class="create-emp-btn" (click)="openCreateModal()" id="btn-add-employee">
+        <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none"
+          stroke-linecap="round" stroke-linejoin="round">
           <line x1="12" y1="5" x2="12" y2="19"></line>
           <line x1="5" y1="12" x2="19" y2="12"></line>
         </svg>
@@ -86,7 +19,8 @@
     </div>
 
     <!-- Toast / Alert Notification -->
-    <div class="alert-banner" [class.alert-success]="alertMessage()?.type === 'success'" [class.alert-error]="alertMessage()?.type === 'error'" *ngIf="alertMessage()">
+    <div class="alert-banner" [class.alert-success]="alertMessage()?.type === 'success'"
+      [class.alert-error]="alertMessage()?.type === 'error'" *ngIf="alertMessage()">
       <span>{{ alertMessage()?.text }}</span>
       <button type="button" class="alert-close" (click)="alertMessage.set(null)">✕</button>
     </div>
@@ -119,33 +53,21 @@
           <circle cx="11" cy="11" r="8"></circle>
           <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
         </svg>
-        <input
-          type="text"
-          placeholder="Search by Employee ID, Name, Email, or Mobile..."
-          [ngModel]="searchTerm()"
-          (ngModelChange)="searchTerm.set($event)"
-          id="user-search-input"
-        />
+        <input type="text" placeholder="Search by Employee ID, Name, Email, or Mobile..." [ngModel]="searchTerm()"
+          (ngModelChange)="searchTerm.set($event)" id="user-search-input" />
       </div>
 
       <!-- Filters Group -->
       <div class="filters-group">
         <!-- Role Filter Dropdown -->
-        <select
-          [ngModel]="selectedRoleFilter()"
-          (ngModelChange)="selectedRoleFilter.set($event)"
-          class="filter-select"
-        >
+        <select [ngModel]="selectedRoleFilter()" (ngModelChange)="selectedRoleFilter.set($event)" class="filter-select">
           <option value="ALL">All Roles</option>
           <option *ngFor="let role of systemRoles" [value]="role">{{ role }}</option>
         </select>
 
         <!-- Status Filter Dropdown -->
-        <select
-          [ngModel]="selectedStatusFilter()"
-          (ngModelChange)="selectedStatusFilter.set($event)"
-          class="filter-select"
-        >
+        <select [ngModel]="selectedStatusFilter()" (ngModelChange)="selectedStatusFilter.set($event)"
+          class="filter-select">
           <option value="ALL">All Status</option>
           <option value="ACTIVE">Active Only</option>
           <option value="INACTIVE">Inactive Only</option>
@@ -193,19 +115,15 @@
                 {{ u.mobile || '—' }}
               </td>
               <td>
-                <span
-                  class="role-badge"
-                  [class.badge-super]="u.role === 'SUPER_ADMIN'"
-                  [class.badge-admin]="u.role === 'ADMIN'"
-                  [class.badge-op]="u.role === 'OPERATOR'"
-                  [class.badge-store]="u.role === 'STORE_MANAGER'"
-                  [class.badge-mgr]="u.role === 'MANAGER'"
-                >
+                <span class="role-badge" [class.badge-super]="u.role === 'SUPER_ADMIN'"
+                  [class.badge-admin]="u.role === 'ADMIN'" [class.badge-op]="u.role === 'OPERATOR'"
+                  [class.badge-store]="u.role === 'STORE_MANAGER'" [class.badge-mgr]="u.role === 'MANAGER'">
                   {{ u.role === 'SUPER_ADMIN' ? '👑 ' : '' }}{{ u.role }}
                 </span>
               </td>
               <td>
-                <span class="status-pill" [class.status-pill-active]="u.isActive" [class.status-pill-inactive]="!u.isActive">
+                <span class="status-pill" [class.status-pill-active]="u.isActive"
+                  [class.status-pill-inactive]="!u.isActive">
                   <span class="status-dot"></span>
                   {{ u.isActive ? 'Active' : 'Disabled' }}
                 </span>
@@ -216,34 +134,19 @@
               <td class="text-right">
                 <div class="actions-cell">
                   <!-- Toggle Status (Deactivate / Activate) -->
-                  <button
-                    type="button"
-                    class="action-btn"
-                    [class.btn-deact]="u.isActive"
-                    [class.btn-act]="!u.isActive"
-                    (click)="toggleUserStatus(u)"
-                    [title]="u.isActive ? 'Deactivate Account' : 'Activate Account'"
-                  >
+                  <button type="button" class="action-btn" [class.btn-deact]="u.isActive" [class.btn-act]="!u.isActive"
+                    (click)="toggleUserStatus(u)" [title]="u.isActive ? 'Deactivate Account' : 'Activate Account'">
                     {{ u.isActive ? 'Deactivate' : 'Activate' }}
                   </button>
 
                   <!-- Change Role -->
-                  <button
-                    type="button"
-                    class="action-btn btn-role"
-                    (click)="openRoleModal(u)"
-                    title="Change Role"
-                  >
+                  <button type="button" class="action-btn btn-role" (click)="openRoleModal(u)" title="Change Role">
                     Role
                   </button>
 
                   <!-- Reset Password -->
-                  <button
-                    type="button"
-                    class="action-btn btn-pass"
-                    (click)="openPasswordModal(u)"
-                    title="Reset Password"
-                  >
+                  <button type="button" class="action-btn btn-pass" (click)="openPasswordModal(u)"
+                    title="Reset Password">
                     Reset Key
                   </button>
                 </div>
@@ -293,7 +196,8 @@
         </div>
 
         <!-- Full Name -->
-        <div class="form-group" [class.has-error]="createUserForm.get('name')?.invalid && createUserForm.get('name')?.touched">
+        <div class="form-group"
+          [class.has-error]="createUserForm.get('name')?.invalid && createUserForm.get('name')?.touched">
           <label for="newName">Full Name *</label>
           <div class="input-wrapper">
             <input id="newName" type="text" formControlName="name" placeholder="e.g. Ramesh Chandra" required />
@@ -304,7 +208,8 @@
         </div>
 
         <!-- Work Email -->
-        <div class="form-group" [class.has-error]="createUserForm.get('email')?.invalid && createUserForm.get('email')?.touched">
+        <div class="form-group"
+          [class.has-error]="createUserForm.get('email')?.invalid && createUserForm.get('email')?.touched">
           <label for="newEmail">Work Email Address *</label>
           <div class="input-wrapper">
             <input id="newEmail" type="email" formControlName="email" placeholder="e.g. ramesh@ricemill.com" required />
@@ -333,12 +238,14 @@
         </div>
 
         <!-- Initial Temporary Password -->
-        <div class="form-group" [class.has-error]="createUserForm.get('password')?.invalid && createUserForm.get('password')?.touched">
+        <div class="form-group"
+          [class.has-error]="createUserForm.get('password')?.invalid && createUserForm.get('password')?.touched">
           <label for="newPass">Initial Temporary Password *</label>
           <div class="input-wrapper">
             <input id="newPass" type="text" formControlName="password" required />
           </div>
-          <div class="field-error" *ngIf="createUserForm.get('password')?.invalid && createUserForm.get('password')?.touched">
+          <div class="field-error"
+            *ngIf="createUserForm.get('password')?.invalid && createUserForm.get('password')?.touched">
             Password must be at least 6 characters.
           </div>
         </div>
@@ -373,13 +280,15 @@
 
       <div class="modal-body">
         <p class="modal-desc">
-          Update the operational privileges for <strong>{{ selectedUserForRole()?.name }}</strong> ({{ selectedUserForRole()?.employeeId }}):
+          Update the operational privileges for <strong>{{ selectedUserForRole()?.name }}</strong> ({{
+          selectedUserForRole()?.employeeId }}):
         </p>
 
         <div class="form-group">
           <label for="editRoleSelect">Select New Role</label>
           <div class="input-wrapper">
-            <select id="editRoleSelect" [ngModel]="newRoleSelection()" (ngModelChange)="newRoleSelection.set($event)" class="select-input">
+            <select id="editRoleSelect" [ngModel]="newRoleSelection()" (ngModelChange)="newRoleSelection.set($event)"
+              class="select-input">
               <option *ngFor="let role of systemRoles" [value]="role">{{ role }}</option>
             </select>
           </div>
@@ -405,13 +314,15 @@
 
       <div class="modal-body">
         <p class="modal-desc">
-          Set a new temporary password for <strong>{{ selectedUserForPassword()?.name }}</strong> ({{ selectedUserForPassword()?.email }}):
+          Set a new temporary password for <strong>{{ selectedUserForPassword()?.name }}</strong> ({{
+          selectedUserForPassword()?.email }}):
         </p>
 
         <div class="form-group">
           <label for="resetPassInput">New Temporary Password</label>
           <div class="input-wrapper">
-            <input id="resetPassInput" type="text" [ngModel]="newPasswordInput()" (ngModelChange)="newPasswordInput.set($event)" />
+            <input id="resetPassInput" type="text" [ngModel]="newPasswordInput()"
+              (ngModelChange)="newPasswordInput.set($event)" />
           </div>
         </div>
 

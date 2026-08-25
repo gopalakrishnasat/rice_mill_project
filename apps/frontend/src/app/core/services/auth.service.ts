@@ -26,7 +26,7 @@ export class AuthService {
   // Reactive State with Angular Signals
   readonly currentUser = signal<IUser | null>(this.getStoredUser());
   readonly isAuthenticated = computed(() => !!this.currentUser());
-  readonly userRole = computed(() => this.currentUser()?.role ?? null);
+  readonly isSuperAdmin = computed(() => this.currentUser()?.role === UserRole.SUPER_ADMIN);
   readonly permissions = computed<Permission[]>(() => {
     const user = this.currentUser();
     if (!user) return [];

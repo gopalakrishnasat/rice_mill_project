@@ -1,0 +1,206 @@
+<div class="print-page">
+  <!-- Screen Control Bar (Hidden during Print) -->
+  <div class="print-control-bar no-print">
+    <div class="control-left">
+      <button type="button" class="btn-back" (click)="goBack()">← Back to Invoices</button>
+      <span class="doc-label">Tax Invoice: <strong>{{ invoice()?.invoiceNumber }}</strong></span>
+    </div>
+    <div class="control-actions">
+      <button
+        type="button"
+        class="btn-download-pdf"
+        (click)="downloadPdf()"
+        [disabled]="isGeneratingPdf()"
+        id="btn-download-pdf"
+      >
+        <span class="spinner-sm" *ngIf="isGeneratingPdf()"></span>
+        <span>⬇️ Download PDF</span>
+      </button>
+
+      <button type="button" class="btn-print-action" (click)="triggerPrint()" id="btn-print-action">
+        🖨️ Print Invoice
+      </button>
+    </div>
+  </div>
+
+  <!-- Main Invoice Document Sheet (A4 Printable) -->
+  <div class="printable-sheet" #invoiceSheet *ngIf="invoice()">
+    <!-- Devotional Header -->
+    <div class="devotional-header">
+      <span>|| Perantal Mata Prasana ||</span>
+      <span>|| Shree Ganeshya Namha ||</span>
+      <span>|| Shree Mukatai Prasana ||</span>
+    </div>
+
+    <!-- Mill Header -->
+    <div class="mill-header">
+      <div class="mill-title-group">
+        <h1 class="mill-name">SHREE LAXMINARAYAN RICE MILL</h1>
+        <p class="mill-address">Hivare Tarfe Narayangaon, Khodad Road, Tal:- Junnar, Dist:- Pune 410504</p>
+        <div class="mill-compliance">
+          <span><strong>GSTIN:</strong> 27ACHFS3445C1Z8</span>
+          <span><strong>FSSAI:</strong> 21526038000229</span>
+        </div>
+        <div class="mill-contact">
+          <span><strong>Mob:</strong> 9960186123 / 9970901007</span>
+          <span><strong>Email:</strong> slricemill&#64;gmail.com</span>
+        </div>
+      </div>
+
+      <div class="copy-box">
+        <label><input type="checkbox" checked disabled /> Original for Recipient</label>
+        <label><input type="checkbox" disabled /> Duplicate for transporter</label>
+        <label><input type="checkbox" disabled /> Triplicate for suppliers</label>
+      </div>
+    </div>
+
+    <!-- Maroon Banner -->
+    <div class="tax-invoice-banner">
+      <span>{{ invoice()?.invoiceType === 'TAX_INVOICE' ? 'Tax Invoice' : 'Bill Invoice / Delivery Challan' }}</span>
+    </div>
+
+    <!-- Meta Grid -->
+    <div class="invoice-meta-grid">
+      <div class="bill-to-box">
+        <span class="meta-label">Bill To:</span>
+        <strong class="buyer-company">{{ invoice()?.customerSnapshot?.companyName }}</strong>
+        <p class="buyer-address-text">
+          {{ invoice()?.customerSnapshot?.billingAddress?.line1 }}<br />
+          <span *ngIf="invoice()?.customerSnapshot?.billingAddress?.line2">{{ invoice()?.customerSnapshot?.billingAddress?.line2 }}<br /></span>
+          {{ invoice()?.customerSnapshot?.billingAddress?.city }} - {{ invoice()?.customerSnapshot?.billingAddress?.pincode }}
+        </p>
+        <p class="buyer-gst" *ngIf="invoice()?.customerSnapshot?.gstin">
+          <strong>GSTIN:</strong> {{ invoice()?.customerSnapshot?.gstin }}
+        </p>
+        <p class="buyer-gst">
+          <strong>Mobile:</strong> {{ invoice()?.customerSnapshot?.mobile }}
+        </p>
+      </div>
+
+      <div class="invoice-specs-box">
+        <table class="specs-table">
+          <tr>
+            <th>Invoice No</th>
+            <td><strong>{{ invoice()?.invoiceNumber }}</strong></td>
+          </tr>
+          <tr>
+            <th>Date</th>
+            <td>{{ invoice()?.invoiceDate | date:'dd MMM yyyy' }}</td>
+          </tr>
+          <tr>
+            <th>Reference</th>
+            <td>{{ invoice()?.reference || '—' }}</td>
+          </tr>
+          <tr>
+            <th>Transport Details</th>
+            <td>{{ invoice()?.transportDetails || '—' }}</td>
+          </tr>
+          <tr>
+            <th>Vehicle No</th>
+            <td><strong class="vehicle-no-text">{{ invoice()?.vehicleNumber || '—' }}</strong></td>
+          </tr>
+        </table>
+      </div>
+    </div>
+
+    <!-- Items Table -->
+    <table class="bill-items-table">
+      <thead>
+        <tr>
+          <th class="col-desc">Items Table / Description</th>
+          <th class="col-hsn">HSN</th>
+          <th class="col-qty">Qty</th>
+          <th class="col-rate">Rate (₹)</th>
+          <th class="col-amt">Amount (₹)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let item of invoice()?.items">
+          <td class="col-desc"><strong>{{ item.description }}</strong></td>
+          <td class="col-hsn">{{ item.hsnCode }}</td>
+          <td class="col-qty">{{ item.qty }} {{ item.unit }}</td>
+          <td class="col-rate">{{ item.rate | number:'1.2-2' }}</td>
+          <td class="col-amt font-bold">{{ item.amount | number:'1.2-2' }}</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- Transport Summary Bar -->
+    <div class="transport-summary-bar" *ngIf="(invoice()?.transportCharges || 0) > 0 || (invoice()?.hamaliCharges || 0) > 0">
+      <span class="bar-title">Transport & Handling Charges</span>
+      <span>Freight: ₹{{ (invoice()?.transportCharges || 0) | number:'1.2-2' }}</span>
+      <span>Hamali / Loading: ₹{{ (invoice()?.hamaliCharges || 0) | number:'1.2-2' }}</span>
+      <span class="bar-total">Total: ₹{{ ((invoice()?.transportCharges || 0) + (invoice()?.hamaliCharges || 0)) | number:'1.2-2' }}</span>
+    </div>
+
+    <!-- Calculation & Bank Box -->
+    <div class="tax-calculation-block">
+      <div class="bank-details-box">
+        <span class="box-title">Bank Account Details (Supplier)</span>
+        <p><strong>Bank:</strong> {{ invoice()?.bankDetails?.bankName }}</p>
+        <p><strong>A/C No:</strong> {{ invoice()?.bankDetails?.accountNo }}</p>
+        <p><strong>IFSC Code:</strong> {{ invoice()?.bankDetails?.ifsc }}</p>
+        <p><strong>Branch:</strong> {{ invoice()?.bankDetails?.branch }}</p>
+        <p><strong>UPI ID:</strong> {{ invoice()?.bankDetails?.upiId }}</p>
+      </div>
+
+      <div class="totals-table-box">
+        <table class="totals-table">
+          <tr>
+            <th>Sub Total</th>
+            <td>₹{{ invoice()?.subTotal | number:'1.2-2' }}</td>
+          </tr>
+          <tr *ngIf="(invoice()?.transportCharges || 0) > 0 || (invoice()?.hamaliCharges || 0) > 0">
+            <th>Transport & Handling</th>
+            <td>₹{{ ((invoice()?.transportCharges || 0) + (invoice()?.hamaliCharges || 0)) | number:'1.2-2' }}</td>
+          </tr>
+          <tr *ngIf="(invoice()?.discount || 0) > 0">
+            <th>Discount</th>
+            <td>-₹{{ invoice()?.discount | number:'1.2-2' }}</td>
+          </tr>
+          <tr *ngIf="invoice()?.invoiceType === 'TAX_INVOICE' && !invoice()?.isInterState">
+            <th>SGST (2.5%)</th>
+            <td>₹{{ invoice()?.sgstAmount | number:'1.2-2' }}</td>
+          </tr>
+          <tr *ngIf="invoice()?.invoiceType === 'TAX_INVOICE' && !invoice()?.isInterState">
+            <th>CGST (2.5%)</th>
+            <td>₹{{ invoice()?.cgstAmount | number:'1.2-2' }}</td>
+          </tr>
+          <tr *ngIf="invoice()?.invoiceType === 'TAX_INVOICE' && invoice()?.isInterState">
+            <th>IGST (5.0%)</th>
+            <td>₹{{ invoice()?.igstAmount | number:'1.2-2' }}</td>
+          </tr>
+          <tr class="grand-total-row">
+            <th>Total Amount</th>
+            <td>₹{{ invoice()?.totalAmount | number:'1.2-2' }}</td>
+          </tr>
+        </table>
+      </div>
+    </div>
+
+    <!-- Amount in Words -->
+    <div class="amount-words-box">
+      <strong>Amount in Words:</strong> {{ invoice()?.totalAmountWords }}
+    </div>
+
+    <!-- Terms and Signatory Footer -->
+    <div class="bill-footer-row">
+      <div class="footer-left">
+        <span class="terms-title">Terms & Conditions:</span>
+        <span>1. Goods once sold will not be taken back.</span>
+        <span>2. Interest @ 18% p.a. will be charged if bill is not paid on due date.</span>
+        <span>3. Subject to Pune jurisdiction.</span>
+      </div>
+      <div class="footer-sign">
+        <span>For Shree Laxminarayan Rice Mill</span>
+        <div class="sign-space"></div>
+        <strong>Authorized Signature</strong>
+      </div>
+    </div>
+  </div>
+
+  <div class="loading-state" *ngIf="isLoading()">
+    <span class="spinner"></span>
+    <p>Loading invoice for printing...</p>
+  </div>
+</div>

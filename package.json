@@ -69,14 +69,18 @@
     "@nestjs/mongoose": "^11.0.4",
     "@nestjs/passport": "^11.0.5",
     "@nestjs/platform-express": "^11.0.0",
+    "@types/pdfkit": "^0.17.6",
     "axios": "^1.6.0",
     "bcrypt": "^6.0.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.15.1",
     "dotenv": "^17.4.2",
+    "html2canvas": "^1.4.1",
+    "jspdf": "^4.2.1",
     "mongoose": "^9.9.3",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
+    "pdfkit": "^0.20.1",
     "reflect-metadata": "^0.2.0",
     "rxjs": "~7.8.0"
   }
