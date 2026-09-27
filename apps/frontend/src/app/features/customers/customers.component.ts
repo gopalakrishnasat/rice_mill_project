@@ -117,8 +117,8 @@ export class CustomersComponent implements OnInit {
       state: ['Maharashtra', [Validators.required]],
       stateCode: ['27', [Validators.required]],
       pincode: ['', [Validators.required, Validators.pattern(/^\d{6}$/)]],
-      openingBalance: [0, [Validators.min(0)]],
-      creditLimit: [0, [Validators.min(0)]],
+      // openingBalance: [0, [Validators.min(0)]],
+      // creditLimit: [0, [Validators.min(0)]],
       notes: [''],
     });
   }
@@ -146,8 +146,8 @@ export class CustomersComponent implements OnInit {
     this.createCustomerForm.reset({
       state: 'Maharashtra',
       stateCode: '27',
-      openingBalance: 0,
-      creditLimit: 0,
+      // openingBalance: 0,
+      // creditLimit: 0,
     });
     this.customersService.getNextCustomerCode().subscribe({
       next: (code) => this.autoCustomerCode.set(code),
@@ -182,8 +182,8 @@ export class CustomersComponent implements OnInit {
         stateCode: val.stateCode,
         pincode: val.pincode,
       },
-      openingBalance: Number(val.openingBalance) || 0,
-      creditLimit: Number(val.creditLimit) || 0,
+      // openingBalance: Number(val.openingBalance) || 0,
+      // creditLimit: Number(val.creditLimit) || 0,
       notes: val.notes || undefined,
     };
 

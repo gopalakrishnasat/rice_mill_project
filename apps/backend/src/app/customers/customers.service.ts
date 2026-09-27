@@ -102,7 +102,9 @@ export class CustomersService {
       );
     }
 
-    const openingBalance = dto.openingBalance ?? 0;
+    // Opening Balance and Credit Limit are omitted from new buyer registration
+    // const openingBalance = dto.openingBalance ?? 0;
+    const openingBalance = 0;
 
     const newCustomer = new this.customerModel({
       customerCode: finalCode,
@@ -114,9 +116,11 @@ export class CustomersService {
       pan: dto.pan?.toUpperCase().trim(),
       billingAddress: dto.billingAddress,
       shippingAddress: dto.shippingAddress || dto.billingAddress,
-      creditLimit: dto.creditLimit ?? 0,
-      openingBalance,
-      currentBalance: openingBalance,
+      // creditLimit: dto.creditLimit ?? 0,
+      creditLimit: 0,
+      // openingBalance,
+      openingBalance: 0,
+      currentBalance: 0,
       totalBilled: 0,
       totalPaid: 0,
       isActive: true,

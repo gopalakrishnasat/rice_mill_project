@@ -254,8 +254,8 @@ export interface CreateCustomerDto {
   pan?: string;
   billingAddress: ICustomerAddress;
   shippingAddress?: ICustomerAddress;
-  creditLimit?: number;
-  openingBalance?: number;
+  // creditLimit?: number;
+  // openingBalance?: number;
   notes?: string;
 }
 

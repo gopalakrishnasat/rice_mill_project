@@ -1,2 +1,12 @@
-<app-header *ngIf="showHeader()"></app-header>
-<router-outlet></router-outlet>
+<div class="app-root-layout">
+  <!-- Full-Width Top Header (Contains Brand Logo & User Profile) -->
+  <app-header *ngIf="showNavigation()"></app-header>
+
+  <!-- Main Body Layout: Sidebar is below the header on the left -->
+  <div class="app-body-layout" [class.has-sidebar]="showNavigation()" [class.sidebar-collapsed]="isSidebarCollapsed()">
+    <app-sidebar *ngIf="showNavigation()"></app-sidebar>
+    <main class="main-content-area">
+      <router-outlet></router-outlet>
+    </main>
+  </div>
+</div>

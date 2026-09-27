@@ -1,0 +1,26 @@
+.app-root-layout {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--bg-main, #f5f8f5);
+  width: 100%;
+}
+
+.app-body-layout {
+  flex: 1;
+  display: flex;
+  min-height: calc(100vh - 72px);
+  width: 100%;
+  position: relative;
+
+  .main-content-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    width: 100%;
+    position: relative;
+    background-color: var(--bg-main, #f5f8f5);
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+}

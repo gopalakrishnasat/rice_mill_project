@@ -75,13 +75,13 @@ export class CreateCustomerDto {
   @IsOptional()
   shippingAddress?: CustomerAddressDto;
 
-  @IsNumber()
-  @IsOptional()
-  creditLimit?: number;
+  // @IsNumber()
+  // @IsOptional()
+  // creditLimit?: number;
 
-  @IsNumber()
-  @IsOptional()
-  openingBalance?: number;
+  // @IsNumber()
+  // @IsOptional()
+  // openingBalance?: number;
 
   @IsString()
   @IsOptional()

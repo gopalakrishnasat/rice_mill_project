@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
@@ -16,7 +16,25 @@ export class HeaderComponent {
   readonly currentUser = this.authService.currentUser;
   readonly isSuperAdmin = this.authService.isSuperAdmin;
 
-  logout(): void {
+  readonly showLogoutModal = signal<boolean>(false);
+
+  openLogoutModal(): void {
+    this.showLogoutModal.set(true);
+  }
+
+  cancelLogout(): void {
+    this.showLogoutModal.set(false);
+  }
+
+  confirmLogout(): void {
+    this.showLogoutModal.set(false);
     this.authService.logout();
+  }
+
+  @HostListener('window:keydown.escape')
+  handleEscapeKey(): void {
+    if (this.showLogoutModal()) {
+      this.cancelLogout();
+    }
   }
 }

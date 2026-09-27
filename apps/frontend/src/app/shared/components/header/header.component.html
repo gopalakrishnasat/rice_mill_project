@@ -1,5 +1,6 @@
 <header class="topbar">
-  <div class="brand-left">
+  <!-- Left Side: Brand Logo & Mill Title (Fixed in Header) -->
+  <div class="brand-left" routerLink="/dashboard">
     <div class="logo-circle">
       <svg viewBox="0 0 48 48" fill="none" width="28" height="28" xmlns="http://www.w3.org/2000/svg">
         <circle cx="24" cy="24" r="22" stroke="#d49b28" stroke-width="2.5" stroke-dasharray="4 2" />
@@ -11,70 +12,9 @@
       <h3>SHREE LAXMINARAYAN RICE MILL</h3>
       <span>Operations Hub</span>
     </div>
-
-    <!-- Navigation Links -->
-    <nav class="nav-links">
-      <a
-        routerLink="/dashboard"
-        routerLinkActive="active"
-        [routerLinkActiveOptions]="{ exact: true }"
-        class="nav-item"
-        id="nav-dashboard"
-      >
-        <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
-          <rect x="3" y="3" width="7" height="7"></rect>
-          <rect x="14" y="3" width="7" height="7"></rect>
-          <rect x="14" y="14" width="7" height="7"></rect>
-          <rect x="3" y="14" width="7" height="7"></rect>
-        </svg>
-        <span>Dashboard</span>
-      </a>
-
-      <a
-        routerLink="/invoices"
-        routerLinkActive="active"
-        class="nav-item"
-        id="nav-invoices"
-      >
-        <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
-          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-          <polyline points="14 2 14 8 20 8"></polyline>
-          <line x1="16" y1="13" x2="8" y2="13"></line>
-          <line x1="16" y1="17" x2="8" y2="17"></line>
-        </svg>
-        <span>Invoices & Billing</span>
-      </a>
-
-      <a
-        routerLink="/customers"
-        routerLinkActive="active"
-        class="nav-item"
-        id="nav-customers"
-      >
-        <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
-          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-          <circle cx="9" cy="7" r="4"></circle>
-          <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-          <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-        </svg>
-        <span>Buyers & Customers</span>
-      </a>
-
-      <a
-        routerLink="/users"
-        routerLinkActive="active"
-        class="nav-item"
-        *ngIf="isSuperAdmin()"
-        id="nav-users"
-      >
-        <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
-          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-        </svg>
-        <span>User Directory</span>
-      </a>
-    </nav>
   </div>
 
+  <!-- Right Side: User Profile & Logout -->
   <div class="topbar-right" *ngIf="currentUser()">
     <div class="user-badge-container">
       <div class="user-avatar" [class.avatar-super]="isSuperAdmin()">
@@ -89,7 +29,13 @@
       </div>
     </div>
 
-    <button type="button" class="logout-btn" (click)="logout()" id="header-logout-btn">
+    <button
+      type="button"
+      class="logout-btn"
+      (click)="openLogoutModal()"
+      id="header-logout-btn"
+      title="Sign out of system"
+    >
       <svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" stroke-width="2" fill="none">
         <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
         <polyline points="16 17 21 12 16 7"></polyline>
@@ -99,3 +45,69 @@
     </button>
   </div>
 </header>
+
+<!-- Logout Confirmation Modal Backdrop & Dialog -->
+<div
+  class="modal-backdrop"
+  *ngIf="showLogoutModal()"
+  (click)="cancelLogout()"
+>
+  <div
+    class="modal-card"
+    (click)="$event.stopPropagation()"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="logout-modal-title"
+  >
+    <div class="modal-icon-badge">
+      <svg viewBox="0 0 24 24" width="28" height="28" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+        <polyline points="16 17 21 12 16 7"></polyline>
+        <line x1="21" y1="12" x2="9" y2="12"></line>
+      </svg>
+    </div>
+
+    <div class="modal-header-text">
+      <h3 id="logout-modal-title">Confirm Sign Out</h3>
+      <p>Are you sure you want to end your current session? You will need to log in again to access the ERP.</p>
+    </div>
+
+    <!-- Active User Session Info -->
+    <div class="modal-user-preview" *ngIf="currentUser()">
+      <div class="preview-avatar" [class.avatar-super]="isSuperAdmin()">
+        {{ currentUser()?.name?.charAt(0) || 'U' }}
+      </div>
+      <div class="preview-meta">
+        <div class="preview-name-row">
+          <span class="preview-name">{{ currentUser()?.name }}</span>
+          <span class="preview-emp" *ngIf="currentUser()?.employeeId">({{ currentUser()?.employeeId }})</span>
+        </div>
+        <span class="preview-role" [class.role-super]="isSuperAdmin()">{{ currentUser()?.role }}</span>
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button
+        type="button"
+        class="btn-cancel"
+        (click)="cancelLogout()"
+        id="cancel-logout-btn"
+      >
+        Cancel
+      </button>
+      <button
+        type="button"
+        class="btn-confirm"
+        (click)="confirmLogout()"
+        id="confirm-logout-btn"
+      >
+        <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+          <polyline points="16 17 21 12 16 7"></polyline>
+          <line x1="21" y1="12" x2="9" y2="12"></line>
+        </svg>
+        <span>Yes, Sign Out</span>
+      </button>
+    </div>
+  </div>
+</div>
