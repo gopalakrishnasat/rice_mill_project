@@ -2,14 +2,13 @@ import {
   Injectable,
   ConflictException,
   NotFoundException,
-  BadRequestException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Customer, CustomerDocument } from './schemas/customer.schema';
 import { CreateCustomerDto } from './dto/create-customer.dto';
 import { UpdateCustomerDto } from './dto/update-customer.dto';
-import { IUser, ICustomerLedgerEntry } from '@rice-mill-project/shared-types';
+import { IUser } from '@rice-mill-project/shared-types';
 import { AuditService } from '../common/audit/audit.service';
 
 @Injectable()
@@ -104,7 +103,6 @@ export class CustomersService {
 
     // Opening Balance and Credit Limit are omitted from new buyer registration
     // const openingBalance = dto.openingBalance ?? 0;
-    const openingBalance = 0;
 
     const newCustomer = new this.customerModel({
       customerCode: finalCode,

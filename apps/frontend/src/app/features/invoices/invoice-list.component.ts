@@ -18,8 +18,6 @@ import { InvoicesService } from '../../core/services/invoices.service';
 import { AuthService } from '../../core/services/auth.service';
 import {
   IInvoice,
-  InvoiceStatus,
-  PaymentStatus,
   PaymentMode,
   RecordPaymentDto,
 } from '@rice-mill-project/shared-types';
@@ -157,7 +155,7 @@ export class InvoiceListComponent implements OnInit {
     const inv = this.selectedInvoiceForPayment()!;
     this.isSubmitting.set(true);
     this.invoicesService.recordPayment(inv.id, dto).subscribe({
-      next: (res) => {
+      next: () => {
         this.isSubmitting.set(false);
         this.closePaymentModal();
         this.showAlert(

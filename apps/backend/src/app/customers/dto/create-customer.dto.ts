@@ -3,9 +3,7 @@ import {
   IsNotEmpty,
   IsOptional,
   IsEmail,
-  IsNumber,
   ValidateNested,
-  IsBoolean,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ICustomerAddress } from '@rice-mill-project/shared-types';

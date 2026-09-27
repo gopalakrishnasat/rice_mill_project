@@ -35,9 +35,12 @@ export class AuthService {
 
   constructor() {
     if (this.getToken()) {
+      // Validate/sync profile in the background; only logout if token is explicitly 401 unauthorized
       this.fetchProfile().subscribe({
-        error: () => {
-          this.logout(false);
+        error: (err) => {
+          if (err?.status === 401) {
+            this.logout(true);
+          }
         },
       });
     }

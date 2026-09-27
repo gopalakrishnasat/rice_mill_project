@@ -6,7 +6,7 @@ import { Injectable } from '@angular/core';
 export class PdfExportService {
   async downloadElementAsPdf(
     element: HTMLElement,
-    filename: string = 'Invoice.pdf',
+    filename = 'Invoice.pdf',
   ): Promise<void> {
     const html2canvas = (await import('html2canvas')).default;
     const { jsPDF } = await import('jspdf');

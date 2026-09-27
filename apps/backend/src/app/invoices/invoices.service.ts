@@ -1,7 +1,6 @@
 import {
   Injectable,
   NotFoundException,
-  BadRequestException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
@@ -80,10 +79,10 @@ export class InvoicesService {
 
   calculateTotals(
     items: any[],
-    transportCharges: number = 0,
-    hamaliCharges: number = 0,
-    discount: number = 0,
-    isInterState: boolean = false,
+    transportCharges = 0,
+    hamaliCharges = 0,
+    discount = 0,
+    isInterState = false,
     invoiceType: InvoiceType = InvoiceType.TAX_INVOICE,
   ) {
     let subTotal = 0;

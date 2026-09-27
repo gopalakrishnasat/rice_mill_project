@@ -20,7 +20,6 @@ import { CustomersService } from '../../core/services/customers.service';
 import { ProductsService } from '../../core/services/products.service';
 import { AuthService } from '../../core/services/auth.service';
 import {
-  IInvoice,
   ICustomer,
   IProduct,
   InvoiceType,
@@ -366,7 +365,7 @@ export class InvoiceCreateComponent implements OnInit {
     });
   }
 
-  saveInvoice(andPrint: boolean = false): void {
+  saveInvoice(andPrint = false): void {
     if (this.invoiceForm.invalid) {
       this.invoiceForm.markAllAsTouched();
       this.showAlert('error', 'Please complete all required fields (*).');

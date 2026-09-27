@@ -1,3 +1,12 @@
+:host {
+  display: block;
+  height: 72px;
+  width: 100%;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 1000;
+}
+
 .topbar {
   display: flex;
   align-items: center;
@@ -5,10 +14,12 @@
   padding: 0 2rem;
   background-color: #ffffff;
   border-bottom: 1px solid var(--border-light, #e2e8f0);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
-  position: sticky;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  position: fixed;
   top: 0;
-  z-index: 50;
+  left: 0;
+  right: 0;
+  z-index: 1000;
   font-family: inherit;
   height: 72px;
   box-sizing: border-box;
@@ -171,7 +182,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: 2000;
   animation: fadeIn 0.15s ease-out;
 }
 
