@@ -1,9 +1,13 @@
 import {
   Component,
   OnInit,
+  OnDestroy,
   signal,
   computed,
   inject,
+  ElementRef,
+  ViewChild,
+  HostListener,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router, ActivatedRoute } from '@angular/router';
@@ -15,10 +19,19 @@ import {
   Validators,
   FormsModule,
 } from '@angular/forms';
+import { Subject, of } from 'rxjs';
+import {
+  debounceTime,
+  distinctUntilChanged,
+  switchMap,
+  takeUntil,
+  catchError,
+} from 'rxjs/operators';
 import { InvoicesService } from '../../core/services/invoices.service';
 import { CustomersService } from '../../core/services/customers.service';
 import { ProductsService } from '../../core/services/products.service';
 import { AuthService } from '../../core/services/auth.service';
+import { SnackbarService } from '../../core/services/snackbar.service';
 import {
   ICustomer,
   IProduct,
@@ -36,12 +49,13 @@ import {
   templateUrl: './invoice-create.component.html',
   styleUrls: ['./invoice-create.component.scss'],
 })
-export class InvoiceCreateComponent implements OnInit {
+export class InvoiceCreateComponent implements OnInit, OnDestroy {
   private readonly fb = inject(FormBuilder);
   private readonly invoicesService = inject(InvoicesService);
   private readonly customersService = inject(CustomersService);
   private readonly productsService = inject(ProductsService);
   private readonly authService = inject(AuthService);
+  private readonly snackbarService = inject(SnackbarService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
 
@@ -60,14 +74,56 @@ export class InvoiceCreateComponent implements OnInit {
   readonly isLoading = signal<boolean>(false);
   readonly alertMessage = signal<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  // Quick Add Customer Modal
-  readonly showQuickCustomerModal = signal<boolean>(false);
-  readonly autoQuickCustomerCode = signal<string>('CUST-001');
-  quickCustomerForm!: FormGroup;
+  // Buyer Searchable Dropdown state
+  readonly isBuyerDropdownOpen = signal<boolean>(false);
+  readonly buyerFilterSearch = signal<string>('');
+  readonly isSearchingBuyers = signal<boolean>(false);
+  readonly searchedCustomers = signal<ICustomer[]>([]);
+  private readonly buyerFilterSearch$ = new Subject<string>();
+  private readonly destroy$ = new Subject<void>();
+
+  @ViewChild('buyerFilterInput') buyerFilterInputRef?: ElementRef<HTMLInputElement>;
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent): void {
+    const target = event.target as HTMLElement;
+    if (!target.closest('.buyer-dropdown-container')) {
+      this.isBuyerDropdownOpen.set(false);
+    }
+  }
+
+  // Full Buyer Registration Modal
+  readonly showRegisterBuyerModal = signal<boolean>(false);
+  readonly autoCustomerCode = signal<string>('CUST-001');
+  registerBuyerForm!: FormGroup;
 
   // Invoice Form & Live Reactive Form Value Signal
   invoiceForm!: FormGroup;
   readonly formValue = signal<any>({});
+
+  // Computed displayed customers: combines loaded list and backend search results
+  readonly displayedCustomers = computed(() => {
+    const term = this.buyerFilterSearch().trim().toLowerCase();
+    const searched = this.searchedCustomers();
+
+    if (term.length > 0 && searched.length > 0) {
+      return searched;
+    }
+
+    if (!term) {
+      return this.customers();
+    }
+
+    // Instant local filtering fallback
+    return this.customers().filter((c) => {
+      const codeMatch = c.customerCode?.toLowerCase().includes(term);
+      const nameMatch = c.companyName?.toLowerCase().includes(term);
+      const cityMatch = c.billingAddress?.city?.toLowerCase().includes(term);
+      const phoneMatch = c.mobile?.includes(term);
+      const gstMatch = c.gstin?.toLowerCase().includes(term);
+      return !!(codeMatch || nameMatch || cityMatch || phoneMatch || gstMatch);
+    });
+  });
 
   // Computed Live Values for WYSIWYG Bill Preview
   readonly liveItems = computed(() => {
@@ -146,6 +202,7 @@ export class InvoiceCreateComponent implements OnInit {
   ngOnInit(): void {
     this.initForms();
     this.loadCatalogData();
+    this.setupBuyerFilterPipeline();
 
     // Check if edit mode or preselected customer
     this.route.paramMap.subscribe((params) => {
@@ -162,6 +219,14 @@ export class InvoiceCreateComponent implements OnInit {
       if (custId && !this.isEditMode()) {
         this.invoiceForm.get('customerId')?.setValue(custId);
         this.formValue.set(this.invoiceForm.value);
+        if (!this.customers().some((c) => c.id === custId)) {
+          this.customersService.getCustomerById(custId).subscribe({
+            next: (c) => {
+              this.customers.update((prev) => [c, ...prev]);
+              this.formValue.set(this.invoiceForm.value);
+            },
+          });
+        }
       }
     });
   }
@@ -191,16 +256,20 @@ export class InvoiceCreateComponent implements OnInit {
     // Start with 1 blank item row (no prefilled data)
     this.addItemRow();
 
-    this.quickCustomerForm = this.fb.group({
-      companyName: ['', [Validators.required]],
+    this.registerBuyerForm = this.fb.group({
+      companyName: ['', [Validators.required, Validators.minLength(2)]],
       contactPerson: [''],
       mobile: ['', [Validators.required, Validators.minLength(10)]],
+      email: ['', [Validators.email]],
       gstin: [''],
-      city: ['Pune', [Validators.required]],
-      line1: ['Market Road', [Validators.required]],
+      pan: [''],
+      line1: ['', [Validators.required]],
+      line2: [''],
+      city: ['', [Validators.required]],
       state: ['Maharashtra', [Validators.required]],
       stateCode: ['27', [Validators.required]],
-      pincode: ['411001', [Validators.required]],
+      pincode: ['', [Validators.required, Validators.pattern(/^\d{6}$/)]],
+      notes: [''],
     });
   }
 
@@ -273,6 +342,18 @@ export class InvoiceCreateComponent implements OnInit {
     this.invoicesService.getInvoiceById(id).subscribe({
       next: (inv) => {
         this.isLoading.set(false);
+
+        if (inv.paymentStatus === 'PAID') {
+          this.showAlert(
+            'error',
+            `Invoice ${inv.invoiceNumber} is FULLY PAID and cannot be edited because payments are already settled.`,
+          );
+          setTimeout(() => {
+            this.router.navigate(['/invoices']);
+          }, 2500);
+          return;
+        }
+
         this.autoInvoiceNumber.set(inv.invoiceNumber);
 
         // Clear default item
@@ -299,6 +380,17 @@ export class InvoiceCreateComponent implements OnInit {
           notes: inv.notes || '',
         });
 
+        // Ensure customer details are loaded if not in list
+        if (inv.customerId && !this.customers().some((c) => c.id === inv.customerId)) {
+          this.customersService.getCustomerById(inv.customerId).subscribe({
+            next: (c) => {
+              this.customers.update((prev) => [c, ...prev]);
+              this.formValue.set(this.invoiceForm.value);
+            },
+            error: (err) => console.warn('Could not fetch customer details for edit:', err),
+          });
+        }
+
         this.formValue.set(this.invoiceForm.value);
       },
       error: () => {
@@ -308,59 +400,78 @@ export class InvoiceCreateComponent implements OnInit {
     });
   }
 
-  openQuickCustomerModal(): void {
-    this.quickCustomerForm.reset({
-      city: 'Pune',
-      line1: 'Market Road',
+  openRegisterBuyerModal(prefillName?: string): void {
+    this.closeBuyerDropdown();
+    this.registerBuyerForm.reset({
+      companyName: prefillName?.trim() || '',
+      contactPerson: '',
+      mobile: '',
+      email: '',
+      gstin: '',
+      pan: '',
+      line1: '',
+      line2: '',
+      city: '',
       state: 'Maharashtra',
       stateCode: '27',
-      pincode: '411001',
+      pincode: '',
+      notes: '',
     });
     this.customersService.getNextCustomerCode().subscribe({
-      next: (c) => this.autoQuickCustomerCode.set(c),
+      next: (c) => this.autoCustomerCode.set(c),
+      error: () => this.autoCustomerCode.set('CUST-001'),
     });
-    this.showQuickCustomerModal.set(true);
+    this.showRegisterBuyerModal.set(true);
   }
 
-  closeQuickCustomerModal(): void {
-    this.showQuickCustomerModal.set(false);
+  closeRegisterBuyerModal(): void {
+    this.showRegisterBuyerModal.set(false);
   }
 
-  onQuickCustomerSubmit(): void {
-    if (this.quickCustomerForm.invalid) {
-      this.quickCustomerForm.markAllAsTouched();
+  onRegisterBuyerSubmit(): void {
+    if (this.registerBuyerForm.invalid) {
+      this.registerBuyerForm.markAllAsTouched();
       return;
     }
 
-    const val = this.quickCustomerForm.value;
+    const val = this.registerBuyerForm.value;
     const dto: CreateCustomerDto = {
-      customerCode: this.autoQuickCustomerCode(),
+      customerCode: this.autoCustomerCode(),
       companyName: val.companyName,
-      contactPerson: val.contactPerson,
+      contactPerson: val.contactPerson || undefined,
       mobile: val.mobile,
+      email: val.email || undefined,
       gstin: val.gstin || undefined,
+      pan: val.pan || undefined,
       billingAddress: {
         line1: val.line1,
+        line2: val.line2 || undefined,
         city: val.city,
         state: val.state,
         stateCode: val.stateCode,
         pincode: val.pincode,
       },
+      notes: val.notes || undefined,
     };
 
     this.isSubmitting.set(true);
     this.customersService.createCustomer(dto).subscribe({
       next: (newCust) => {
         this.isSubmitting.set(false);
-        this.closeQuickCustomerModal();
+        this.closeRegisterBuyerModal();
         this.customers.update((prev) => [...prev, newCust]);
         this.invoiceForm.get('customerId')?.setValue(newCust.id);
+        this.invoiceForm.get('customerId')?.markAsDirty();
+        this.invoiceForm.get('customerId')?.markAsTouched();
         this.formValue.set(this.invoiceForm.value);
-        this.showAlert('success', `Buyer "${newCust.companyName}" added and selected!`);
+        this.showAlert(
+          'success',
+          `Buyer "${newCust.companyName}" (${newCust.customerCode}) registered and selected!`,
+        );
       },
       error: (err) => {
         this.isSubmitting.set(false);
-        this.showAlert('error', err.error?.message || 'Failed to add buyer.');
+        this.showAlert('error', err.error?.message || 'Failed to register buyer.');
       },
     });
   }
@@ -452,12 +563,126 @@ export class InvoiceCreateComponent implements OnInit {
     }
   }
 
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
+  private setupBuyerFilterPipeline(): void {
+    this.buyerFilterSearch$
+      .pipe(
+        debounceTime(250),
+        distinctUntilChanged(),
+        switchMap((term) => {
+          const trimmed = term.trim();
+          if (!trimmed) {
+            this.isSearchingBuyers.set(false);
+            this.searchedCustomers.set([]);
+            return of([]);
+          }
+          this.isSearchingBuyers.set(true);
+          return this.customersService
+            .getCustomers({ search: trimmed, limit: 30 })
+            .pipe(
+              catchError(() => of([])),
+              switchMap((res) => {
+                this.isSearchingBuyers.set(false);
+                return of(res);
+              }),
+            );
+        }),
+        takeUntil(this.destroy$),
+      )
+      .subscribe((results) => {
+        this.searchedCustomers.set(results);
+        this.isSearchingBuyers.set(false);
+        if (results.length > 0) {
+          this.customers.update((prev) => {
+            const existingIds = new Set(prev.map((c) => c.id));
+            const additions = results.filter((c) => !existingIds.has(c.id));
+            return additions.length > 0 ? [...prev, ...additions] : prev;
+          });
+        }
+      });
+  }
+
+  toggleBuyerDropdown(event: Event): void {
+    event.stopPropagation();
+    const willOpen = !this.isBuyerDropdownOpen();
+    this.isBuyerDropdownOpen.set(willOpen);
+    if (willOpen) {
+      setTimeout(() => {
+        this.buyerFilterInputRef?.nativeElement?.focus();
+      }, 60);
+    }
+  }
+
+  openBuyerDropdown(): void {
+    this.isBuyerDropdownOpen.set(true);
+    setTimeout(() => {
+      this.buyerFilterInputRef?.nativeElement?.focus();
+    }, 60);
+  }
+
+  closeBuyerDropdown(): void {
+    this.isBuyerDropdownOpen.set(false);
+  }
+
+  selectCustomer(cust: ICustomer, event?: Event): void {
+    if (event) {
+      event.stopPropagation();
+    }
+    this.invoiceForm.get('customerId')?.setValue(cust.id);
+    this.invoiceForm.get('customerId')?.markAsDirty();
+    this.invoiceForm.get('customerId')?.markAsTouched();
+    this.formValue.set(this.invoiceForm.value);
+    this.isBuyerDropdownOpen.set(false);
+    this.buyerFilterSearch.set('');
+    this.searchedCustomers.set([]);
+  }
+
+  clearSelectedCustomer(event: Event): void {
+    event.stopPropagation();
+    this.invoiceForm.get('customerId')?.setValue('');
+    this.invoiceForm.get('customerId')?.markAsDirty();
+    this.invoiceForm.get('customerId')?.markAsTouched();
+    this.formValue.set(this.invoiceForm.value);
+    this.buyerFilterSearch.set('');
+    this.searchedCustomers.set([]);
+  }
+
+  onBuyerFilterSearchChange(val: string): void {
+    this.buyerFilterSearch.set(val);
+    this.buyerFilterSearch$.next(val);
+  }
+
+  clearBuyerFilterSearch(event: Event): void {
+    event.stopPropagation();
+    this.buyerFilterSearch.set('');
+    this.searchedCustomers.set([]);
+    this.buyerFilterSearch$.next('');
+    this.buyerFilterInputRef?.nativeElement?.focus();
+  }
+
+  onBuyerFilterKeydownEnter(event: Event): void {
+    event.preventDefault();
+    const list = this.displayedCustomers();
+    if (list.length > 0) {
+      this.selectCustomer(list[0]);
+    }
+  }
+
+  openRegisterBuyerFromSearch(name: string): void {
+    this.openRegisterBuyerModal(name);
+  }
+
   logout(): void {
     this.authService.logout();
   }
 
   private showAlert(type: 'success' | 'error', text: string): void {
     this.alertMessage.set({ type, text });
+    this.snackbarService.show(text, type);
     setTimeout(() => this.alertMessage.set(null), 5000);
   }
 }

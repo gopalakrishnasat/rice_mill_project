@@ -63,3 +63,5 @@ export class Customer {
 
 export const CustomerSchema = SchemaFactory.createForClass(Customer);
 CustomerSchema.index({ companyName: 'text', customerCode: 'text', mobile: 'text', gstin: 'text' });
+CustomerSchema.index({ customerCode: 1, companyName: 1 });
+

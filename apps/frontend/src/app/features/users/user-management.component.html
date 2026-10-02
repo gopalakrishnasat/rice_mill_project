@@ -18,13 +18,6 @@
       </button>
     </div>
 
-    <!-- Toast / Alert Notification -->
-    <div class="alert-banner" [class.alert-success]="alertMessage()?.type === 'success'"
-      [class.alert-error]="alertMessage()?.type === 'error'" *ngIf="alertMessage()">
-      <span>{{ alertMessage()?.text }}</span>
-      <button type="button" class="alert-close" (click)="alertMessage.set(null)">✕</button>
-    </div>
-
     <!-- Metric Cards Grid -->
     <div class="metrics-grid">
       <div class="metric-card">

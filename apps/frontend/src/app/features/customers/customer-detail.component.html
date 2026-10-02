@@ -1,0 +1,1094 @@
+<div class="buyer-detail-page">
+  <!-- Loading State -->
+  <div class="page-loading-skeleton" *ngIf="isLoading()">
+    <div class="skeleton-header"></div>
+    <div class="skeleton-cards">
+      <div class="skeleton-card"></div>
+      <div class="skeleton-card"></div>
+      <div class="skeleton-card"></div>
+      <div class="skeleton-card"></div>
+    </div>
+  </div>
+
+  <div class="detail-container" *ngIf="!isLoading() && customer()">
+    <!-- Top Action & Navigation Bar -->
+    <div class="top-nav-bar">
+      <div class="nav-breadcrumbs">
+        <a routerLink="/customers" class="back-link">
+          <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2.5" fill="none">
+            <polyline points="15 18 9 12 15 6"></polyline>
+          </svg>
+          <span>Back to Directory</span>
+        </a>
+        <span class="crumb-separator">/</span>
+        <span class="current-crumb">{{ customer()?.companyName }}</span>
+      </div>
+
+      <div class="header-action-buttons">
+        <button
+          type="button"
+          class="btn-collect-payment"
+          (click)="openLumpSumPaymentModal()"
+          id="btn-collect-payment-top"
+          title="Collect Customer Payment & Auto-Settle Bills (FIFO)"
+        >
+          <svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" stroke-width="2.2" fill="none">
+            <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
+            <line x1="1" y1="10" x2="23" y2="10"></line>
+          </svg>
+          <span>+ Collect Payment</span>
+        </button>
+
+        <button type="button" class="btn-primary" (click)="createNewBill()" id="btn-create-bill-for-buyer">
+          <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2.2" fill="none">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="12" y1="18" x2="12" y2="12"></line>
+            <line x1="9" y1="15" x2="15" y2="15"></line>
+          </svg>
+          <span>+ Create New Bill</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Eye-Catchy Hero Profile Card -->
+    <div class="hero-profile-card">
+      <div class="profile-hero-content">
+        <div class="avatar-monogram">
+          <span>{{ companyInitials() }}</span>
+        </div>
+
+        <div class="profile-main-info">
+          <div class="firm-title-row">
+            <h1 class="firm-name-heading">{{ customer()?.companyName }}</h1>
+
+            <div class="firm-title-actions">
+              <button
+                type="button"
+                class="btn-status-toggle"
+                [class.is-active]="customer()?.isActive"
+                (click)="toggleStatus()"
+                title="Toggle Active/Inactive"
+              >
+                <span class="status-indicator-dot"></span>
+                <span>{{ customer()?.isActive ? 'Active' : 'Inactive' }}</span>
+              </button>
+
+              <button type="button" class="btn-secondary" (click)="openEditModal()" id="btn-edit-buyer" title="Edit Buyer Profile">
+                <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                </svg>
+                <span>Edit Buyer Profile</span>
+              </button>
+            </div>
+
+            <div class="tags-group">
+              <span class="customer-code-pill">{{ customer()?.customerCode }}</span>
+              <span class="gst-badge" [class.gst-registered]="customer()?.gstin" [class.gst-unreg]="!customer()?.gstin">
+                {{ customer()?.gstin ? 'GST Registered' : 'Unregistered Buyer' }}
+              </span>
+            </div>
+          </div>
+
+          <div class="profile-quick-contacts">
+            <div class="contact-chip" *ngIf="customer()?.contactPerson">
+              <span class="chip-icon">👤</span>
+              <span class="chip-text">{{ customer()?.contactPerson }}</span>
+            </div>
+
+            <div class="contact-chip clickable" (click)="copyToClipboard(customer()?.mobile || '', 'Mobile Number')" title="Click to copy mobile number">
+              <span class="chip-icon">📞</span>
+              <a [href]="'tel:' + customer()?.mobile" class="chip-link" (click)="$event.stopPropagation()">{{ customer()?.mobile }}</a>
+              <span class="copy-hint-sm">📋</span>
+            </div>
+
+            <div class="contact-chip clickable" *ngIf="customer()?.email" (click)="copyToClipboard(customer()?.email || '', 'Email address')" title="Click to copy email">
+              <span class="chip-icon">✉️</span>
+              <a [href]="'mailto:' + customer()?.email" class="chip-link" (click)="$event.stopPropagation()">{{ customer()?.email }}</a>
+            </div>
+
+            <div class="contact-chip" *ngIf="customer()?.billingAddress?.city">
+              <span class="chip-icon">📍</span>
+              <span class="chip-text">{{ customer()?.billingAddress?.city }}, {{ customer()?.billingAddress?.state }}</span>
+            </div>
+
+            <div class="contact-chip gstin-chip clickable" *ngIf="customer()?.gstin" (click)="copyToClipboard(customer()?.gstin || '', 'GSTIN')" title="Click to copy GSTIN">
+              <span class="chip-label">GSTIN:</span>
+              <span class="chip-mono">{{ customer()?.gstin }}</span>
+              <span class="copy-hint-sm">📋</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Analytics Metrics Grid (Matching Invoices Page) -->
+    <div class="metrics-grid">
+      <div class="metric-card card-invoices">
+        <div class="metric-top">
+          <span class="metric-icon-box">
+            <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.2" fill="none">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+            </svg>
+          </span>
+          <span class="metric-label">Total Invoices</span>
+        </div>
+        <div class="metric-bottom">
+          <span class="metric-val">{{ invoices().length }}</span>
+          <span class="metric-chip">Bills</span>
+        </div>
+      </div>
+
+      <div class="metric-card card-sales">
+        <div class="metric-top">
+          <span class="metric-icon-box">
+            <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.2" fill="none">
+              <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
+              <polyline points="17 6 23 6 23 12"></polyline>
+            </svg>
+          </span>
+          <span class="metric-label">Total Revenue</span>
+        </div>
+        <div class="metric-bottom">
+          <span class="metric-val text-green">₹{{ totalBilled() | number:'1.2-2' }}</span>
+        </div>
+      </div>
+
+      <div class="metric-card card-paid">
+        <div class="metric-top">
+          <span class="metric-icon-box">
+            <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.2" fill="none">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+              <polyline points="22 4 12 14.01 9 11.01"></polyline>
+            </svg>
+          </span>
+          <span class="metric-label">Collected</span>
+        </div>
+        <div class="metric-bottom">
+          <span class="metric-val text-blue">₹{{ totalPaid() | number:'1.2-2' }}</span>
+        </div>
+      </div>
+
+      <div class="metric-card card-due">
+        <div class="metric-top">
+          <span class="metric-icon-box">
+            <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.2" fill="none">
+              <circle cx="12" cy="12" r="10"></circle>
+              <polyline points="12 6 12 12 16 14"></polyline>
+            </svg>
+          </span>
+          <span class="metric-label">Outstanding Due</span>
+        </div>
+        <div class="metric-bottom">
+          <span class="metric-val" [class.text-red]="currentBalance() > 0" [class.text-green]="currentBalance() <= 0">₹{{ currentBalance() | number:'1.2-2' }}</span>
+          <span class="metric-chip chip-settled" *ngIf="currentBalance() <= 0">Settled</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Detailed Profile Overview Grid (Two Elegant Cards) -->
+    <div class="profile-cards-grid">
+      <!-- Business Profile & Compliance Card -->
+      <div class="info-card">
+        <div class="info-card-header">
+          <div class="card-icon-box">
+            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+              <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+          </div>
+          <h3>Business & Legal Details</h3>
+        </div>
+
+        <div class="info-details-list">
+          <div class="detail-item">
+            <span class="detail-label">Registered Firm Name</span>
+            <span class="detail-value font-bold">{{ customer()?.companyName }}</span>
+          </div>
+
+          <div class="detail-item">
+            <span class="detail-label">Primary Contact Person</span>
+            <span class="detail-value">{{ customer()?.contactPerson || '—' }}</span>
+          </div>
+
+          <div class="detail-item">
+            <span class="detail-label">Mobile Number</span>
+            <div class="detail-value-with-action">
+              <span class="detail-value">{{ customer()?.mobile }}</span>
+              <button type="button" class="btn-mini-copy" (click)="copyToClipboard(customer()?.mobile || '', 'Mobile')" title="Copy Phone">
+                Copy
+              </button>
+            </div>
+          </div>
+
+          <div class="detail-item">
+            <span class="detail-label">Email Address</span>
+            <span class="detail-value">{{ customer()?.email || '—' }}</span>
+          </div>
+
+          <div class="detail-item">
+            <span class="detail-label">GSTIN (Goods & Services Tax)</span>
+            <div class="detail-value-with-action">
+              <span class="detail-value font-mono" [class.text-muted]="!customer()?.gstin">{{ customer()?.gstin || 'Unregistered' }}</span>
+              <button type="button" class="btn-mini-copy" *ngIf="customer()?.gstin" (click)="copyToClipboard(customer()?.gstin || '', 'GSTIN')">
+                Copy
+              </button>
+            </div>
+          </div>
+
+          <div class="detail-item">
+            <span class="detail-label">PAN Number</span>
+            <span class="detail-value font-mono">{{ customer()?.pan || '—' }}</span>
+          </div>
+
+          <div class="detail-item" *ngIf="customer()?.notes">
+            <span class="detail-label">Remarks / Special Notes</span>
+            <span class="detail-value text-italic">{{ customer()?.notes }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Billing & Dispatch Address Card -->
+      <div class="info-card">
+        <div class="info-card-header">
+          <div class="card-icon-box">
+            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+              <circle cx="12" cy="10" r="3"></circle>
+            </svg>
+          </div>
+          <h3>Billing & Dispatch Address</h3>
+          <button
+            type="button"
+            class="btn-copy-address"
+            (click)="copyToClipboard(
+              customer()?.billingAddress?.line1 + (customer()?.billingAddress?.line2 ? ', ' + customer()?.billingAddress?.line2 : '') + ', ' + customer()?.billingAddress?.city + ', ' + customer()?.billingAddress?.state + ' - ' + customer()?.billingAddress?.pincode,
+              'Address'
+            )"
+            title="Copy full address"
+          >
+            📋 Copy Address
+          </button>
+        </div>
+
+        <div class="address-preview-box">
+          <div class="address-lines">
+            <p class="address-line-main">{{ customer()?.billingAddress?.line1 }}</p>
+            <p class="address-line-sub" *ngIf="customer()?.billingAddress?.line2">{{ customer()?.billingAddress?.line2 }}</p>
+            <p class="address-city-state">
+              <strong>{{ customer()?.billingAddress?.city }}</strong>, {{ customer()?.billingAddress?.state }} —
+              <span class="font-mono">{{ customer()?.billingAddress?.pincode }}</span>
+            </p>
+            <p class="address-code-badge">
+              State Code: <strong>{{ customer()?.billingAddress?.stateCode }}</strong> ({{ customer()?.billingAddress?.state }})
+            </p>
+          </div>
+        </div>
+
+        <div class="shipping-note-box">
+          <span class="shipping-icon">🚚</span>
+          <span class="shipping-text">Dispatch destination automatically applies to delivery challans and transport waybills.</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Multi-Tab Section: Khata Ledger, Invoices, Payments -->
+    <div class="activity-tabs-card">
+      <div class="tabs-header-bar">
+        <div class="tabs-nav">
+          <button
+            type="button"
+            class="tab-btn"
+            [class.active]="activeTab() === 'LEDGER'"
+            (click)="activeTab.set('LEDGER')"
+          >
+            <span class="tab-icon">📜</span>
+            <span>Khata Ledger Statement</span>
+            <span class="tab-count-badge">{{ ledger().length }}</span>
+          </button>
+
+          <button
+            type="button"
+            class="tab-btn"
+            [class.active]="activeTab() === 'INVOICES'"
+            (click)="activeTab.set('INVOICES')"
+          >
+            <span class="tab-icon">🧾</span>
+            <span>Sales Invoices & Bills</span>
+            <span class="tab-count-badge">{{ invoices().length }}</span>
+          </button>
+
+          <button
+            type="button"
+            class="tab-btn"
+            [class.active]="activeTab() === 'PAYMENTS'"
+            (click)="activeTab.set('PAYMENTS')"
+          >
+            <span class="tab-icon">💳</span>
+            <span>Payment Receipts</span>
+            <span class="tab-count-badge">{{ paymentRecords().length }}</span>
+          </button>
+        </div>
+
+        <div class="tab-actions">
+          <button type="button" class="btn-print-tab" (click)="printLedger()" title="Open Official Account Statement (Bank Format)">
+            <svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" stroke-width="2" fill="none">
+              <polyline points="6 9 6 2 18 2 18 9"></polyline>
+              <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+              <rect x="6" y="14" width="12" height="8"></rect>
+            </svg>
+            <span>Print Statement</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- TAB 1: KHATA LEDGER -->
+      <div class="tab-content" *ngIf="activeTab() === 'LEDGER'">
+        <div class="table-responsive" *ngIf="!isLedgerLoading()">
+          <table class="activity-table ledger-table" *ngIf="ledger().length > 0">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Voucher / Ref #</th>
+                <th>Type</th>
+                <th>Transaction Details</th>
+                <th class="text-right">Debit / Billed (₹)</th>
+                <th class="text-right">Credit / Paid (₹)</th>
+                <th class="text-right">Running Balance (₹)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let item of pagedLedger()">
+                <td class="text-muted text-sm font-mono">{{ item.date | date:'dd MMM yyyy' }}</td>
+                <td>
+                  <span class="ref-badge">{{ item.referenceNo }}</span>
+                </td>
+                <td>
+                  <span class="ledger-type-pill" [class.pill-inv]="item.type === 'INVOICE'" [class.pill-pay]="item.type === 'PAYMENT'">
+                    {{ item.type }}
+                  </span>
+                </td>
+                <td class="desc-cell">{{ item.description }}</td>
+                <td class="text-right font-medium text-blue font-mono">
+                  {{ item.debit > 0 ? ('₹' + (item.debit | number:'1.2-2')) : '—' }}
+                </td>
+                <td class="text-right font-medium text-green font-mono">
+                  {{ item.credit > 0 ? ('₹' + (item.credit | number:'1.2-2')) : '—' }}
+                </td>
+                <td class="text-right font-bold font-mono" [class.text-red]="item.runningBalance > 0" [class.text-green]="item.runningBalance <= 0">
+                  ₹{{ item.runningBalance | number:'1.2-2' }}
+                </td>
+              </tr>
+            </tbody>
+            <tfoot>
+              <tr class="ledger-summary-row">
+                <td colspan="4" class="text-right font-bold">Statement Totals & Closing Balance:</td>
+                <td class="text-right font-bold font-mono text-blue">₹{{ ledgerTotalDebit() | number:'1.2-2' }}</td>
+                <td class="text-right font-bold font-mono text-green">₹{{ ledgerTotalCredit() | number:'1.2-2' }}</td>
+                <td class="text-right font-bold font-mono" [class.text-red]="currentBalance() > 0" [class.text-green]="currentBalance() <= 0">₹{{ currentBalance() | number:'1.2-2' }}</td>
+              </tr>
+            </tfoot>
+          </table>
+
+          <!-- Table Pagination Controls for Ledger -->
+          <div class="table-pagination-row" *ngIf="ledger().length > 0">
+            <div class="pagination-meta">
+              Showing <strong>{{ ledgerPaginationInfo().start }}</strong> - <strong>{{ ledgerPaginationInfo().end }}</strong> of <strong>{{ ledgerPaginationInfo().total }}</strong> transactions
+            </div>
+            <div class="pagination-actions">
+              <div class="page-size-selector">
+                <label>Rows:</label>
+                <select [ngModel]="ledgerPageSize()" (ngModelChange)="setLedgerPageSize($event)">
+                  <option [ngValue]="10">10</option>
+                  <option [ngValue]="20">20</option>
+                  <option [ngValue]="50">50</option>
+                </select>
+              </div>
+              <div class="page-nav-btns" *ngIf="ledgerTotalPages() > 1">
+                <button
+                  type="button"
+                  class="btn-page-nav"
+                  [disabled]="ledgerPage() === 1"
+                  (click)="prevLedgerPage()"
+                  title="Previous Page"
+                >
+                  ◀ Prev
+                </button>
+                <button
+                  *ngFor="let p of ledgerPagesArray()"
+                  type="button"
+                  class="btn-page-number"
+                  [class.active]="ledgerPage() === p"
+                  (click)="setLedgerPage(p)"
+                >
+                  {{ p }}
+                </button>
+                <button
+                  type="button"
+                  class="btn-page-nav"
+                  [disabled]="ledgerPage() === ledgerTotalPages()"
+                  (click)="nextLedgerPage()"
+                  title="Next Page"
+                >
+                  Next ▶
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="empty-state" *ngIf="ledger().length === 0">
+            <span class="empty-icon">📜</span>
+            <p class="empty-title">No Ledger Transactions Yet</p>
+            <p class="empty-subtitle">When invoices are generated or payments recorded, transactions will appear here.</p>
+          </div>
+        </div>
+
+        <div class="loading-state" *ngIf="isLedgerLoading()">
+          <span class="spinner"></span>
+          <span>Loading ledger statements...</span>
+        </div>
+      </div>
+
+      <!-- TAB 2: INVOICES & BILLS -->
+      <div class="tab-content" *ngIf="activeTab() === 'INVOICES'">
+        <div class="table-responsive" *ngIf="!isInvoicesLoading()">
+          <table class="activity-table invoices-table" *ngIf="invoices().length > 0">
+            <thead>
+              <tr>
+                <th>Invoice Number</th>
+                <th>Date</th>
+                <th>Vehicle No</th>
+                <th>Type</th>
+                <th class="text-right">Bill Total (₹)</th>
+                <th class="text-right">Pending Due (₹)</th>
+                <th>Status</th>
+                <th class="text-right actions-col">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let inv of pagedInvoices()">
+                <td>
+                  <span class="code-badge font-mono">{{ inv.invoiceNumber }}</span>
+                </td>
+                <td class="text-muted text-sm font-mono">{{ inv.invoiceDate | date:'dd MMM yyyy' }}</td>
+                <td>
+                  <span class="vehicle-badge">🚛 {{ inv.vehicleNumber || '—' }}</span>
+                </td>
+                <td>
+                  <span class="type-pill" [class.type-tax]="inv.invoiceType === 'TAX_INVOICE'" [class.type-challan]="inv.invoiceType === 'DELIVERY_CHALLAN'">
+                    {{ inv.invoiceType === 'TAX_INVOICE' ? 'Tax GST' : 'Challan' }}
+                  </span>
+                </td>
+                <td class="text-right font-bold font-mono text-blue">
+                  ₹{{ inv.totalAmount | number:'1.2-2' }}
+                </td>
+                <td class="text-right font-mono">
+                  <span class="text-red font-bold" *ngIf="inv.balanceAmount > 0">
+                    ₹{{ inv.balanceAmount | number:'1.2-2' }}
+                  </span>
+                  <span class="no-due-tag" *ngIf="inv.balanceAmount <= 0">No Due</span>
+                </td>
+                <td>
+                  <span class="pay-pill" [class.pay-unpaid]="inv.paymentStatus === 'UNPAID'" [class.pay-partial]="inv.paymentStatus === 'PARTIAL'" [class.pay-paid]="inv.paymentStatus === 'PAID'">
+                    <span class="status-dot"></span>
+                    {{ inv.paymentStatus }}
+                  </span>
+                </td>
+                <td class="text-right actions-col">
+                  <div class="actions-cell">
+                    <button type="button" class="btn-action-icon btn-pdf" (click)="downloadInvoicePdf(inv)" title="Download PDF Invoice">
+                      <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.2" fill="none">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="7 10 12 15 17 10"></polyline>
+                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                      </svg>
+                    </button>
+                    <button type="button" class="btn-action-icon btn-print" (click)="printInvoice(inv)" title="Print Bill">
+                      <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.2" fill="none">
+                        <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                        <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                        <rect x="6" y="14" width="12" height="8"></rect>
+                      </svg>
+                    </button>
+                    <button type="button" class="btn-action-icon btn-edit" *ngIf="inv.paymentStatus !== 'PAID'" (click)="editInvoice(inv)" title="Edit Invoice">
+                      <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.2" fill="none">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7"></path>
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                      </svg>
+                    </button>
+                    <button type="button" class="btn-action-pay" *ngIf="inv.paymentStatus !== 'PAID'" (click)="openPaymentModal(inv)" title="Record Payment">
+                      +₹ Pay
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          <!-- Table Pagination Controls for Invoices -->
+          <div class="table-pagination-row" *ngIf="invoices().length > 0">
+            <div class="pagination-meta">
+              Showing <strong>{{ invoicesPaginationInfo().start }}</strong> - <strong>{{ invoicesPaginationInfo().end }}</strong> of <strong>{{ invoicesPaginationInfo().total }}</strong> invoices
+            </div>
+            <div class="pagination-actions">
+              <div class="page-size-selector">
+                <label>Rows:</label>
+                <select [ngModel]="invoicesPageSize()" (ngModelChange)="setInvoicesPageSize($event)">
+                  <option [ngValue]="10">10</option>
+                  <option [ngValue]="20">20</option>
+                  <option [ngValue]="50">50</option>
+                </select>
+              </div>
+              <div class="page-nav-btns" *ngIf="invoicesTotalPages() > 1">
+                <button
+                  type="button"
+                  class="btn-page-nav"
+                  [disabled]="invoicesPage() === 1"
+                  (click)="prevInvoicesPage()"
+                  title="Previous Page"
+                >
+                  ◀ Prev
+                </button>
+                <button
+                  *ngFor="let p of invoicesPagesArray()"
+                  type="button"
+                  class="btn-page-number"
+                  [class.active]="invoicesPage() === p"
+                  (click)="setInvoicesPage(p)"
+                >
+                  {{ p }}
+                </button>
+                <button
+                  type="button"
+                  class="btn-page-nav"
+                  [disabled]="invoicesPage() === invoicesTotalPages()"
+                  (click)="nextInvoicesPage()"
+                  title="Next Page"
+                >
+                  Next ▶
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="empty-state" *ngIf="invoices().length === 0">
+            <span class="empty-icon">🧾</span>
+            <p class="empty-title">No Invoices Created Yet</p>
+            <p class="empty-subtitle">Click "+ Create New Bill" above to issue the first sales invoice to this buyer.</p>
+          </div>
+        </div>
+
+        <div class="loading-state" *ngIf="isInvoicesLoading()">
+          <span class="spinner"></span>
+          <span>Loading invoices...</span>
+        </div>
+      </div>
+
+      <!-- TAB 3: PAYMENT RECEIPTS -->
+      <div class="tab-content" *ngIf="activeTab() === 'PAYMENTS'">
+        <div class="table-responsive">
+          <table class="activity-table payments-table" *ngIf="paymentRecords().length > 0">
+            <thead>
+              <tr>
+                <th>Receipt / Voucher #</th>
+                <th>Payment Date</th>
+                <th>Transaction Details</th>
+                <th class="text-right">Amount Received (₹)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let p of pagedPayments()">
+                <td>
+                  <span class="ref-badge font-mono">{{ p.receiptNumber }}</span>
+                </td>
+                <td class="text-muted text-sm font-mono">{{ p.paymentDate | date:'dd MMM yyyy' }}</td>
+                <td>
+                  <span class="mode-pill">{{ p.description }}</span>
+                </td>
+                <td class="text-right font-bold text-green font-mono">
+                  ₹{{ p.amount | number:'1.2-2' }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          <!-- Table Pagination Controls for Payments -->
+          <div class="table-pagination-row" *ngIf="paymentRecords().length > 0">
+            <div class="pagination-meta">
+              Showing <strong>{{ paymentsPaginationInfo().start }}</strong> - <strong>{{ paymentsPaginationInfo().end }}</strong> of <strong>{{ paymentsPaginationInfo().total }}</strong> receipts
+            </div>
+            <div class="pagination-actions">
+              <div class="page-size-selector">
+                <label>Rows:</label>
+                <select [ngModel]="paymentsPageSize()" (ngModelChange)="setPaymentsPageSize($event)">
+                  <option [ngValue]="10">10</option>
+                  <option [ngValue]="20">20</option>
+                  <option [ngValue]="50">50</option>
+                </select>
+              </div>
+              <div class="page-nav-btns" *ngIf="paymentsTotalPages() > 1">
+                <button
+                  type="button"
+                  class="btn-page-nav"
+                  [disabled]="paymentsPage() === 1"
+                  (click)="prevPaymentsPage()"
+                  title="Previous Page"
+                >
+                  ◀ Prev
+                </button>
+                <button
+                  *ngFor="let p of paymentsPagesArray()"
+                  type="button"
+                  class="btn-page-number"
+                  [class.active]="paymentsPage() === p"
+                  (click)="setPaymentsPage(p)"
+                >
+                  {{ p }}
+                </button>
+                <button
+                  type="button"
+                  class="btn-page-nav"
+                  [disabled]="paymentsPage() === paymentsTotalPages()"
+                  (click)="nextPaymentsPage()"
+                  title="Next Page"
+                >
+                  Next ▶
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="empty-state" *ngIf="paymentRecords().length === 0">
+            <span class="empty-icon">💳</span>
+            <p class="empty-title">No Payment Records Found</p>
+            <p class="empty-subtitle">Receipts will appear here when payments are recorded against invoices.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: EDIT BUYER PROFILE -->
+  <div class="modal-backdrop" *ngIf="showEditModal()">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="header-titles">
+          <h3>Edit Buyer Profile</h3>
+          <p>Update firm trade name, tax compliance, and contact coordinates</p>
+        </div>
+        <button type="button" class="modal-close-btn" (click)="closeEditModal()">✕</button>
+      </div>
+
+      <form [formGroup]="editCustomerForm" (ngSubmit)="onEditSubmit()" class="modal-form">
+        <!-- Trade Name -->
+        <div class="form-group" [class.has-error]="editCustomerForm.get('companyName')?.invalid && editCustomerForm.get('companyName')?.touched">
+          <label>Firm / Company Trade Name *</label>
+          <input type="text" formControlName="companyName" placeholder="e.g. Mahavir Agro Traders" />
+        </div>
+
+        <!-- Contact Person & Mobile -->
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label>Primary Contact Person</label>
+            <input type="text" formControlName="contactPerson" placeholder="e.g. Suresh Jain" />
+          </div>
+          <div class="form-group flex-1" [class.has-error]="editCustomerForm.get('mobile')?.invalid && editCustomerForm.get('mobile')?.touched">
+            <label>Mobile Number (10 digits) *</label>
+            <input type="tel" formControlName="mobile" placeholder="9876543210" maxlength="10" />
+          </div>
+        </div>
+
+        <!-- Email & PAN -->
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label>Email Address</label>
+            <input type="email" formControlName="email" placeholder="trade@example.com" />
+          </div>
+          <div class="form-group flex-1">
+            <label>PAN Number</label>
+            <input type="text" formControlName="pan" placeholder="ABCDE1234F" uppercase maxlength="10" />
+          </div>
+        </div>
+
+        <!-- GSTIN -->
+        <div class="form-group">
+          <label>GSTIN (Optional for Retail Buyers)</label>
+          <input type="text" formControlName="gstin" placeholder="27AAACH2345D1Z4" uppercase maxlength="15" />
+        </div>
+
+        <!-- Address Line 1 -->
+        <div class="form-group" [class.has-error]="editCustomerForm.get('line1')?.invalid && editCustomerForm.get('line1')?.touched">
+          <label>Address Line 1 *</label>
+          <input type="text" formControlName="line1" placeholder="Shop / Gala No, Market Yard" />
+        </div>
+
+        <!-- Address Line 2 -->
+        <div class="form-group">
+          <label>Address Line 2 / Landmark</label>
+          <input type="text" formControlName="line2" placeholder="Near APMC Grain Market" />
+        </div>
+
+        <!-- City, State, Pincode -->
+        <div class="form-row">
+          <div class="form-group flex-1" [class.has-error]="editCustomerForm.get('city')?.invalid && editCustomerForm.get('city')?.touched">
+            <label>City *</label>
+            <input type="text" formControlName="city" placeholder="Pune" />
+          </div>
+          <div class="form-group flex-1">
+            <label>State *</label>
+            <input type="text" formControlName="state" placeholder="Maharashtra" />
+          </div>
+          <div class="form-group flex-1" [class.has-error]="editCustomerForm.get('pincode')?.invalid && editCustomerForm.get('pincode')?.touched">
+            <label>Pincode *</label>
+            <input type="text" formControlName="pincode" placeholder="411037" maxlength="6" />
+          </div>
+        </div>
+
+        <!-- Notes -->
+        <div class="form-group">
+          <label>Internal Notes / Trade Terms</label>
+          <textarea formControlName="notes" rows="2" placeholder="e.g. 15 days credit period, preferred transport: Ghatge Patil"></textarea>
+        </div>
+
+        <!-- Modal Actions -->
+        <div class="modal-actions">
+          <button type="button" class="btn-cancel" (click)="closeEditModal()">Cancel</button>
+          <button type="submit" class="btn-submit" [disabled]="isSubmittingEdit() || editCustomerForm.invalid">
+            <span class="spinner" *ngIf="isSubmittingEdit()"></span>
+            <span>{{ isSubmittingEdit() ? 'Saving Changes...' : 'Save Changes' }}</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: RECORD PAYMENT FOR AN INVOICE -->
+  <div class="modal-backdrop" *ngIf="showPaymentModal()">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="header-titles">
+          <h3>Record Payment Receipt</h3>
+          <p>Invoice <strong>{{ selectedInvoiceForPayment()?.invoiceNumber }}</strong> (Due: ₹{{ (selectedInvoiceForPayment()?.balanceAmount || 0) | number:'1.2-2' }})</p>
+        </div>
+        <button type="button" class="modal-close-btn" (click)="closePaymentModal()">✕</button>
+      </div>
+
+      <form [formGroup]="paymentForm" (ngSubmit)="onPaymentSubmit()" class="modal-form">
+        <div class="form-group" [class.has-error]="paymentForm.get('amount')?.invalid && paymentForm.get('amount')?.touched">
+          <div class="label-with-due">
+            <label>Amount Received (₹) *</label>
+            <span class="max-due-hint text-sm text-muted">
+              Max Due: <strong>₹{{ (selectedInvoiceForPayment()?.balanceAmount || 0) | number:'1.2-2' }}</strong>
+            </span>
+          </div>
+          <input type="number" formControlName="amount" placeholder="0.00" min="1" [max]="selectedInvoiceForPayment()?.balanceAmount || 0" step="0.01" />
+          <span class="field-error" *ngIf="paymentForm.get('amount')?.hasError('max') && paymentForm.get('amount')?.touched">
+            Amount cannot exceed pending balance of ₹{{ (selectedInvoiceForPayment()?.balanceAmount || 0) | number:'1.2-2' }}.
+          </span>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label>Payment Date *</label>
+            <input type="date" formControlName="paymentDate" />
+          </div>
+          <div class="form-group flex-1">
+            <label>Payment Mode *</label>
+            <select formControlName="paymentMode">
+              <option value="NEFT_RTGS">Bank Transfer (NEFT/RTGS/IMPS)</option>
+              <option value="UPI">UPI / QR Code</option>
+              <option value="CHEQUE">Cheque</option>
+              <option value="CASH">Cash</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Transaction Reference / Cheque No / UTR</label>
+          <input type="text" formControlName="transactionReference" placeholder="e.g. UTR12345678 or Cheque #45210" />
+        </div>
+
+        <div class="form-group">
+          <label>Notes / Remarks</label>
+          <input type="text" formControlName="notes" placeholder="e.g. Part payment via HDFC" />
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn-cancel" (click)="closePaymentModal()">Cancel</button>
+          <button type="submit" class="btn-submit" [disabled]="isSubmittingPayment() || paymentForm.invalid">
+            <span class="spinner" *ngIf="isSubmittingPayment()"></span>
+            <span>{{ isSubmittingPayment() ? 'Recording...' : 'Record Payment' }}</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: COLLECT CUSTOMER PAYMENT & FIFO AUTO-SETTLE BILLS -->
+  <div class="modal-backdrop" *ngIf="showLumpSumPaymentModal()">
+    <div class="modal-card modal-card-lg">
+      <div class="modal-header">
+        <div class="header-titles">
+          <h3>Collect Account Payment & Settle Bills</h3>
+          <p>Lump-sum payment applied against pending bills in FIFO order (oldest bills settled first)</p>
+        </div>
+        <button type="button" class="modal-close-btn" (click)="closeLumpSumPaymentModal()">✕</button>
+      </div>
+
+      <div class="modal-customer-summary-bar">
+        <div class="summary-kpi">
+          <span class="kpi-label">Buyer Firm</span>
+          <strong class="kpi-val">{{ customer()?.companyName }}</strong>
+        </div>
+        <div class="summary-kpi">
+          <span class="kpi-label">Outstanding Due</span>
+          <strong class="kpi-val text-red">₹{{ currentBalance() | number:'1.2-2' }}</strong>
+        </div>
+        <div class="summary-kpi">
+          <span class="kpi-label">Pending Unpaid Bills</span>
+          <strong class="kpi-val">{{ lumpSumPendingInvoices().length }} bill(s)</strong>
+        </div>
+      </div>
+
+      <form [formGroup]="lumpSumPaymentForm" (ngSubmit)="onLumpSumSubmit()" class="modal-form">
+        <div class="form-group" [class.has-error]="lumpSumPaymentForm.get('amount')?.invalid && lumpSumPaymentForm.get('amount')?.touched">
+          <div class="label-with-quick-actions">
+            <label>Payment Amount Received (₹) *</label>
+            <div class="quick-amount-tags" *ngIf="currentBalance() > 0">
+              <button
+                type="button"
+                class="tag-quick-amount"
+                (click)="setQuickLumpSumAmount(currentBalance())"
+              >
+                Pay Full Due (₹{{ currentBalance() | number:'1.0-0' }})
+              </button>
+              <button
+                type="button"
+                class="tag-quick-amount"
+                *ngIf="currentBalance() > 50000"
+                (click)="setQuickLumpSumAmount(50000)"
+              >
+                ₹50,000
+              </button>
+              <button
+                type="button"
+                class="tag-quick-amount"
+                *ngIf="currentBalance() > 100000"
+                (click)="setQuickLumpSumAmount(100000)"
+              >
+                ₹1,00,000
+              </button>
+            </div>
+          </div>
+          <input
+            type="number"
+            formControlName="amount"
+            placeholder="e.g. 50000"
+            min="1"
+            step="0.01"
+            class="input-amount-lg font-mono font-bold"
+          />
+        </div>
+
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label>Payment Date *</label>
+            <input type="date" formControlName="paymentDate" />
+          </div>
+          <div class="form-group flex-1">
+            <label>Payment Mode *</label>
+            <select formControlName="paymentMode">
+              <option [ngValue]="null" disabled selected>-- Select Payment Mode --</option>
+              <option value="NEFT_RTGS">Bank Transfer (NEFT / RTGS / IMPS)</option>
+              <option value="UPI">UPI / QR Code</option>
+              <option value="CHEQUE">Cheque</option>
+              <option value="CASH">Cash</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label>Transaction / Cheque / UTR Ref</label>
+            <input type="text" formControlName="transactionReference" placeholder="e.g. UTR-HDFC-99120" />
+          </div>
+          <div class="form-group flex-1">
+            <label>Remarks / Notes</label>
+            <input type="text" formControlName="notes" placeholder="e.g. Part payment via RTGS" />
+          </div>
+        </div>
+
+        <!-- LIVE ALLOCATION PREVIEW TABLE -->
+        <div class="allocation-preview-section" *ngIf="lumpSumEnteredAmount() > 0">
+          <div class="preview-header">
+            <h4>Live Bill Allocation Preview (Oldest to Newest)</h4>
+            <span class="preview-badge">{{ lumpSumPreview().affectedCount }} bill(s) impacted</span>
+          </div>
+
+          <div class="preview-table-wrapper" *ngIf="lumpSumPreview().items.length > 0">
+            <table class="preview-table">
+              <thead>
+                <tr>
+                  <th>Bill #</th>
+                  <th>Date</th>
+                  <th class="text-right">Total Bill</th>
+                  <th class="text-right">Current Due</th>
+                  <th class="text-right">Allocated (₹)</th>
+                  <th class="text-right">Remaining Due</th>
+                  <th class="text-center">Resulting Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let item of lumpSumPreview().items" [class.row-affected]="item.allocatedAmount > 0">
+                  <td class="font-mono font-bold">{{ item.invoiceNumber }}</td>
+                  <td class="text-muted text-sm font-mono">{{ item.invoiceDate | date:'dd MMM yyyy' }}</td>
+                  <td class="text-right font-mono">₹{{ item.totalAmount | number:'1.2-2' }}</td>
+                  <td class="text-right font-mono text-red font-medium">₹{{ item.previousBalance | number:'1.2-2' }}</td>
+                  <td class="text-right font-mono font-bold" [class.text-blue]="item.allocatedAmount > 0" [class.text-muted]="item.allocatedAmount === 0">
+                    {{ item.allocatedAmount > 0 ? ('₹' + (item.allocatedAmount | number:'1.2-2')) : '₹0.00' }}
+                  </td>
+                  <td class="text-right font-mono font-medium" [class.text-red]="item.newBalance > 0" [class.text-green]="item.newBalance === 0">
+                    {{ item.newBalance === 0 ? 'Settled (₹0)' : ('₹' + (item.newBalance | number:'1.2-2')) }}
+                  </td>
+                  <td class="text-center">
+                    <span
+                      class="preview-status-pill"
+                      [class.pill-paid]="item.newStatus === 'PAID'"
+                      [class.pill-partial]="item.newStatus === 'PARTIAL'"
+                      [class.pill-unpaid]="item.newStatus === 'UNPAID'"
+                    >
+                      {{ item.newStatus }}
+                    </span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="empty-bills-note" *ngIf="lumpSumPreview().items.length === 0">
+            <p>🎉 This customer has no unpaid bills. This payment of ₹{{ lumpSumEnteredAmount() | number:'1.2-2' }} will be saved as an advance credit on their account.</p>
+          </div>
+
+          <!-- Allocation Summary Badges -->
+          <div class="preview-totals-bar">
+            <div class="total-stat">
+              <span>Total Payment:</span>
+              <strong class="font-mono">₹{{ lumpSumPreview().totalPayment | number:'1.2-2' }}</strong>
+            </div>
+            <div class="total-stat text-blue">
+              <span>Allocated to Bills:</span>
+              <strong class="font-mono">₹{{ lumpSumPreview().totalAllocated | number:'1.2-2' }}</strong>
+            </div>
+            <div class="total-stat" *ngIf="lumpSumPreview().advanceCredit > 0">
+              <span class="text-green font-bold">Advance Credit:</span>
+              <strong class="font-mono text-green">₹{{ lumpSumPreview().advanceCredit | number:'1.2-2' }}</strong>
+            </div>
+            <div class="total-stat">
+              <span>Bills Fully Settled:</span>
+              <strong>{{ lumpSumPreview().fullyPaidCount }}</strong>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn-cancel" (click)="closeLumpSumPaymentModal()">Cancel</button>
+          <button
+            type="submit"
+            class="btn-submit btn-confirm-allocation"
+            [disabled]="isSubmittingLumpSum() || lumpSumPaymentForm.invalid || lumpSumEnteredAmount() <= 0"
+          >
+            <span>Confirm & Allocate ₹{{ ((lumpSumEnteredAmount() || 0) | number:'1.2-2') }}</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- CONFIRMATION POPUP: CONFIRM FIFO ALLOCATION & SETTLE BILLS -->
+  <div class="modal-backdrop modal-confirm-backdrop" *ngIf="showLumpSumConfirmModal()">
+    <div class="modal-card modal-confirm-card">
+      <div class="confirm-header">
+        <div class="confirm-icon-badge">
+          <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2.3" fill="none">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+            <path d="m9 12 2 2 4-4"></path>
+          </svg>
+        </div>
+        <div class="confirm-title-group">
+          <h3>Confirm Payment Allocation</h3>
+          <p>Verify payment and bill settlement details before finalizing</p>
+        </div>
+        <button type="button" class="modal-close-btn" (click)="cancelLumpSumConfirmation()" [disabled]="isSubmittingLumpSum()">✕</button>
+      </div>
+
+      <div class="confirm-body">
+        <div class="confirm-amount-banner">
+          <span class="amount-banner-label">Total Payment to Allocate</span>
+          <span class="amount-banner-val font-mono">₹{{ (lumpSumEnteredAmount() || 0) | number:'1.2-2' }}</span>
+        </div>
+
+        <div class="confirm-meta-grid">
+          <div class="meta-row">
+            <span class="meta-label">Buyer Firm:</span>
+            <span class="meta-val font-bold text-dark">{{ customer()?.companyName }}</span>
+          </div>
+          <div class="meta-row">
+            <span class="meta-label">Payment Date:</span>
+            <span class="meta-val font-mono">{{ lumpSumPaymentForm.get('paymentDate')?.value | date:'dd MMM yyyy' }}</span>
+          </div>
+          <div class="meta-row">
+            <span class="meta-label">Payment Mode:</span>
+            <span class="meta-val font-bold text-blue">{{ getPaymentModeLabel(lumpSumPaymentForm.get('paymentMode')?.value) }}</span>
+          </div>
+          <div class="meta-row" *ngIf="lumpSumPaymentForm.get('transactionReference')?.value">
+            <span class="meta-label">Reference / UTR:</span>
+            <span class="meta-val font-mono text-muted">{{ lumpSumPaymentForm.get('transactionReference')?.value }}</span>
+          </div>
+          <div class="meta-row" *ngIf="lumpSumPaymentForm.get('notes')?.value">
+            <span class="meta-label">Remarks:</span>
+            <span class="meta-val text-muted">{{ lumpSumPaymentForm.get('notes')?.value }}</span>
+          </div>
+        </div>
+
+        <div class="confirm-impact-card">
+          <div class="impact-title">Settlement Impact Preview:</div>
+          <ul class="impact-list">
+            <li>
+              <strong>{{ lumpSumPreview().affectedCount }} bill(s)</strong> will receive allocated payments in FIFO order.
+            </li>
+            <li>
+              <strong>{{ lumpSumPreview().fullyPaidCount }} bill(s)</strong> will be fully settled to <strong>PAID (₹0 Due)</strong>.
+            </li>
+            <li *ngIf="lumpSumPreview().advanceCredit > 0">
+              <strong>₹{{ lumpSumPreview().advanceCredit | number:'1.2-2' }}</strong> unallocated amount will be kept as <strong>Advance Credit</strong>.
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="confirm-actions">
+        <button
+          type="button"
+          class="btn-confirm-back"
+          (click)="cancelLumpSumConfirmation()"
+          [disabled]="isSubmittingLumpSum()"
+        >
+          ← Back & Edit
+        </button>
+        <button
+          type="button"
+          class="btn-confirm-proceed"
+          (click)="proceedLumpSumSubmit()"
+          [disabled]="isSubmittingLumpSum()"
+        >
+          <span class="spinner" *ngIf="isSubmittingLumpSum()"></span>
+          <span>{{ isSubmittingLumpSum() ? 'Processing Allocation...' : 'Yes, Confirm & Settle' }}</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

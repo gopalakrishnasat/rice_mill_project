@@ -1,0 +1,397 @@
+<div class="statement-print-page">
+  <!-- Screen Control Bar (Hidden during Print) -->
+  <div class="print-control-bar no-print">
+    <div class="control-left">
+      <button type="button" class="btn-back" (click)="goBack()">
+        <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2.5" fill="none">
+          <polyline points="15 18 9 12 15 6"></polyline>
+        </svg>
+        <span>Back to Customer Profile</span>
+      </button>
+
+      <div class="doc-title-badge">
+        <span>Statement: <strong>{{ customer()?.companyName }}</strong></span>
+      </div>
+    </div>
+
+    <!-- Quick Filters inside control bar -->
+    <div class="control-filters">
+      <div class="preset-buttons">
+        <button
+          type="button"
+          class="btn-filter-preset"
+          [class.active]="activePreset() === 'THIS_FY'"
+          (click)="applyPreset('THIS_FY')"
+        >
+          Current FY
+        </button>
+        <button
+          type="button"
+          class="btn-filter-preset"
+          [class.active]="activePreset() === 'PREV_FY'"
+          (click)="applyPreset('PREV_FY')"
+        >
+          Prev FY
+        </button>
+        <button
+          type="button"
+          class="btn-filter-preset"
+          [class.active]="activePreset() === 'THIS_MONTH'"
+          (click)="applyPreset('THIS_MONTH')"
+        >
+          This Month
+        </button>
+        <button
+          type="button"
+          class="btn-filter-preset"
+          [class.active]="activePreset() === 'LAST_3_MONTHS'"
+          (click)="applyPreset('LAST_3_MONTHS')"
+        >
+          Last 3M
+        </button>
+        <button
+          type="button"
+          class="btn-filter-preset"
+          [class.active]="activePreset() === 'ALL_TIME'"
+          (click)="applyPreset('ALL_TIME')"
+        >
+          All Time
+        </button>
+      </div>
+
+      <div class="date-inputs-inline">
+        <label>From: <input type="date" [(ngModel)]="startDate" (change)="onCustomDateChange()" /></label>
+        <label>To: <input type="date" [(ngModel)]="endDate" (change)="onCustomDateChange()" /></label>
+      </div>
+    </div>
+
+    <div class="control-actions">
+      <button
+        type="button"
+        class="btn-download-pdf"
+        (click)="downloadPdf()"
+        [disabled]="isGeneratingPdf()"
+        id="btn-download-pdf"
+      >
+        <span class="spinner-sm" *ngIf="isGeneratingPdf()"></span>
+        <svg *ngIf="!isGeneratingPdf()" viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <polyline points="7 10 12 15 17 10"></polyline>
+          <line x1="12" y1="15" x2="12" y2="3"></line>
+        </svg>
+        <span>Download PDF</span>
+      </button>
+
+      <button type="button" class="btn-print-action" (click)="triggerPrint()" id="btn-print-action">
+        <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+          <polyline points="6 9 6 2 18 2 18 9"></polyline>
+          <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+          <rect x="6" y="14" width="12" height="8"></rect>
+        </svg>
+        <span>Print Statement</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div class="print-loading-state" *ngIf="isLoading()">
+    <div class="spinner-lg"></div>
+    <p>Loading Account Statement...</p>
+  </div>
+
+  <!-- Main Statement Document Sheet (A4 Printable) -->
+  <div class="statement-sheet-wrapper" *ngIf="!isLoading() && customer()">
+    <div class="statement-sheet" #statementSheet>
+
+      <!-- Traditional Devotional Header -->
+      <div class="devotional-header">
+        <span>|| Perantal Mata Prasanna ||</span>
+        <span>|| Shree Ganeshay Namah ||</span>
+        <span>|| Shree Mukatai Prasanna ||</span>
+      </div>
+
+      <!-- Mill Brand & Contact Header -->
+      <div class="statement-mill-header">
+        <div class="mill-logo-brand">
+          <div class="brand-monogram">
+            <span>SLR</span>
+          </div>
+          <div class="brand-details">
+            <h1 class="mill-name">SHREE LAXMINARAYAN RICE MILL</h1>
+            <p class="mill-tagline">Producers, Processors & Wholesalers of Premium Quality Rice</p>
+            <p class="mill-address">
+              Hivare Tarfe Narayangaon, Khodad Road, Taluka Junnar, Dist: Pune — 410504, Maharashtra, India
+            </p>
+            <div class="mill-compliance-row">
+              <span><strong>GSTIN:</strong> 27ACHFS3445C1Z8</span>
+              <span class="sep">•</span>
+              <span><strong>PAN:</strong> ACHFS3445C</span>
+              <span class="sep">•</span>
+              <span><strong>FSSAI:</strong> 21526038000229</span>
+            </div>
+            <div class="mill-contact-row">
+              <span><strong>Phone:</strong> +91 9960186123, +91 9970901007</span>
+              <span class="sep">•</span>
+              <span><strong>Email:</strong> slricemill&#64;gmail.com</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Statement Document Banner -->
+      <div class="statement-banner">
+        <div class="banner-title-box">
+          <h2 class="banner-title">STATEMENT OF ACCOUNT / KHATA PASSBOOK</h2>
+          <span class="banner-sub">Customer Account Ledger & Transaction History</span>
+        </div>
+        <div class="banner-period-badge">
+          <span class="period-label">Statement Period</span>
+          <strong class="period-val">{{ startDate() | date:'dd MMM yyyy' }} to {{ endDate() | date:'dd MMM yyyy' }}</strong>
+        </div>
+      </div>
+
+      <!-- 2-Column Info Grid: Customer Details & Statement Particulars -->
+      <div class="statement-info-grid">
+        <!-- Customer Box -->
+        <div class="info-card customer-info-card">
+          <div class="card-header-bar">
+            <span>ACCOUNT HOLDER / CUSTOMER DETAILS</span>
+          </div>
+          <div class="card-body">
+            <h3 class="customer-firm-name">{{ customer()?.companyName }}</h3>
+            <div class="info-rows">
+              <div class="info-row" *ngIf="customer()?.customerCode">
+                <span class="row-label">Customer ID:</span>
+                <strong class="row-value customer-code-text">{{ customer()?.customerCode }}</strong>
+              </div>
+              <div class="info-row" *ngIf="customer()?.contactPerson">
+                <span class="row-label">Contact Person:</span>
+                <span class="row-value">{{ customer()?.contactPerson }}</span>
+              </div>
+              <div class="info-row">
+                <span class="row-label">Mobile:</span>
+                <span class="row-value">{{ customer()?.mobile }}</span>
+              </div>
+              <div class="info-row" *ngIf="customer()?.email">
+                <span class="row-label">Email:</span>
+                <span class="row-value">{{ customer()?.email }}</span>
+              </div>
+              <div class="info-row">
+                <span class="row-label">GSTIN:</span>
+                <strong class="row-value">{{ customer()?.gstin || 'Unregistered Buyer' }}</strong>
+              </div>
+              <div class="info-row address-row">
+                <span class="row-label">Billing Address:</span>
+                <span class="row-value">
+                  {{ customer()?.billingAddress?.line1 }}
+                  <span *ngIf="customer()?.billingAddress?.line2">, {{ customer()?.billingAddress?.line2 }}</span>,
+                  {{ customer()?.billingAddress?.city }} - {{ customer()?.billingAddress?.pincode }},
+                  {{ customer()?.billingAddress?.state }}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Statement Meta Box -->
+        <div class="info-card statement-meta-card">
+          <div class="card-header-bar">
+            <span>STATEMENT PARTICULARS</span>
+          </div>
+          <div class="card-body">
+            <div class="info-rows">
+              <div class="info-row">
+                <span class="row-label">Statement Period:</span>
+                <strong class="row-value">{{ startDate() | date:'dd-MMM-yyyy' }} to {{ endDate() | date:'dd-MMM-yyyy' }}</strong>
+              </div>
+              <div class="info-row">
+                <span class="row-label">Generated On:</span>
+                <span class="row-value">{{ printGeneratedAt() | date:'dd MMM yyyy, hh:mm a' }} IST</span>
+              </div>
+              <div class="info-row">
+                <span class="row-label">Currency:</span>
+                <span class="row-value">Indian Rupee (INR ₹)</span>
+              </div>
+              <div class="info-row">
+                <span class="row-label">Account Status:</span>
+                <span class="row-value status-active">
+                  {{ customer()?.isActive ? 'Active & In Good Standing' : 'Inactive' }}
+                </span>
+              </div>
+              <div class="info-row">
+                <span class="row-label">Total Invoices in Period:</span>
+                <span class="row-value">{{ statementData().debitCount }} Tax Invoices</span>
+              </div>
+              <div class="info-row">
+                <span class="row-label">Total Payments in Period:</span>
+                <span class="row-value">{{ statementData().creditCount }} Receipts</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bank-Style Financial Summary Highlights Box -->
+      <div class="bank-statement-summary-bar">
+        <div class="summary-stat-cell">
+          <span class="stat-title">Opening Balance b/f</span>
+          <strong class="stat-amount">₹{{ openingBalance() | number:'1.2-2' }}</strong>
+          <span class="stat-note">As of {{ startDate() | date:'dd MMM yyyy' }}</span>
+        </div>
+
+        <div class="summary-stat-cell debit-cell">
+          <span class="stat-title">Total Debits (Billed) (+)</span>
+          <strong class="stat-amount">₹{{ statementData().totalDebit | number:'1.2-2' }}</strong>
+          <span class="stat-note">{{ statementData().debitCount }} Invoices/Charges</span>
+        </div>
+
+        <div class="summary-stat-cell credit-cell">
+          <span class="stat-title">Total Credits (Paid) (-)</span>
+          <strong class="stat-amount">₹{{ statementData().totalCredit | number:'1.2-2' }}</strong>
+          <span class="stat-note">{{ statementData().creditCount }} Payments Received</span>
+        </div>
+
+        <div class="summary-stat-cell closing-cell">
+          <span class="stat-title">Closing Net Balance (=)</span>
+          <strong class="stat-amount" [class.receivable]="statementData().closingBalance > 0" [class.advance]="statementData().closingBalance < 0">
+            ₹{{ statementData().closingBalance | number:'1.2-2' }}
+          </strong>
+          <span class="stat-note">
+            {{ statementData().closingBalance > 0 ? 'Dr (Receivable from Buyer)' : (statementData().closingBalance < 0 ? 'Cr (Advance Paid)' : 'Nil Balance') }}
+          </span>
+        </div>
+      </div>
+
+      <!-- Transaction Passbook / Statement Table -->
+      <div class="statement-table-section">
+        <table class="statement-ledger-table">
+          <thead>
+            <tr>
+              <th class="col-date">Date</th>
+              <th class="col-ref">Voucher / Ref #</th>
+              <th class="col-desc">Particulars / Narration</th>
+              <th class="col-type">Type</th>
+              <th class="col-num">Debit (₹)</th>
+              <th class="col-num">Credit (₹)</th>
+              <th class="col-num">Balance (₹)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Opening Balance Row -->
+            <tr class="row-opening-balance">
+              <td class="col-date">{{ startDate() | date:'dd MMM yyyy' }}</td>
+              <td class="col-ref">B/F</td>
+              <td class="col-desc">
+                <strong>Opening Balance Brought Forward</strong>
+                <span class="sub-narration">Balance carried over from prior statement period</span>
+              </td>
+              <td class="col-type"><span class="type-pill pill-opening">OPENING</span></td>
+              <td class="col-num">—</td>
+              <td class="col-num">—</td>
+              <td class="col-num balance-val">
+                <strong>₹{{ openingBalance() | number:'1.2-2' }}</strong>
+                <span class="balance-tag">{{ openingBalance() >= 0 ? 'Dr' : 'Cr' }}</span>
+              </td>
+            </tr>
+
+            <!-- Transaction Rows -->
+            <tr *ngFor="let item of statementData().entries" [class.row-payment]="item.type === 'PAYMENT'">
+              <td class="col-date">{{ item.date | date:'dd MMM yyyy' }}</td>
+              <td class="col-ref">
+                <span class="ref-badge">{{ item.referenceNo }}</span>
+              </td>
+              <td class="col-desc">
+                <span class="main-desc">{{ item.description }}</span>
+              </td>
+              <td class="col-type">
+                <span class="type-pill" [ngClass]="'pill-' + item.type.toLowerCase()">
+                  {{ item.type }}
+                </span>
+              </td>
+              <td class="col-num debit-col">
+                {{ item.debit > 0 ? ('₹' + (item.debit | number:'1.2-2')) : '—' }}
+              </td>
+              <td class="col-num credit-col">
+                {{ item.credit > 0 ? ('₹' + (item.credit | number:'1.2-2')) : '—' }}
+              </td>
+              <td class="col-num balance-val">
+                <strong>₹{{ item.statementRunningBalance | number:'1.2-2' }}</strong>
+                <span class="balance-tag">{{ item.statementRunningBalance >= 0 ? 'Dr' : 'Cr' }}</span>
+              </td>
+            </tr>
+
+            <!-- Empty State if no entries in period -->
+            <tr *ngIf="statementData().entries.length === 0" class="row-empty">
+              <td colspan="7">
+                No transactions recorded within the selected period ({{ startDate() | date:'dd MMM yyyy' }} to {{ endDate() | date:'dd MMM yyyy' }}).
+              </td>
+            </tr>
+          </tbody>
+
+          <!-- Table Totals Footer -->
+          <tfoot>
+            <tr class="row-period-totals">
+              <td colspan="4" class="totals-label">
+                <strong>Total Transactions in Selected Period</strong>
+              </td>
+              <td class="col-num debit-total">
+                <strong>₹{{ statementData().totalDebit | number:'1.2-2' }}</strong>
+              </td>
+              <td class="col-num credit-total">
+                <strong>₹{{ statementData().totalCredit | number:'1.2-2' }}</strong>
+              </td>
+              <td class="col-num balance-total">
+                <strong>₹{{ statementData().closingBalance | number:'1.2-2' }}</strong>
+                <span class="balance-tag">{{ statementData().closingBalance >= 0 ? 'Dr' : 'Cr' }}</span>
+              </td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+
+      <!-- Amount in Words -->
+      <div class="statement-words-box">
+        <span class="words-label">Net Closing Balance in Words:</span>
+        <strong class="words-text">{{ closingBalanceWords() }} ({{ statementData().closingBalance >= 0 ? 'Debit / Receivable' : 'Credit / Advance' }})</strong>
+      </div>
+
+      <!-- End of Statement delimiter -->
+      <div class="statement-end-delimiter">
+        <span>* * * END OF STATEMENT * * *</span>
+      </div>
+
+      <!-- Notes, Disclaimers & Signatures -->
+      <div class="statement-signoff-section">
+        <div class="terms-notes-box">
+          <h4 class="terms-heading">Terms & Statement Declaration:</h4>
+          <ol class="terms-list">
+            <li>This is a computer-generated official Statement of Accounts and Khata Ledger.</li>
+            <li>Please examine this statement immediately upon receipt. If any discrepancy or missing entry is noticed, kindly notify <strong>Shree Laxminarayan Rice Mill</strong> within 7 days.</li>
+            <li>All payments must be made strictly through Account Payee Cheque / NEFT / RTGS payable to <strong>SHREE LAXMINARAYAN RICE MILL</strong>.</li>
+          </ol>
+        </div>
+
+        <div class="signatures-grid">
+          <div class="sig-box customer-sig">
+            <div class="sig-space"></div>
+            <p class="sig-title">Customer Seal & Signature</p>
+            <p class="sig-sub">Accepted & Confirmed</p>
+          </div>
+
+          <div class="sig-box mill-sig">
+            <div class="sig-space"></div>
+            <p class="sig-title">For SHREE LAXMINARAYAN RICE MILL</p>
+            <p class="sig-sub">Authorized Signatory</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Print Footer -->
+      <div class="document-print-footer">
+        <span>Page 1 of 1</span>
+        <span>Generated by Shree Laxminarayan Rice Mill ERP on {{ printGeneratedAt() | date:'dd MMM yyyy, hh:mm a' }}</span>
+      </div>
+
+    </div>
+  </div>
+</div>

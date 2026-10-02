@@ -34,12 +34,6 @@
       </div>
     </div>
 
-    <!-- Toast / Alert Notification -->
-    <div class="alert-banner" [class.alert-success]="alertMessage()?.type === 'success'" [class.alert-error]="alertMessage()?.type === 'error'" *ngIf="alertMessage()">
-      <span>{{ alertMessage()?.text }}</span>
-      <button type="button" class="alert-close" (click)="alertMessage.set(null)">✕</button>
-    </div>
-
     <!-- Metric Cards Grid -->
     <div class="metrics-grid">
       <div class="metric-card">
@@ -134,8 +128,9 @@
                 <span class="code-badge">{{ c.customerCode }}</span>
               </td>
               <td>
-                <div class="firm-name" (click)="openCustomer360(c)">
-                  <strong>{{ c.companyName }}</strong>
+                <div class="firm-name clickable-firm" (click)="viewCustomerDetails(c)" title="View Full Buyer Profile & Khata">
+                  <strong class="firm-name-text">{{ c.companyName }}</strong>
+                  <span class="view-profile-hint">View Profile →</span>
                 </div>
               </td>
               <td>
@@ -175,10 +170,10 @@
                   <button
                     type="button"
                     class="btn-action btn-khata"
-                    (click)="openCustomer360(c)"
-                    title="View Customer 360 & Khata Ledger"
+                    (click)="viewCustomerDetails(c)"
+                    title="View Buyer Profile & Khata"
                   >
-                    Khata
+                    Khata →
                   </button>
                 </div>
               </td>
@@ -307,83 +302,5 @@
     </div>
   </div>
 
-  <!-- MODAL 2: CUSTOMER 360 & KHATA LEDGER STATEMENT -->
-  <div class="modal-backdrop" *ngIf="selectedCustomer()">
-    <div class="drawer-card">
-      <div class="drawer-header">
-        <div class="drawer-titles">
-          <div class="flex-align-center gap-sm">
-            <span class="code-badge">{{ selectedCustomer()?.customerCode }}</span>
-            <h3>{{ selectedCustomer()?.companyName }}</h3>
-          </div>
-          <p>📞 {{ selectedCustomer()?.mobile }} &nbsp;|&nbsp; 📍 {{ selectedCustomer()?.billingAddress?.city }}, {{ selectedCustomer()?.billingAddress?.state }} &nbsp;|&nbsp; GST: {{ selectedCustomer()?.gstin || 'Unregistered' }}</p>
-        </div>
-        <button type="button" class="modal-close-btn" (click)="closeCustomer360()">✕</button>
-      </div>
 
-      <!-- Financial Metrics Ribbon -->
-      <div class="drawer-metrics">
-        <div class="drawer-stat">
-          <span class="stat-lbl">Total Purchases Billed</span>
-          <span class="stat-num text-green">₹{{ (selectedCustomer()?.totalBilled || 0) | number:'1.2-2' }}</span>
-        </div>
-        <div class="drawer-stat">
-          <span class="stat-lbl">Total Payments Received</span>
-          <span class="stat-num text-dark">₹{{ (selectedCustomer()?.totalPaid || 0) | number:'1.2-2' }}</span>
-        </div>
-        <div class="drawer-stat">
-          <span class="stat-lbl">Current Balance Due (Khata)</span>
-          <span class="stat-num text-red">₹{{ (selectedCustomer()?.currentBalance || 0) | number:'1.2-2' }}</span>
-        </div>
-      </div>
-
-      <!-- Khata Ledger Table -->
-      <div class="ledger-container">
-        <div class="ledger-header-row">
-          <h4>Account Statement / Khata Ledger</h4>
-          <button
-            type="button"
-            class="btn-new-bill"
-            (click)="createInvoiceForCustomer(selectedCustomer()!)"
-          >
-            + Create Bill
-          </button>
-        </div>
-
-        <div class="table-responsive" *ngIf="!isLedgerLoading()">
-          <table class="ledger-table" *ngIf="customerLedger().length > 0">
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Voucher / Ref #</th>
-                <th>Transaction Description</th>
-                <th class="text-right">Debit (₹)</th>
-                <th class="text-right">Credit (₹)</th>
-                <th class="text-right">Running Balance (₹)</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let entry of customerLedger()">
-                <td class="text-muted">{{ entry.date | date:'dd MMM yyyy' }}</td>
-                <td><span class="ref-badge">{{ entry.referenceNo }}</span></td>
-                <td>{{ entry.description }}</td>
-                <td class="text-right font-medium text-red">{{ entry.debit > 0 ? ('₹' + (entry.debit | number:'1.2-2')) : '—' }}</td>
-                <td class="text-right font-medium text-green">{{ entry.credit > 0 ? ('₹' + (entry.credit | number:'1.2-2')) : '—' }}</td>
-                <td class="text-right font-bold">₹{{ entry.runningBalance | number:'1.2-2' }}</td>
-              </tr>
-            </tbody>
-          </table>
-
-          <div class="empty-state" *ngIf="customerLedger().length === 0">
-            <p>No transaction entries found for this buyer yet.</p>
-          </div>
-        </div>
-
-        <div class="loading-state" *ngIf="isLedgerLoading()">
-          <span class="spinner"></span>
-          <p>Loading ledger entries...</p>
-        </div>
-      </div>
-    </div>
-  </div>
 </div>

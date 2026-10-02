@@ -1,0 +1,100 @@
+<div
+  class="confirm-backdrop"
+  *ngIf="state().isOpen"
+  (click)="onBackdropClick($event)"
+  role="dialog"
+  aria-modal="true"
+>
+  <div class="confirm-card" [class]="'type-' + state().type">
+    <!-- Icon Header -->
+    <div class="confirm-icon-wrap" [class]="'icon-' + state().type">
+      <!-- Danger Icon (Trash / Alert Hexagon) -->
+      <svg
+        *ngIf="state().type === 'danger'"
+        viewBox="0 0 24 24"
+        width="28"
+        height="28"
+        stroke="currentColor"
+        stroke-width="2.2"
+        fill="none"
+      >
+        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+        <line x1="12" y1="9" x2="12" y2="13"></line>
+        <line x1="12" y1="17" x2="12.01" y2="17"></line>
+      </svg>
+
+      <!-- Warning Icon -->
+      <svg
+        *ngIf="state().type === 'warning'"
+        viewBox="0 0 24 24"
+        width="28"
+        height="28"
+        stroke="currentColor"
+        stroke-width="2.2"
+        fill="none"
+      >
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="8" x2="12" y2="12"></line>
+        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+      </svg>
+
+      <!-- Primary / Info Icon -->
+      <svg
+        *ngIf="state().type === 'primary' || state().type === 'info'"
+        viewBox="0 0 24 24"
+        width="28"
+        height="28"
+        stroke="currentColor"
+        stroke-width="2.2"
+        fill="none"
+      >
+        <circle cx="12" cy="12" r="10"></circle>
+        <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+        <line x1="12" y1="17" x2="12.01" y2="17"></line>
+      </svg>
+
+      <!-- Success Icon -->
+      <svg
+        *ngIf="state().type === 'success'"
+        viewBox="0 0 24 24"
+        width="28"
+        height="28"
+        stroke="currentColor"
+        stroke-width="2.2"
+        fill="none"
+      >
+        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+        <polyline points="22 4 12 14.01 9 11.01"></polyline>
+      </svg>
+    </div>
+
+    <!-- Title & Message -->
+    <div class="confirm-content">
+      <h3 class="confirm-title">{{ state().title }}</h3>
+      <p class="confirm-message">{{ state().message }}</p>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="confirm-actions">
+      <!-- Cancel Button (Only if not alert-only) -->
+      <button
+        type="button"
+        class="btn-dialog btn-dialog-cancel"
+        *ngIf="!state().isAlertOnly"
+        (click)="onCancel()"
+      >
+        {{ state().cancelText }}
+      </button>
+
+      <!-- Action / Confirm Button -->
+      <button
+        type="button"
+        class="btn-dialog btn-dialog-confirm"
+        [class]="'btn-' + state().type"
+        (click)="onConfirm()"
+      >
+        {{ state().confirmText }}
+      </button>
+    </div>
+  </div>
+</div>

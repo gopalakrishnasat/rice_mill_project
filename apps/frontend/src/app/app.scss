@@ -22,6 +22,10 @@ app-header {
   width: 100%;
   position: relative;
 
+  &:not(.has-sidebar) {
+    min-height: 100vh;
+  }
+
   app-sidebar {
     display: block;
     position: sticky;

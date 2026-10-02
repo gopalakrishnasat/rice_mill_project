@@ -223,44 +223,7 @@
   }
 }
 
-.alert-banner {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.85rem 1.25rem;
-  border-radius: var(--radius-md);
-  font-size: 0.875rem;
-  font-weight: 600;
-  animation: slideDown 0.3s ease;
 
-  &.alert-success {
-    background-color: #ecfdf5;
-    border: 1px solid #6ee7b7;
-    color: #065f46;
-  }
-
-  &.alert-error {
-    background-color: #fef2f2;
-    border: 1px solid #fca5a5;
-    color: #991b1b;
-  }
-
-  .alert-close {
-    font-size: 1rem;
-    font-weight: 700;
-  }
-}
-
-@keyframes slideDown {
-  from {
-    opacity: 0;
-    transform: translateY(-8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
 
 /* Metrics Grid */
 .metrics-grid {

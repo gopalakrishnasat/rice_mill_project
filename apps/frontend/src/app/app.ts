@@ -3,13 +3,15 @@ import { RouterOutlet, Router, NavigationEnd } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { HeaderComponent } from './shared/components/header/header.component';
 import { SidebarComponent } from './shared/components/sidebar/sidebar.component';
+import { ConfirmDialogComponent } from './shared/components/confirm-dialog/confirm-dialog.component';
+import { SnackbarComponent } from './shared/components/snackbar/snackbar.component';
 import { AuthService } from './core/services/auth.service';
 import { SidebarService } from './core/services/sidebar.service';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { filter, map } from 'rxjs/operators';
 
 @Component({
-  imports: [CommonModule, RouterOutlet, HeaderComponent, SidebarComponent],
+  imports: [CommonModule, RouterOutlet, HeaderComponent, SidebarComponent, ConfirmDialogComponent, SnackbarComponent],
   selector: 'app-root',
   templateUrl: './app.html',
   styleUrl: './app.scss',
@@ -33,7 +35,7 @@ export class App {
   readonly showNavigation = computed(() => {
     const url = this.currentUrl() || '';
     if (!this.isAuthenticated()) return false;
-    if (url.includes('/login') || url.includes('/print')) return false;
+    if (url.includes('/login') || url.includes('/print') || url.includes('/statement')) return false;
     return true;
   });
 }

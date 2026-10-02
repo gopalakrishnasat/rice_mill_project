@@ -16,9 +16,9 @@ import {
 } from '@angular/forms';
 import { CustomersService } from '../../core/services/customers.service';
 import { AuthService } from '../../core/services/auth.service';
+import { SnackbarService } from '../../core/services/snackbar.service';
 import {
   ICustomer,
-  ICustomerLedgerEntry,
   CreateCustomerDto,
 } from '@rice-mill-project/shared-types';
 
@@ -33,6 +33,7 @@ export class CustomersComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly customersService = inject(CustomersService);
   private readonly authService = inject(AuthService);
+  private readonly snackbarService = inject(SnackbarService);
   private readonly router = inject(Router);
 
   readonly currentUser = this.authService.currentUser;
@@ -55,12 +56,6 @@ export class CustomersComponent implements OnInit {
   // Customer Modal
   readonly showCreateModal = signal<boolean>(false);
   createCustomerForm!: FormGroup;
-
-  // Customer 360 Drawer
-  readonly selectedCustomer = signal<ICustomer | null>(null);
-  readonly activeDrawerTab = signal<'OVERVIEW' | 'LEDGER'>('OVERVIEW');
-  readonly customerLedger = signal<ICustomerLedgerEntry[]>([]);
-  readonly isLedgerLoading = signal<boolean>(false);
 
   // Computed Metrics
   readonly totalReceivables = computed(() =>
@@ -205,27 +200,12 @@ export class CustomersComponent implements OnInit {
     });
   }
 
+  viewCustomerDetails(customer: ICustomer): void {
+    this.router.navigate(['/customers', customer.id]);
+  }
+
   openCustomer360(customer: ICustomer): void {
-    this.selectedCustomer.set(customer);
-    this.activeDrawerTab.set('OVERVIEW');
-    this.loadLedger(customer.id);
-  }
-
-  closeCustomer360(): void {
-    this.selectedCustomer.set(null);
-  }
-
-  loadLedger(customerId: string): void {
-    this.isLedgerLoading.set(true);
-    this.customersService.getCustomerLedger(customerId).subscribe({
-      next: (data) => {
-        this.customerLedger.set(data);
-        this.isLedgerLoading.set(false);
-      },
-      error: () => {
-        this.isLedgerLoading.set(false);
-      },
-    });
+    this.viewCustomerDetails(customer);
   }
 
   createInvoiceForCustomer(customer: ICustomer): void {
@@ -240,6 +220,7 @@ export class CustomersComponent implements OnInit {
 
   private showAlert(type: 'success' | 'error', text: string): void {
     this.alertMessage.set({ type, text });
+    this.snackbarService.show(text, type);
     setTimeout(() => this.alertMessage.set(null), 5000);
   }
 }

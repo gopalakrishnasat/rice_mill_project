@@ -1,0 +1,871 @@
+.statement-print-page {
+  min-height: 100vh;
+  background-color: #334155;
+  color: #1e293b;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  display: flex;
+  flex-direction: column;
+}
+
+// -------------------------------------------------------------
+// Control Bar (Top Navigation & Print/Export Actions)
+// -------------------------------------------------------------
+.print-control-bar {
+  background: #0f172a;
+  color: #ffffff;
+  padding: 0.65rem 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  flex-wrap: wrap;
+
+  .control-left {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+
+    .btn-back {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      background: rgba(255, 255, 255, 0.12);
+      color: #e2e8f0;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 0.4rem 0.8rem;
+      border-radius: 6px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.22);
+        color: #ffffff;
+      }
+    }
+
+    .doc-title-badge {
+      font-size: 0.88rem;
+      color: #cbd5e1;
+
+      strong {
+        color: #ffffff;
+      }
+    }
+  }
+
+  .control-filters {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    flex-wrap: wrap;
+
+    .preset-buttons {
+      display: flex;
+      gap: 0.35rem;
+
+      .btn-filter-preset {
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        color: #94a3b8;
+        padding: 0.35rem 0.65rem;
+        border-radius: 5px;
+        font-size: 0.78rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.15s;
+
+        &:hover {
+          background: rgba(255, 255, 255, 0.18);
+          color: #ffffff;
+        }
+
+        &.active {
+          background: #0284c7;
+          border-color: #38bdf8;
+          color: #ffffff;
+        }
+      }
+    }
+
+    .date-inputs-inline {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.78rem;
+      color: #94a3b8;
+
+      label {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+      }
+
+      input[type='date'] {
+        background: #1e293b;
+        border: 1px solid #475569;
+        color: #ffffff;
+        padding: 0.3rem 0.5rem;
+        border-radius: 5px;
+        font-size: 0.78rem;
+
+        &:focus {
+          outline: none;
+          border-color: #38bdf8;
+        }
+      }
+    }
+  }
+
+  .control-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+
+    .btn-download-pdf {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      background: #ffffff;
+      color: #0f172a;
+      border: none;
+      padding: 0.45rem 0.95rem;
+      border-radius: 6px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s;
+
+      &:hover:not(:disabled) {
+        background: #f1f5f9;
+        transform: translateY(-1px);
+      }
+
+      &:disabled {
+        opacity: 0.65;
+        cursor: not-allowed;
+      }
+
+      .spinner-sm {
+        width: 14px;
+        height: 14px;
+        border: 2px solid #cbd5e1;
+        border-top-color: #0284c7;
+        border-radius: 50%;
+        animation: spin 0.7s linear infinite;
+      }
+    }
+
+    .btn-print-action {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+      color: #ffffff;
+      border: none;
+      padding: 0.45rem 1.05rem;
+      border-radius: 6px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s;
+
+      &:hover {
+        background: linear-gradient(135deg, #0369a1 0%, #075985 100%);
+        box-shadow: 0 4px 10px rgba(2, 132, 199, 0.4);
+      }
+    }
+  }
+}
+
+// -------------------------------------------------------------
+// Loading State
+// -------------------------------------------------------------
+.print-loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 5rem 1rem;
+  color: #cbd5e1;
+  gap: 1rem;
+
+  .spinner-lg {
+    width: 36px;
+    height: 36px;
+    border: 3px solid rgba(255, 255, 255, 0.2);
+    border-top-color: #38bdf8;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+}
+
+// -------------------------------------------------------------
+// Sheet Container & Physical A4 Page
+// -------------------------------------------------------------
+.statement-sheet-wrapper {
+  display: flex;
+  justify-content: center;
+  padding: 1.5rem;
+}
+
+.statement-sheet {
+  background: #ffffff;
+  color: #0f172a;
+  width: 210mm;
+  min-height: 297mm;
+  padding: 12mm 15mm;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
+  box-sizing: border-box;
+  font-size: 8.5pt;
+  line-height: 1.35;
+}
+
+// Devotional
+.devotional-header {
+  text-align: center;
+  font-size: 7pt;
+  color: #64748b;
+  letter-spacing: 0.15em;
+  font-weight: 600;
+  display: flex;
+  justify-content: space-around;
+  padding-bottom: 0.35rem;
+  border-bottom: 1px dotted #cbd5e1;
+  margin-bottom: 0.5rem;
+}
+
+// Mill Brand Header
+.statement-mill-header {
+  margin-bottom: 0.65rem;
+
+  .mill-logo-brand {
+    display: flex;
+    gap: 0.85rem;
+    align-items: flex-start;
+
+    .brand-monogram {
+      width: 48px;
+      height: 48px;
+      background: #0f172a;
+      color: #f8fafc;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      font-size: 14pt;
+      letter-spacing: 0.05em;
+      flex-shrink: 0;
+    }
+
+    .brand-details {
+      flex: 1;
+
+      .mill-name {
+        font-size: 13.5pt;
+        font-weight: 800;
+        color: #0f172a;
+        margin: 0 0 0.15rem 0;
+        letter-spacing: 0.03em;
+      }
+
+      .mill-tagline {
+        font-size: 7.5pt;
+        font-weight: 600;
+        color: #0284c7;
+        margin: 0 0 0.2rem 0;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+
+      .mill-address {
+        font-size: 7.8pt;
+        color: #475569;
+        margin: 0 0 0.25rem 0;
+      }
+
+      .mill-compliance-row,
+      .mill-contact-row {
+        font-size: 7.5pt;
+        color: #334155;
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        flex-wrap: wrap;
+
+        .sep {
+          color: #94a3b8;
+        }
+
+        strong {
+          color: #0f172a;
+        }
+      }
+    }
+  }
+}
+
+// Statement Title Banner
+.statement-banner {
+  background: #0f172a;
+  color: #ffffff;
+  padding: 0.45rem 0.85rem;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.65rem;
+
+  .banner-title-box {
+    .banner-title {
+      font-size: 9.5pt;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      margin: 0;
+    }
+    .banner-sub {
+      font-size: 6.8pt;
+      color: #94a3b8;
+    }
+  }
+
+  .banner-period-badge {
+    text-align: right;
+    .period-label {
+      display: block;
+      font-size: 6.5pt;
+      text-transform: uppercase;
+      color: #38bdf8;
+      letter-spacing: 0.05em;
+    }
+    .period-val {
+      font-size: 8.5pt;
+      color: #ffffff;
+    }
+  }
+}
+
+// 2-Column Info Grid
+.statement-info-grid {
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: 0.6rem;
+  margin-bottom: 0.65rem;
+
+  .info-card {
+    border: 1px solid #cbd5e1;
+    border-radius: 4px;
+    overflow: hidden;
+
+    .card-header-bar {
+      background: #f1f5f9;
+      padding: 0.25rem 0.55rem;
+      font-size: 6.8pt;
+      font-weight: 700;
+      color: #334155;
+      letter-spacing: 0.05em;
+      border-bottom: 1px solid #cbd5e1;
+    }
+
+    .card-body {
+      padding: 0.45rem 0.55rem;
+
+      .customer-firm-name {
+        font-size: 10pt;
+        font-weight: 800;
+        color: #0f172a;
+        margin: 0 0 0.35rem 0;
+      }
+
+      .info-rows {
+        display: flex;
+        flex-direction: column;
+        gap: 0.2rem;
+
+        .info-row {
+          display: flex;
+          font-size: 7.5pt;
+
+          .row-label {
+            width: 100px;
+            color: #64748b;
+            flex-shrink: 0;
+          }
+
+          .row-value {
+            color: #1e293b;
+            flex: 1;
+
+            &.customer-code-text {
+              font-family: monospace;
+              font-weight: 700;
+              color: #0369a1;
+            }
+
+            &.status-active {
+              color: #047857;
+              font-weight: 600;
+            }
+          }
+
+          &.address-row {
+            .row-value {
+              line-height: 1.3;
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+// Bank-Style Summary Highlights Box (4 Columns)
+.bank-statement-summary-bar {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  background: #f8fafc;
+  margin-bottom: 0.65rem;
+  overflow: hidden;
+
+  .summary-stat-cell {
+    padding: 0.45rem 0.65rem;
+    border-right: 1px solid #e2e8f0;
+    display: flex;
+    flex-direction: column;
+
+    &:last-child {
+      border-right: none;
+    }
+
+    .stat-title {
+      font-size: 6.5pt;
+      text-transform: uppercase;
+      font-weight: 700;
+      color: #64748b;
+      margin-bottom: 0.15rem;
+      letter-spacing: 0.04em;
+    }
+
+    .stat-amount {
+      font-size: 10pt;
+      font-weight: 800;
+      color: #0f172a;
+      letter-spacing: -0.01em;
+    }
+
+    .stat-note {
+      font-size: 6.5pt;
+      color: #64748b;
+      margin-top: 0.1rem;
+    }
+
+    &.debit-cell {
+      .stat-amount {
+        color: #0369a1;
+      }
+    }
+
+    &.credit-cell {
+      .stat-amount {
+        color: #047857;
+      }
+    }
+
+    &.closing-cell {
+      background: #eff6ff;
+
+      .stat-title {
+        color: #1e40af;
+      }
+
+      .stat-amount {
+        color: #1e3a8a;
+
+        &.receivable {
+          color: #b91c1c;
+        }
+
+        &.advance {
+          color: #047857;
+        }
+      }
+
+      .stat-note {
+        color: #1e40af;
+        font-weight: 600;
+      }
+    }
+  }
+}
+
+// Transaction Passbook Table
+.statement-table-section {
+  margin-bottom: 0.65rem;
+
+  .statement-ledger-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 7.5pt;
+
+    thead {
+      tr {
+        background: #0f172a;
+        color: #ffffff;
+
+        th {
+          padding: 0.4rem 0.45rem;
+          font-weight: 700;
+          font-size: 7pt;
+          text-align: left;
+          letter-spacing: 0.03em;
+          border: 1px solid #0f172a;
+
+          &.col-num {
+            text-align: right;
+          }
+        }
+      }
+    }
+
+    tbody {
+      tr {
+        border-bottom: 1px solid #e2e8f0;
+
+        td {
+          padding: 0.35rem 0.45rem;
+          vertical-align: top;
+          border-left: 1px solid #f1f5f9;
+          border-right: 1px solid #f1f5f9;
+
+          &.col-date {
+            width: 72px;
+            white-space: nowrap;
+            color: #475569;
+          }
+
+          &.col-ref {
+            width: 105px;
+            font-family: monospace;
+            font-weight: 700;
+            color: #0369a1;
+
+            .ref-badge {
+              white-space: nowrap;
+            }
+          }
+
+          &.col-desc {
+            color: #334155;
+
+            .sub-narration {
+              display: block;
+              font-size: 6.5pt;
+              color: #64748b;
+            }
+          }
+
+          &.col-type {
+            width: 58px;
+            text-align: center;
+          }
+
+          &.col-num {
+            width: 82px;
+            text-align: right;
+            font-family: monospace;
+            font-size: 7.5pt;
+            white-space: nowrap;
+
+            &.debit-col {
+              color: #0f172a;
+              font-weight: 600;
+            }
+
+            &.credit-col {
+              color: #047857;
+              font-weight: 600;
+            }
+
+            &.balance-val {
+              color: #0f172a;
+
+              .balance-tag {
+                display: inline-block;
+                margin-left: 0.2rem;
+                font-size: 6.2pt;
+                color: #64748b;
+                font-family: sans-serif;
+                font-weight: 700;
+              }
+            }
+          }
+        }
+
+        &.row-opening-balance {
+          background: #f8fafc;
+          font-weight: 600;
+          border-bottom: 1.5px solid #cbd5e1;
+        }
+
+        &.row-payment {
+          background: #fafaf9;
+        }
+
+        &.row-empty {
+          text-align: center;
+          color: #64748b;
+          font-style: italic;
+          padding: 1.5rem;
+        }
+
+        &:nth-child(even):not(.row-opening-balance) {
+          background-color: #fafbfc;
+        }
+      }
+    }
+
+    tfoot {
+      tr.row-period-totals {
+        background: #f1f5f9;
+        border-top: 2px solid #0f172a;
+        border-bottom: 2px solid #0f172a;
+
+        td {
+          padding: 0.45rem 0.45rem;
+          font-size: 7.5pt;
+
+          &.totals-label {
+            text-align: right;
+            color: #0f172a;
+            font-weight: 800;
+            letter-spacing: 0.02em;
+          }
+
+          &.col-num {
+            text-align: right;
+            font-family: monospace;
+            font-weight: 800;
+
+            &.debit-total {
+              color: #0369a1;
+            }
+
+            &.credit-total {
+              color: #047857;
+            }
+
+            &.balance-total {
+              color: #0f172a;
+
+              .balance-tag {
+                margin-left: 0.2rem;
+                font-size: 6.5pt;
+                color: #64748b;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+// Type pills inside table
+.type-pill {
+  font-size: 6.2pt;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 0.15rem 0.35rem;
+  border-radius: 3px;
+  letter-spacing: 0.03em;
+  display: inline-block;
+
+  &.pill-invoice {
+    background: #e0f2fe;
+    color: #0369a1;
+    border: 1px solid #bae6fd;
+  }
+
+  &.pill-payment {
+    background: #ecfdf5;
+    color: #047857;
+    border: 1px solid #a7f3d0;
+  }
+
+  &.pill-opening {
+    background: #f1f5f9;
+    color: #475569;
+    border: 1px solid #e2e8f0;
+  }
+}
+
+// Words Box
+.statement-words-box {
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  border-radius: 4px;
+  padding: 0.35rem 0.65rem;
+  font-size: 7.5pt;
+  margin-bottom: 0.65rem;
+  display: flex;
+  gap: 0.4rem;
+
+  .words-label {
+    color: #64748b;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+
+  .words-text {
+    color: #0f172a;
+    font-weight: 700;
+  }
+}
+
+// End delimiter
+.statement-end-delimiter {
+  text-align: center;
+  font-size: 6.5pt;
+  color: #94a3b8;
+  letter-spacing: 0.2em;
+  font-weight: 700;
+  margin: 0.4rem 0 0.65rem 0;
+}
+
+// Notes & Signatures
+.statement-signoff-section {
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: 0.75rem;
+  margin-bottom: 0.65rem;
+
+  .terms-notes-box {
+    border: 1px solid #e2e8f0;
+    border-radius: 4px;
+    padding: 0.45rem 0.6rem;
+    background: #ffffff;
+
+    .terms-heading {
+      font-size: 6.8pt;
+      font-weight: 700;
+      color: #334155;
+      margin: 0 0 0.25rem 0;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .terms-list {
+      margin: 0;
+      padding-left: 1rem;
+      font-size: 6.8pt;
+      color: #475569;
+      line-height: 1.35;
+
+      li {
+        margin-bottom: 0.15rem;
+      }
+    }
+  }
+
+  .signatures-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+
+    .sig-box {
+      border: 1px dashed #cbd5e1;
+      border-radius: 4px;
+      padding: 0.45rem;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+
+      .sig-space {
+        height: 38px;
+      }
+
+      .sig-title {
+        font-size: 6.8pt;
+        font-weight: 700;
+        color: #0f172a;
+        margin: 0;
+      }
+
+      .sig-sub {
+        font-size: 6pt;
+        color: #64748b;
+        margin: 0;
+      }
+    }
+  }
+}
+
+// Document Print Footer
+.document-print-footer {
+  display: flex;
+  justify-content: space-between;
+  font-size: 6.5pt;
+  color: #94a3b8;
+  padding-top: 0.35rem;
+  border-top: 1px dotted #cbd5e1;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+// -------------------------------------------------------------
+// Print Media Rules
+// -------------------------------------------------------------
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 8mm;
+  }
+
+  body,
+  .statement-print-page {
+    background: #ffffff !important;
+    color: #000000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .statement-sheet-wrapper {
+    padding: 0 !important;
+  }
+
+  .statement-sheet {
+    box-shadow: none !important;
+    width: 100% !important;
+    min-height: auto !important;
+    padding: 0 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .statement-ledger-table {
+    tr {
+      page-break-inside: avoid;
+    }
+  }
+
+  .statement-signoff-section {
+    page-break-inside: avoid;
+  }
+}

@@ -3,6 +3,8 @@ import { LoginComponent } from './features/auth/login/login.component';
 import { DashboardPlaceholderComponent } from './features/dashboard/dashboard-placeholder.component';
 import { UserManagementComponent } from './features/users/user-management.component';
 import { CustomersComponent } from './features/customers/customers.component';
+import { CustomerDetailComponent } from './features/customers/customer-detail.component';
+import { CustomerStatementPrintComponent } from './features/customers/customer-statement-print.component';
 import { InvoiceListComponent } from './features/invoices/invoice-list.component';
 import { InvoiceCreateComponent } from './features/invoices/invoice-create.component';
 import { InvoicePrintComponent } from './features/invoices/invoice-print.component';
@@ -29,6 +31,16 @@ export const appRoutes: Route[] = [
   {
     path: 'customers',
     component: CustomersComponent,
+    canActivate: [authGuard],
+  },
+  {
+    path: 'customers/:id/statement',
+    component: CustomerStatementPrintComponent,
+    canActivate: [authGuard],
+  },
+  {
+    path: 'customers/:id',
+    component: CustomerDetailComponent,
     canActivate: [authGuard],
   },
   {

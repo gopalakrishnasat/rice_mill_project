@@ -27,6 +27,7 @@ export class CustomersService {
     search?: string;
     isActive?: boolean;
     hasBalance?: boolean;
+    limit?: number;
   }): Observable<ICustomer[]> {
     return this.http
       .get<ApiResponse<ICustomer[]>>(this.apiUrl, { params: params as any })
@@ -63,10 +64,36 @@ export class CustomersService {
       .pipe(map((res) => res.data || []));
   }
 
+  downloadStatementPdfStream(
+    customerId: string,
+    startDate?: string,
+    endDate?: string,
+  ): Observable<Blob> {
+    let url = `/api/invoices/customer/${customerId}/statement/pdf`;
+    const params: string[] = [];
+    if (startDate) params.push(`startDate=${encodeURIComponent(startDate)}`);
+    if (endDate) params.push(`endDate=${encodeURIComponent(endDate)}`);
+    if (params.length > 0) {
+      url += `?${params.join('&')}`;
+    }
+    return this.http.get(url, { responseType: 'blob' });
+  }
+
   private normalizeCustomer(c: any): ICustomer {
     return {
       ...c,
       id: c.id || c._id,
+      billingAddress: c.billingAddress || {
+        line1: '',
+        city: 'Pune',
+        state: 'Maharashtra',
+        stateCode: '27',
+        pincode: '',
+      },
+      currentBalance: c.currentBalance ?? 0,
+      totalBilled: c.totalBilled ?? 0,
+      totalPaid: c.totalPaid ?? 0,
+      openingBalance: c.openingBalance ?? 0,
     };
   }
 }

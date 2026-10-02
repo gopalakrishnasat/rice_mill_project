@@ -45,6 +45,7 @@ export class CustomersService {
     search?: string;
     isActive?: boolean;
     hasBalance?: boolean;
+    limit?: number;
   }): Promise<CustomerDocument[]> {
     const filter: Record<string, any> = {};
 
@@ -55,7 +56,7 @@ export class CustomersService {
       filter.currentBalance = { $gt: 0 };
     }
     if (query?.search) {
-      const regex = new RegExp(query.search, 'i');
+      const regex = new RegExp(query.search.trim(), 'i');
       filter.$or = [
         { companyName: regex },
         { customerCode: regex },
@@ -66,7 +67,11 @@ export class CustomersService {
       ];
     }
 
-    const customers = await this.customerModel.find(filter).exec();
+    let dbQuery = this.customerModel.find(filter);
+    if (query?.limit && query.limit > 0) {
+      dbQuery = dbQuery.limit(query.limit);
+    }
+    const customers = await dbQuery.exec();
 
     // Natural sort by customerCode (CUST-001, CUST-002, ...)
     return customers.sort((a, b) => {

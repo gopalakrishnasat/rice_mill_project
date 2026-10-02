@@ -10,6 +10,8 @@ import {
 import { Router, RouterLink } from '@angular/router';
 import { UsersService } from '../../core/services/users.service';
 import { AuthService } from '../../core/services/auth.service';
+import { ConfirmDialogService } from '../../core/services/confirm-dialog.service';
+import { SnackbarService } from '../../core/services/snackbar.service';
 import { IUser, UserRole } from '../../core/models/auth.models';
 
 @Component({
@@ -24,6 +26,8 @@ export class UserManagementComponent implements OnInit {
   readonly authService = inject(AuthService);
   private readonly fb = inject(FormBuilder);
   private readonly router = inject(Router);
+  private readonly confirmDialogService = inject(ConfirmDialogService);
+  private readonly snackbarService = inject(SnackbarService);
 
   readonly currentUser = this.authService.currentUser;
   readonly isSuperAdmin = computed(
@@ -196,15 +200,19 @@ export class UserManagementComponent implements OnInit {
     });
   }
 
-  toggleUserStatus(user: IUser): void {
+  async toggleUserStatus(user: IUser): Promise<void> {
     const newStatus = !user.isActive;
     const actionName = newStatus ? 'activate' : 'deactivate';
 
-    if (
-      !confirm(
-        `Are you sure you want to ${actionName} employee account for ${user.name} (${user.employeeId || user.email})?`,
-      )
-    ) {
+    const confirmed = await this.confirmDialogService.confirm({
+      title: newStatus ? 'Activate Employee Account?' : 'Deactivate Employee Account?',
+      message: `Are you sure you want to ${actionName} employee account for "${user.name}" (${user.employeeId || user.email})?`,
+      confirmText: newStatus ? 'Yes, Activate' : 'Yes, Deactivate',
+      cancelText: 'Cancel',
+      type: newStatus ? 'primary' : 'danger',
+    });
+
+    if (!confirmed) {
       return;
     }
 
@@ -284,7 +292,12 @@ export class UserManagementComponent implements OnInit {
     const user = this.selectedUserForPassword();
     const newPass = this.newPasswordInput();
     if (!user || !newPass || newPass.length < 6) {
-      alert('Password must be at least 6 characters.');
+      this.confirmDialogService.alert({
+        title: 'Invalid Password',
+        message: 'Password must be at least 6 characters long.',
+        buttonText: 'Got It',
+        type: 'warning',
+      });
       return;
     }
 
@@ -310,6 +323,7 @@ export class UserManagementComponent implements OnInit {
 
   showAlert(text: string, type: 'success' | 'error'): void {
     this.alertMessage.set({ text, type });
+    this.snackbarService.show(text, type);
     setTimeout(() => {
       this.alertMessage.set(null);
     }, 6000);

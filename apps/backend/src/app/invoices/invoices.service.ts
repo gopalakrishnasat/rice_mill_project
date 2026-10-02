@@ -1,15 +1,17 @@
 import {
   Injectable,
   NotFoundException,
+  BadRequestException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { Invoice, InvoiceDocument } from './schemas/invoice.schema';
 import {
   PaymentReceipt,
   PaymentReceiptDocument,
 } from './schemas/payment-receipt.schema';
 import { CustomersService } from '../customers/customers.service';
+import { CustomerDocument } from '../customers/schemas/customer.schema';
 import { CreateInvoiceDto } from './dto/create-invoice.dto';
 import { UpdateInvoiceDto } from './dto/update-invoice.dto';
 import { RecordPaymentDto } from './dto/record-payment.dto';
@@ -146,7 +148,13 @@ export class InvoicesService {
     const filter: Record<string, any> = {};
 
     if (query?.customerId) {
-      filter.customerId = query.customerId;
+      if (Types.ObjectId.isValid(query.customerId)) {
+        filter.customerId = {
+          $in: [query.customerId, new Types.ObjectId(query.customerId)],
+        };
+      } else {
+        filter.customerId = query.customerId;
+      }
     }
     if (query?.status) {
       filter.status = query.status;
@@ -282,6 +290,12 @@ export class InvoicesService {
       throw new NotFoundException('Invoice not found.');
     }
 
+    if (invoice.paymentStatus === PaymentStatus.PAID) {
+      throw new BadRequestException(
+        'This invoice is fully paid and cannot be edited because payments are already settled.',
+      );
+    }
+
     const previousTotal = invoice.totalAmount;
 
     if (dto.invoiceType !== undefined) invoice.invoiceType = dto.invoiceType;
@@ -309,6 +323,12 @@ export class InvoicesService {
       isInterState,
       invoice.invoiceType,
     );
+
+    if (totals.totalAmount < invoice.paidAmount) {
+      throw new BadRequestException(
+        `Cannot reduce invoice total to ₹${totals.totalAmount} because ₹${invoice.paidAmount} has already been paid against this invoice.`,
+      );
+    }
 
     invoice.items = totals.items;
     invoice.subTotal = totals.subTotal;
@@ -426,19 +446,159 @@ export class InvoicesService {
     return { invoice: updatedInvoice, receipt: savedReceipt };
   }
 
+  async allocateCustomerPayment(
+    customerId: string,
+    dto: RecordPaymentDto,
+    actorUser?: IUser,
+  ): Promise<{
+    receipt: PaymentReceiptDocument;
+    allocations: Array<{
+      invoiceId: string;
+      invoiceNumber: string;
+      allocatedAmount: number;
+      previousBalance: number;
+      newBalance: number;
+      status: PaymentStatus;
+    }>;
+    unallocatedAdvance: number;
+    customer: CustomerDocument;
+  }> {
+    const customer = await this.customersService.findById(customerId);
+    if (!customer) {
+      throw new NotFoundException('Customer not found.');
+    }
+
+    const custIdFilter = Types.ObjectId.isValid(customerId)
+      ? { $in: [customerId, new Types.ObjectId(customerId)] }
+      : customerId;
+
+    const pendingInvoices = await this.invoiceModel
+      .find({
+        customerId: custIdFilter as any,
+        paymentStatus: { $in: [PaymentStatus.UNPAID, PaymentStatus.PARTIAL] },
+        status: { $ne: InvoiceStatus.CANCELLED },
+      })
+      .sort({ invoiceDate: 1, createdAt: 1 })
+      .exec();
+
+    let remainingPayment = Number(dto.amount.toFixed(2));
+    const allocations: Array<{
+      invoiceId: string;
+      invoiceNumber: string;
+      allocatedAmount: number;
+      previousBalance: number;
+      newBalance: number;
+      status: PaymentStatus;
+    }> = [];
+
+    for (const inv of pendingInvoices) {
+      if (remainingPayment <= 0) break;
+
+      const prevBal = Number(inv.balanceAmount.toFixed(2));
+      if (prevBal <= 0) continue;
+
+      const allocated = Number(Math.min(prevBal, remainingPayment).toFixed(2));
+      inv.paidAmount = Number((inv.paidAmount + allocated).toFixed(2));
+      inv.balanceAmount = Number(
+        Math.max(0, inv.totalAmount - inv.paidAmount).toFixed(2)
+      );
+
+      if (inv.balanceAmount === 0) {
+        inv.paymentStatus = PaymentStatus.PAID;
+      } else {
+        inv.paymentStatus = PaymentStatus.PARTIAL;
+      }
+
+      await inv.save();
+
+      allocations.push({
+        invoiceId: inv._id.toString(),
+        invoiceNumber: inv.invoiceNumber,
+        allocatedAmount: allocated,
+        previousBalance: prevBal,
+        newBalance: inv.balanceAmount,
+        status: inv.paymentStatus,
+      });
+
+      remainingPayment = Number((remainingPayment - allocated).toFixed(2));
+    }
+
+    const count = await this.paymentReceiptModel.countDocuments().exec();
+    const receiptNumber = `REC-${String(count + 1).padStart(4, '0')}`;
+
+    const allocationSummary =
+      allocations.length > 0
+        ? `Allocated across ${allocations.length} bill(s): ` +
+          allocations
+            .map((a) => `${a.invoiceNumber} (₹${a.allocatedAmount.toFixed(2)})`)
+            .join(', ')
+        : 'Advance deposit on account';
+
+    const notes = dto.notes
+      ? `${dto.notes.trim()} | ${allocationSummary}`
+      : allocationSummary;
+
+    const receipt = new this.paymentReceiptModel({
+      receiptNumber,
+      customerId: customer._id,
+      amount: dto.amount,
+      paymentDate: new Date(dto.paymentDate),
+      paymentMode: dto.paymentMode,
+      transactionReference: dto.transactionReference?.trim(),
+      notes,
+      recordedBy: actorUser?.id,
+    });
+
+    const savedReceipt = await receipt.save();
+
+    const updatedCustomer = await this.customersService.updateBalance(
+      customer._id.toString(),
+      0,
+      dto.amount,
+    );
+
+    if (actorUser) {
+      await this.auditService.log({
+        userId: actorUser.id,
+        action: 'CUSTOMER_PAYMENT_ALLOCATED',
+        module: 'INVOICING',
+        performedBy: `${actorUser.name} (${actorUser.role})`,
+        metadata: {
+          customerId: customer._id.toString(),
+          receiptNumber: savedReceipt.receiptNumber,
+          totalAmount: dto.amount,
+          billsAllocatedCount: allocations.length,
+          allocations,
+          unallocatedAdvance: Math.max(0, remainingPayment),
+        },
+      });
+    }
+
+    return {
+      receipt: savedReceipt,
+      allocations,
+      unallocatedAdvance: Math.max(0, remainingPayment),
+      customer: updatedCustomer || customer,
+    };
+  }
+
   async getCustomerLedger(customerId: string): Promise<ICustomerLedgerEntry[]> {
     const customer = await this.customersService.findById(customerId);
     if (!customer) {
       throw new NotFoundException('Customer not found.');
     }
 
+    const custIdFilter = Types.ObjectId.isValid(customerId)
+      ? { $in: [customerId, new Types.ObjectId(customerId)] }
+      : customerId;
+
     const [invoices, receipts] = await Promise.all([
       this.invoiceModel
-        .find({ customerId, status: { $ne: InvoiceStatus.CANCELLED } })
+        .find({ customerId: custIdFilter as any, status: { $ne: InvoiceStatus.CANCELLED } })
         .sort({ invoiceDate: 1 })
         .exec(),
       this.paymentReceiptModel
-        .find({ customerId })
+        .find({ customerId: custIdFilter as any })
         .sort({ paymentDate: 1 })
         .exec(),
     ]);

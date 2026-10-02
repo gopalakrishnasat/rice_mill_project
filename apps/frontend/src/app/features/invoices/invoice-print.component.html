@@ -91,9 +91,9 @@
             <th>Reference</th>
             <td>{{ invoice()?.reference || '—' }}</td>
           </tr>
-          <tr>
+          <tr *ngIf="invoice()?.transportDetails">
             <th>Transport Details</th>
-            <td>{{ invoice()?.transportDetails || '—' }}</td>
+            <td>{{ invoice()?.transportDetails }}</td>
           </tr>
           <tr>
             <th>Vehicle No</th>

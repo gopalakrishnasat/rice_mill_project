@@ -410,10 +410,34 @@
   color: #0f172a;
   cursor: pointer;
   font-size: 0.95rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+
+  .firm-name-text {
+    color: #0f172a;
+    transition: color 0.15s;
+  }
+
+  .view-profile-hint {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: #0284c7;
+    opacity: 0;
+    transform: translateX(-4px);
+    transition: all 0.15s ease;
+  }
 
   &:hover {
-    color: #0284c7;
-    text-decoration: underline;
+    .firm-name-text {
+      color: #0284c7;
+      text-decoration: underline;
+    }
+
+    .view-profile-hint {
+      opacity: 1;
+      transform: translateX(0);
+    }
   }
 }
 
@@ -491,7 +515,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1500;
+  z-index: 2500;
   padding: 1.5rem;
 }
 
@@ -704,27 +728,7 @@
   border-radius: 4px;
 }
 
-/* Alerts & Loading */
-.alert-banner {
-  padding: 0.85rem 1.25rem;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-size: 0.875rem;
-  font-weight: 500;
 
-  &.alert-success { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
-  &.alert-error { background: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; }
-}
-
-.alert-close {
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  color: inherit;
-  font-weight: 700;
-}
 
 .empty-state, .loading-state {
   padding: 3rem 1.5rem;

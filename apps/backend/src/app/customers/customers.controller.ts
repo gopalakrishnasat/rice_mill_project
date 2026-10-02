@@ -50,16 +50,19 @@ export class CustomersController {
     @Query('search') search?: string,
     @Query('isActive') isActive?: string,
     @Query('hasBalance') hasBalance?: string,
+    @Query('limit') limit?: string,
   ) {
     const isActiveBool =
       isActive !== undefined ? isActive === 'true' : undefined;
     const hasBalanceBool =
       hasBalance !== undefined ? hasBalance === 'true' : undefined;
+    const limitNum = limit ? parseInt(limit, 10) : undefined;
 
     const customers = await this.customersService.findAll({
       search,
       isActive: isActiveBool,
       hasBalance: hasBalanceBool,
+      limit: limitNum,
     });
 
     return {

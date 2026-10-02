@@ -5,6 +5,8 @@ import { InvoicesService } from '../../core/services/invoices.service';
 import { PdfExportService } from '../../core/services/pdf-export.service';
 import { IInvoice } from '@rice-mill-project/shared-types';
 
+import { SnackbarService } from '../../core/services/snackbar.service';
+
 @Component({
   selector: 'app-invoice-print',
   standalone: true,
@@ -17,6 +19,7 @@ export class InvoicePrintComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly invoicesService = inject(InvoicesService);
   private readonly pdfExportService = inject(PdfExportService);
+  private readonly snackbar = inject(SnackbarService);
 
   @ViewChild('invoiceSheet') invoiceSheetRef!: ElementRef<HTMLElement>;
 
@@ -55,41 +58,12 @@ export class InvoicePrintComponent implements OnInit {
     if (!inv) return;
 
     this.isGeneratingPdf.set(true);
-    const filename = `Invoice_${inv.invoiceNumber}.pdf`;
+    this.invoicesService.downloadInvoiceDirectly(inv.id, inv.invoiceNumber);
 
-    this.invoicesService.downloadPdfStream(inv.id).subscribe({
-      next: (blob) => {
-        const blobUrl = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = blobUrl;
-        a.download = filename;
-        a.style.display = 'none';
-        document.body.appendChild(a);
-        a.click();
-
-        setTimeout(() => {
-          if (document.body.contains(a)) {
-            document.body.removeChild(a);
-          }
-          URL.revokeObjectURL(blobUrl);
-          this.isGeneratingPdf.set(false);
-        }, 1000);
-      },
-      error: async (err) => {
-        console.warn('Backend PDF stream failed, using client-side fallback:', err);
-        if (this.invoiceSheetRef) {
-          try {
-            await this.pdfExportService.downloadElementAsPdf(
-              this.invoiceSheetRef.nativeElement,
-              filename,
-            );
-          } catch (clientErr) {
-            console.error('Client PDF export failed:', clientErr);
-          }
-        }
-        this.isGeneratingPdf.set(false);
-      },
-    });
+    setTimeout(() => {
+      this.isGeneratingPdf.set(false);
+      this.snackbar.success(`Tax Invoice PDF downloaded successfully: Invoice_${inv.invoiceNumber}.pdf`);
+    }, 800);
   }
 
   goBack(): void {

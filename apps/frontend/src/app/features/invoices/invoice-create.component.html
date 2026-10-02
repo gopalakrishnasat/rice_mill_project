@@ -31,12 +31,6 @@
       </div>
     </div>
 
-    <!-- Alert Banner -->
-    <div class="alert-banner" [class.alert-success]="alertMessage()?.type === 'success'" [class.alert-error]="alertMessage()?.type === 'error'" *ngIf="alertMessage()">
-      <span>{{ alertMessage()?.text }}</span>
-      <button type="button" class="alert-close" (click)="alertMessage.set(null)">✕</button>
-    </div>
-
     <!-- Two-Pane Layout -->
     <div class="two-pane-layout">
       <!-- LEFT PANE: INTERACTIVE BILLING FORM -->
@@ -49,20 +43,162 @@
               <h4>Buyer & Invoice Details</h4>
             </div>
 
-            <!-- Customer Selection + Quick Add -->
-            <div class="form-group" [class.has-error]="invoiceForm.get('customerId')?.invalid && invoiceForm.get('customerId')?.touched">
+            <!-- Customer Selection + Searchable Dropdown with Inner Filter + Full Registration Modal -->
+            <div class="form-group buyer-select-group" [class.has-error]="invoiceForm.get('customerId')?.invalid && invoiceForm.get('customerId')?.touched">
               <div class="label-row">
                 <label>Select Buyer / Customer *</label>
-                <button type="button" class="btn-quick-add" (click)="openQuickCustomerModal()">
-                  + Quick Add Buyer
+                <button type="button" class="btn-register-buyer" (click)="openRegisterBuyerModal()">
+                  + Register New Buyer
                 </button>
               </div>
-              <select formControlName="customerId" class="form-select" id="select-customer">
-                <option value="" disabled>-- Choose Registered Buyer --</option>
-                <option *ngFor="let c of customers()" [value]="c.id">
-                  {{ c.customerCode }} — {{ c.companyName }} ({{ c.billingAddress?.city || 'Pune' }})
-                </option>
-              </select>
+
+              <!-- Searchable Dropdown Container -->
+              <div class="buyer-dropdown-container" [class.dropdown-active]="isBuyerDropdownOpen()">
+                <!-- Selector Trigger Box -->
+                <div
+                  class="buyer-selector-trigger"
+                  [class.has-selection]="!!selectedCustomerObj()"
+                  [class.is-invalid]="invoiceForm.get('customerId')?.invalid && invoiceForm.get('customerId')?.touched"
+                  tabindex="0"
+                  (click)="toggleBuyerDropdown($event)"
+                  (keydown.enter)="toggleBuyerDropdown($event)"
+                  (keydown.space)="toggleBuyerDropdown($event)"
+                  id="select-customer-trigger"
+                >
+                  <div class="trigger-content" *ngIf="selectedCustomerObj() as cust; else noSelection">
+                    <span class="trigger-code-badge">{{ cust.customerCode }}</span>
+                    <span class="trigger-name">{{ cust.companyName }}</span>
+                    <span class="trigger-meta" *ngIf="cust.billingAddress.city">
+                      📍 {{ cust.billingAddress.city }}
+                    </span>
+                    <span class="trigger-balance" *ngIf="cust.currentBalance > 0">
+                      (Due: ₹{{ cust.currentBalance | number:'1.2-2' }})
+                    </span>
+                  </div>
+
+                  <ng-template #noSelection>
+                    <div class="trigger-placeholder">
+                      <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                      </svg>
+                      <span>Choose or search buyer by name, code, phone, city...</span>
+                    </div>
+                  </ng-template>
+
+                  <div class="trigger-actions">
+                    <button
+                      type="button"
+                      class="btn-trigger-clear"
+                      *ngIf="selectedCustomerObj()"
+                      (click)="clearSelectedCustomer($event)"
+                      title="Clear selected buyer"
+                    >
+                      ✕
+                    </button>
+                    <span class="trigger-chevron" [class.rotated]="isBuyerDropdownOpen()">
+                      <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2.2" fill="none">
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                      </svg>
+                    </span>
+                  </div>
+                </div>
+
+                <!-- Floating Dropdown Panel with Search Filter Inside -->
+                <div class="buyer-filter-dropdown" *ngIf="isBuyerDropdownOpen()">
+                  <!-- Filter Search Input (sticky top inside dropdown) -->
+                  <div class="dropdown-search-bar" (click)="$event.stopPropagation()">
+                    <svg viewBox="0 0 24 24" width="16" height="16" stroke="#0284c7" stroke-width="2.2" fill="none" class="search-bar-icon">
+                      <circle cx="11" cy="11" r="8"></circle>
+                      <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                    <input
+                      #buyerFilterInput
+                      type="text"
+                      class="dropdown-search-input"
+                      placeholder="Type to filter by name, code, phone, city..."
+                      [ngModel]="buyerFilterSearch()"
+                      (ngModelChange)="onBuyerFilterSearchChange($event)"
+                      (keydown.enter)="onBuyerFilterKeydownEnter($event)"
+                      (keydown.escape)="closeBuyerDropdown()"
+                      autocomplete="off"
+                    />
+                    <button
+                      type="button"
+                      class="btn-search-clear"
+                      *ngIf="buyerFilterSearch()"
+                      (click)="clearBuyerFilterSearch($event)"
+                      title="Clear search text"
+                    >
+                      ✕
+                    </button>
+                    <span class="search-spinner" *ngIf="isSearchingBuyers()"></span>
+                  </div>
+
+                  <!-- Dropdown Status Header -->
+                  <div class="dropdown-info-bar">
+                    <span class="info-count">
+                      {{ displayedCustomers().length }} buyer{{ displayedCustomers().length === 1 ? '' : 's' }}
+                      <span *ngIf="buyerFilterSearch().trim()">matching "{{ buyerFilterSearch() }}"</span>
+                    </span>
+                    <span class="info-hint" *ngIf="displayedCustomers().length > 0">Press ↵ Enter to pick top match</span>
+                  </div>
+
+                  <!-- Dropdown Buyers List (scrollable) -->
+                  <ul class="dropdown-buyers-list" *ngIf="displayedCustomers().length > 0">
+                    <li
+                      *ngFor="let c of displayedCustomers()"
+                      class="buyer-row-item"
+                      [class.is-selected]="c.id === invoiceForm.get('customerId')?.value"
+                      (click)="selectCustomer(c, $event)"
+                    >
+                      <div class="buyer-row-main">
+                        <div class="buyer-title-row">
+                          <span class="buyer-code-badge">{{ c.customerCode }}</span>
+                          <span class="buyer-company-name">{{ c.companyName }}</span>
+                          <span class="selected-check" *ngIf="c.id === invoiceForm.get('customerId')?.value">✓ Selected</span>
+                        </div>
+                        <div class="buyer-sub-row">
+                          <span class="sub-item" *ngIf="c.billingAddress.city">📍 {{ c.billingAddress.city }}</span>
+                          <span class="sub-item" *ngIf="c.mobile">📞 {{ c.mobile }}</span>
+                          <span class="sub-item gstin-sub" *ngIf="c.gstin">GST: {{ c.gstin }}</span>
+                        </div>
+                      </div>
+                      <div class="buyer-row-side">
+                        <span class="due-tag" *ngIf="c.currentBalance > 0">Due: ₹{{ c.currentBalance | number:'1.2-2' }}</span>
+                      </div>
+                    </li>
+                  </ul>
+
+                  <!-- Empty State when filter yields 0 matches -->
+                  <div class="dropdown-empty-state" *ngIf="displayedCustomers().length === 0 && !isSearchingBuyers()">
+                    <div class="empty-icon">🔍</div>
+                    <div class="empty-text">No registered buyers matching "<strong>{{ buyerFilterSearch() }}</strong>"</div>
+                    <button
+                      type="button"
+                      class="btn-register-from-search"
+                      (click)="openRegisterBuyerFromSearch(buyerFilterSearch())"
+                    >
+                      + Register "{{ buyerFilterSearch() }}" as New Buyer
+                    </button>
+                  </div>
+
+                  <!-- Dropdown Footer -->
+                  <div class="dropdown-footer" (click)="$event.stopPropagation()">
+                    <button type="button" class="btn-footer-add-buyer" (click)="openRegisterBuyerModal()">
+                      + Register New Buyer
+                    </button>
+                    <span class="footer-help">Click any buyer to select</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Hidden native input to ensure reactive form control binding is tracked -->
+              <input type="hidden" formControlName="customerId" />
+
+              <span class="field-error-text" *ngIf="invoiceForm.get('customerId')?.invalid && invoiceForm.get('customerId')?.touched">
+                Please select a registered buyer / customer
+              </span>
             </div>
 
             <!-- Invoice Type & Date -->
@@ -90,11 +226,6 @@
                 <label>PO / Order Reference</label>
                 <input type="text" formControlName="reference" placeholder="e.g. PO-8821" />
               </div>
-            </div>
-
-            <div class="form-group">
-              <label>Transport / Carrier Agency</label>
-              <input type="text" formControlName="transportDetails" placeholder="e.g. Laxmi Roadways / Direct Delivery" />
             </div>
           </div>
 
@@ -285,7 +416,7 @@
                   <th>Vehicle No</th>
                   <td><strong class="text-vehicle">{{ liveVehicleNumber() }}</strong></td>
                 </tr>
-                <tr>
+                <tr *ngIf="liveTransportDetails() && liveTransportDetails() !== '—'">
                   <th>Transport</th>
                   <td>{{ liveTransportDetails() }}</td>
                 </tr>
@@ -385,46 +516,97 @@
     </div>
   </div>
 
-  <!-- QUICK ADD BUYER MODAL -->
-  <div class="modal-backdrop" *ngIf="showQuickCustomerModal()">
-    <div class="modal-card">
+  <!-- FULL BUYER REGISTRATION MODAL -->
+  <div class="modal-backdrop" *ngIf="showRegisterBuyerModal()">
+    <div class="modal-card modal-card-buyer-reg">
       <div class="modal-header">
-        <h3>Quick Add New Buyer</h3>
-        <button type="button" class="modal-close-btn" (click)="closeQuickCustomerModal()">✕</button>
+        <div class="modal-title-group">
+          <h3>Register New Buyer / Customer</h3>
+          <p>Sequential ID is automatically allocated for new buyers</p>
+        </div>
+        <button type="button" class="modal-close-btn" (click)="closeRegisterBuyerModal()">✕</button>
       </div>
 
-      <form [formGroup]="quickCustomerForm" (ngSubmit)="onQuickCustomerSubmit()" class="modal-form">
+      <form [formGroup]="registerBuyerForm" (ngSubmit)="onRegisterBuyerSubmit()" class="modal-form" novalidate>
+        <!-- Auto Customer Code & Trade Name -->
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label>
+              <span>Buyer ID / Code</span>
+              <span class="auto-badge">⚡ Auto-Sequential</span>
+            </label>
+            <input type="text" [value]="autoCustomerCode()" readonly class="readonly-input" />
+          </div>
+          <div class="form-group flex-2" [class.has-error]="registerBuyerForm.get('companyName')?.invalid && registerBuyerForm.get('companyName')?.touched">
+            <label>Trade / Firm Name *</label>
+            <input type="text" formControlName="companyName" placeholder="e.g. Lunkad Foods Private Limited" />
+          </div>
+        </div>
+
+        <!-- Contact Person & Mobile -->
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label>Contact Person</label>
+            <input type="text" formControlName="contactPerson" placeholder="e.g. Vijay Lunkad" />
+          </div>
+          <div class="form-group flex-1" [class.has-error]="registerBuyerForm.get('mobile')?.invalid && registerBuyerForm.get('mobile')?.touched">
+            <label>Mobile Number *</label>
+            <input type="tel" formControlName="mobile" placeholder="e.g. 9822012345" />
+          </div>
+        </div>
+
+        <!-- Email & GSTIN -->
+        <div class="form-row">
+          <div class="form-group flex-1" [class.has-error]="registerBuyerForm.get('email')?.invalid && registerBuyerForm.get('email')?.touched">
+            <label>Email Address</label>
+            <input type="email" formControlName="email" placeholder="e.g. orders@lunkadfoods.com" />
+          </div>
+          <div class="form-group flex-1">
+            <label>GSTIN (Optional for Retail)</label>
+            <input type="text" formControlName="gstin" placeholder="e.g. 27ACHFS3445C1Z8" uppercase />
+          </div>
+        </div>
+
+        <!-- Billing Address Line 1 -->
+        <div class="form-group" [class.has-error]="registerBuyerForm.get('line1')?.invalid && registerBuyerForm.get('line1')?.touched">
+          <label>Address Line 1 *</label>
+          <input type="text" formControlName="line1" placeholder="e.g. S. No. 24/6, Jai Ganesh Market" />
+        </div>
+
+        <!-- Address Line 2 -->
         <div class="form-group">
-          <label>Firm / Company Name *</label>
-          <input type="text" formControlName="companyName" placeholder="e.g. Ramesh Trading Co" />
+          <label>Address Line 2 / Landmark</label>
+          <input type="text" formControlName="line2" placeholder="e.g. APMC Market Yard" />
         </div>
 
+        <!-- City, State, Pincode -->
         <div class="form-row">
-          <div class="form-group flex-1">
-            <label>Mobile Contact *</label>
-            <input type="tel" formControlName="mobile" placeholder="e.g. 9822114455" />
-          </div>
-          <div class="form-group flex-1">
-            <label>GSTIN</label>
-            <input type="text" formControlName="gstin" placeholder="27XXXXX" />
-          </div>
-        </div>
-
-        <div class="form-row">
-          <div class="form-group flex-2">
+          <div class="form-group flex-1" [class.has-error]="registerBuyerForm.get('city')?.invalid && registerBuyerForm.get('city')?.touched">
             <label>City *</label>
-            <input type="text" formControlName="city" placeholder="Pune" />
+            <input type="text" formControlName="city" placeholder="e.g. Pune" />
           </div>
-          <div class="form-group flex-1">
+          <div class="form-group flex-1" [class.has-error]="registerBuyerForm.get('state')?.invalid && registerBuyerForm.get('state')?.touched">
+            <label>State *</label>
+            <input type="text" formControlName="state" placeholder="Maharashtra" />
+          </div>
+          <div class="form-group flex-1" [class.has-error]="registerBuyerForm.get('pincode')?.invalid && registerBuyerForm.get('pincode')?.touched">
             <label>Pincode *</label>
-            <input type="text" formControlName="pincode" placeholder="411001" />
+            <input type="text" formControlName="pincode" placeholder="411033" />
           </div>
         </div>
 
+        <!-- Notes -->
+        <div class="form-group">
+          <label>Notes / Remarks</label>
+          <input type="text" formControlName="notes" placeholder="Optional notes about buyer..." />
+        </div>
+
+        <!-- Modal Actions -->
         <div class="modal-actions">
-          <button type="button" class="btn-cancel" (click)="closeQuickCustomerModal()">Cancel</button>
-          <button type="submit" class="btn-submit" [disabled]="isSubmitting() || quickCustomerForm.invalid">
-            <span>Add & Select Buyer</span>
+          <button type="button" class="btn-cancel" (click)="closeRegisterBuyerModal()">Cancel</button>
+          <button type="submit" class="btn-submit" [disabled]="isSubmitting() || registerBuyerForm.invalid">
+            <span class="spinner" *ngIf="isSubmitting()"></span>
+            <span>{{ isSubmitting() ? 'Registering...' : 'Register & Select Buyer' }}</span>
           </button>
         </div>
       </form>

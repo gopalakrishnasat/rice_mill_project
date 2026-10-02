@@ -10,8 +10,10 @@ import {
   Req,
   HttpCode,
   HttpStatus,
+  Res,
 } from '@nestjs/common';
 import { InvoicesService } from './invoices.service';
+import { CustomersService } from '../customers/customers.service';
 import { CreateInvoiceDto } from './dto/create-invoice.dto';
 import { UpdateInvoiceDto } from './dto/update-invoice.dto';
 import { RecordPaymentDto } from './dto/record-payment.dto';
@@ -34,6 +36,7 @@ export class InvoicesController {
   constructor(
     private readonly invoicesService: InvoicesService,
     private readonly pdfGeneratorService: PdfGeneratorService,
+    private readonly customersService: CustomersService,
   ) {}
 
   @Get(':id/pdf')
@@ -95,6 +98,65 @@ export class InvoicesController {
       success: true,
       message: 'Customer Khata ledger retrieved successfully.',
       data: ledger,
+    };
+  }
+
+  @Get('customer/:customerId/statement/pdf')
+  @Roles(
+    UserRole.SUPER_ADMIN,
+    UserRole.ADMIN,
+    UserRole.SALES_MANAGER,
+    UserRole.ACCOUNTANT,
+    UserRole.MANAGER,
+  )
+  async downloadCustomerStatementPdf(
+    @Param('customerId') customerId: string,
+    @Query('startDate') startDate: string,
+    @Query('endDate') endDate: string,
+    @Res() res: Response,
+  ) {
+    const customer = await this.customersService.findById(customerId);
+    const ledger = await this.invoicesService.getCustomerLedger(customerId);
+    const pdfBuffer = await this.pdfGeneratorService.generateCustomerStatementPdf(
+      customer,
+      ledger,
+      { startDate, endDate },
+    );
+
+    const fromStr = (startDate || '').replace(/-/g, '');
+    const toStr = (endDate || '').replace(/-/g, '');
+    const filename = `Statement_${customer?.customerCode || 'Customer'}_${fromStr}_to_${toStr}.pdf`;
+
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="${filename}"`,
+      'Content-Length': pdfBuffer.length,
+    });
+
+    res.end(pdfBuffer);
+  }
+
+  @Post('customer/:customerId/allocate-payment')
+  @Roles(
+    UserRole.SUPER_ADMIN,
+    UserRole.ADMIN,
+    UserRole.ACCOUNTANT,
+    UserRole.MANAGER,
+  )
+  async allocateCustomerPayment(
+    @Param('customerId') customerId: string,
+    @Body() dto: RecordPaymentDto,
+    @Req() req: { user?: IUser },
+  ) {
+    const result = await this.invoicesService.allocateCustomerPayment(
+      customerId,
+      dto,
+      req?.user,
+    );
+    return {
+      success: true,
+      message: `Payment of ₹${dto.amount.toFixed(2)} successfully allocated across ${result.allocations.length} bill(s).`,
+      data: result,
     };
   }
 

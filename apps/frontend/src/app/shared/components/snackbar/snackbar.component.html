@@ -1,0 +1,38 @@
+<div class="snackbar-fixed-wrapper" *ngIf="message() as msg" role="alert" aria-live="assertive">
+  <div
+    class="snackbar-card"
+    [class.is-success]="msg.type === 'success'"
+    [class.is-error]="msg.type === 'error'"
+    [class.is-info]="msg.type === 'info'"
+  >
+    <div class="snackbar-icon">
+      <!-- Checkmark for Success -->
+      <svg *ngIf="msg.type === 'success'" viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2.5" fill="none">
+        <path d="M20 6L9 17l-5-5"></path>
+      </svg>
+      <!-- Alert Triangle for Error -->
+      <svg *ngIf="msg.type === 'error'" viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2.5" fill="none">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="8" x2="12" y2="12"></line>
+        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+      </svg>
+      <!-- Info Circle for Info -->
+      <svg *ngIf="msg.type === 'info'" viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2.5" fill="none">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="16" x2="12" y2="12"></line>
+        <line x1="12" y1="8" x2="12.01" y2="8"></line>
+      </svg>
+    </div>
+
+    <div class="snackbar-content">
+      <span class="snackbar-text">{{ msg.text }}</span>
+    </div>
+
+    <button type="button" class="snackbar-close-btn" (click)="dismiss()" title="Close notification" aria-label="Close notification">
+      <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.2" fill="none">
+        <line x1="18" y1="6" x2="6" y2="18"></line>
+        <line x1="6" y1="6" x2="18" y2="18"></line>
+      </svg>
+    </button>
+  </div>
+</div>
