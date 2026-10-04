@@ -78,7 +78,6 @@ export class InvoiceCreateComponent implements OnInit, OnDestroy {
   readonly isBuyerDropdownOpen = signal<boolean>(false);
   readonly buyerFilterSearch = signal<string>('');
   readonly isSearchingBuyers = signal<boolean>(false);
-  readonly searchedCustomers = signal<ICustomer[]>([]);
   private readonly buyerFilterSearch$ = new Subject<string>();
   private readonly destroy$ = new Subject<void>();
 
@@ -101,27 +100,34 @@ export class InvoiceCreateComponent implements OnInit, OnDestroy {
   invoiceForm!: FormGroup;
   readonly formValue = signal<any>({});
 
-  // Computed displayed customers: combines loaded list and backend search results
+  // Computed displayed customers: comprehensive token-based search across all relevant fields + backend augmentation
   readonly displayedCustomers = computed(() => {
-    const term = this.buyerFilterSearch().trim().toLowerCase();
-    const searched = this.searchedCustomers();
+    const rawTerm = this.buyerFilterSearch().trim().toLowerCase();
+    const all = this.customers();
 
-    if (term.length > 0 && searched.length > 0) {
-      return searched;
+    if (!rawTerm) {
+      return all;
     }
 
-    if (!term) {
-      return this.customers();
-    }
+    const tokens = rawTerm.split(/\s+/).filter(Boolean);
 
-    // Instant local filtering fallback
-    return this.customers().filter((c) => {
-      const codeMatch = c.customerCode?.toLowerCase().includes(term);
-      const nameMatch = c.companyName?.toLowerCase().includes(term);
-      const cityMatch = c.billingAddress?.city?.toLowerCase().includes(term);
-      const phoneMatch = c.mobile?.includes(term);
-      const gstMatch = c.gstin?.toLowerCase().includes(term);
-      return !!(codeMatch || nameMatch || cityMatch || phoneMatch || gstMatch);
+    return all.filter((c) => {
+      const code = (c.customerCode || '').toLowerCase();
+      const name = (c.companyName || '').toLowerCase();
+      const contact = (c.contactPerson || '').toLowerCase();
+      const phone = (c.mobile || '').toLowerCase();
+      const rawPhone = (c.mobile || '').replace(/\D/g, '');
+      const email = (c.email || '').toLowerCase();
+      const gstin = (c.gstin || '').toLowerCase();
+      const city = (c.billingAddress?.city || '').toLowerCase();
+      const line1 = (c.billingAddress?.line1 || '').toLowerCase();
+      const line2 = (c.billingAddress?.line2 || '').toLowerCase();
+      const state = (c.billingAddress?.state || '').toLowerCase();
+      const pincode = (c.billingAddress?.pincode || '').toLowerCase();
+
+      const haystack = `${code} ${name} ${contact} ${phone} ${rawPhone} ${email} ${gstin} ${city} ${line1} ${line2} ${state} ${pincode}`;
+
+      return tokens.every((token) => haystack.includes(token));
     });
   });
 
@@ -577,7 +583,6 @@ export class InvoiceCreateComponent implements OnInit, OnDestroy {
           const trimmed = term.trim();
           if (!trimmed) {
             this.isSearchingBuyers.set(false);
-            this.searchedCustomers.set([]);
             return of([]);
           }
           this.isSearchingBuyers.set(true);
@@ -594,9 +599,8 @@ export class InvoiceCreateComponent implements OnInit, OnDestroy {
         takeUntil(this.destroy$),
       )
       .subscribe((results) => {
-        this.searchedCustomers.set(results);
         this.isSearchingBuyers.set(false);
-        if (results.length > 0) {
+        if (results && results.length > 0) {
           this.customers.update((prev) => {
             const existingIds = new Set(prev.map((c) => c.id));
             const additions = results.filter((c) => !existingIds.has(c.id));
@@ -638,7 +642,10 @@ export class InvoiceCreateComponent implements OnInit, OnDestroy {
     this.formValue.set(this.invoiceForm.value);
     this.isBuyerDropdownOpen.set(false);
     this.buyerFilterSearch.set('');
-    this.searchedCustomers.set([]);
+    this.buyerFilterSearch$.next('');
+    if (this.buyerFilterInputRef?.nativeElement) {
+      this.buyerFilterInputRef.nativeElement.value = '';
+    }
   }
 
   clearSelectedCustomer(event: Event): void {
@@ -648,20 +655,26 @@ export class InvoiceCreateComponent implements OnInit, OnDestroy {
     this.invoiceForm.get('customerId')?.markAsTouched();
     this.formValue.set(this.invoiceForm.value);
     this.buyerFilterSearch.set('');
-    this.searchedCustomers.set([]);
+    this.buyerFilterSearch$.next('');
+    if (this.buyerFilterInputRef?.nativeElement) {
+      this.buyerFilterInputRef.nativeElement.value = '';
+    }
   }
 
   onBuyerFilterSearchChange(val: string): void {
-    this.buyerFilterSearch.set(val);
-    this.buyerFilterSearch$.next(val);
+    const text = val ?? '';
+    this.buyerFilterSearch.set(text);
+    this.buyerFilterSearch$.next(text);
   }
 
   clearBuyerFilterSearch(event: Event): void {
     event.stopPropagation();
     this.buyerFilterSearch.set('');
-    this.searchedCustomers.set([]);
     this.buyerFilterSearch$.next('');
-    this.buyerFilterInputRef?.nativeElement?.focus();
+    if (this.buyerFilterInputRef?.nativeElement) {
+      this.buyerFilterInputRef.nativeElement.value = '';
+      this.buyerFilterInputRef.nativeElement.focus();
+    }
   }
 
   onBuyerFilterKeydownEnter(event: Event): void {

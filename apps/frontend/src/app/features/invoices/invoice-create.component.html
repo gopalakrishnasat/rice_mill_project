@@ -68,8 +68,8 @@
                   <div class="trigger-content" *ngIf="selectedCustomerObj() as cust; else noSelection">
                     <span class="trigger-code-badge">{{ cust.customerCode }}</span>
                     <span class="trigger-name">{{ cust.companyName }}</span>
-                    <span class="trigger-meta" *ngIf="cust.billingAddress.city">
-                      📍 {{ cust.billingAddress.city }}
+                    <span class="trigger-meta" *ngIf="cust.billingAddress?.city">
+                      📍 {{ cust.billingAddress?.city }}
                     </span>
                     <span class="trigger-balance" *ngIf="cust.currentBalance > 0">
                       (Due: ₹{{ cust.currentBalance | number:'1.2-2' }})
@@ -115,10 +115,11 @@
                     <input
                       #buyerFilterInput
                       type="text"
+                      id="buyer-filter-search-input"
                       class="dropdown-search-input"
                       placeholder="Type to filter by name, code, phone, city..."
-                      [ngModel]="buyerFilterSearch()"
-                      (ngModelChange)="onBuyerFilterSearchChange($event)"
+                      [value]="buyerFilterSearch()"
+                      (input)="onBuyerFilterSearchChange($any($event.target).value)"
                       (keydown.enter)="onBuyerFilterKeydownEnter($event)"
                       (keydown.escape)="closeBuyerDropdown()"
                       autocomplete="off"
@@ -159,7 +160,7 @@
                           <span class="selected-check" *ngIf="c.id === invoiceForm.get('customerId')?.value">✓ Selected</span>
                         </div>
                         <div class="buyer-sub-row">
-                          <span class="sub-item" *ngIf="c.billingAddress.city">📍 {{ c.billingAddress.city }}</span>
+                          <span class="sub-item" *ngIf="c.billingAddress?.city">📍 {{ c.billingAddress?.city }}</span>
                           <span class="sub-item" *ngIf="c.mobile">📞 {{ c.mobile }}</span>
                           <span class="sub-item gstin-sub" *ngIf="c.gstin">GST: {{ c.gstin }}</span>
                         </div>
