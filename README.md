@@ -45,14 +45,8 @@ The backend seeder automatically provisions test accounts for the core enterpris
 | Role | Email | Password | Employee ID | Scope / Department |
 | :--- | :--- | :--- | :--- | :--- |
 | **SUPER_ADMIN** | `superadmin@ricemill.com` | `SuperAdmin@123` | `EMP-001` | Executive ERP Governance & Full Access |
-| **ADMIN** | `admin@ricemill.com` | `Admin@123` | `EMP-002` | Mill Administration & User Management |
-| **MANAGER** | `manager@ricemill.com` | `Manager@123` | `EMP-003` | Plant Operations Management |
-| **STORE_MANAGER** | `store@ricemill.com` | `Store@123` | `EMP-004` | Godowns, Stacking & Stock Inventory |
-| **SALES_MANAGER** | `sales@ricemill.com` | `Sales@123` | `EMP-005` | Commercial Orders, Dispatches & Invoicing |
-| **OPERATOR** | `operator@ricemill.com` | `Operator@123` | `EMP-006` | Weighbridge Gate Entry & Milling Batches |
-| **ACCOUNTANT** | `accountant@ricemill.com` | `Accountant@123` | `EMP-007` | Ledger Accounting, GST & Mill Settlements |
-
-*(One-click **Quick Demo Role Access** badges are available directly on the login page)*
+| **ADMIN** | `admin@ricemill.com` | `Admin@123` | `EMP-002` | Mill Operations, Customers, Products & Invoices |
+| **VIEW_ONLY_ADMIN** | `viewer@ricemill.com` | `Viewer@123` | `EMP-003` | View-Only Access & Statement/Invoice Printing |
 
 ---
 

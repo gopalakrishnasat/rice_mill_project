@@ -17,7 +17,7 @@ export class UsersService {
   constructor(
     @InjectModel(User.name) private readonly userModel: Model<UserDocument>,
     private readonly auditService: AuditService,
-  ) {}
+  ) { }
 
   async getNextEmployeeId(): Promise<string> {
     const users = await this.userModel

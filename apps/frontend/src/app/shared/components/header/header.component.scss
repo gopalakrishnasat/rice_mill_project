@@ -80,7 +80,98 @@
 .topbar-right {
   display: flex;
   align-items: center;
-  gap: 1.25rem;
+  gap: 1rem;
+}
+
+.mill-profile-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.35rem 0.75rem 0.35rem 0.5rem;
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: var(--radius-full, 9999px);
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  color: #334155;
+
+  .mill-icon-box {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #fef3c7, #fde68a);
+    color: #b45309;
+    border: 1px solid rgba(217, 119, 6, 0.25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .mill-profile-text {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.15;
+    text-align: left;
+
+    .mill-btn-title {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #1e293b;
+      letter-spacing: 0.01em;
+    }
+
+    .mill-btn-sub {
+      font-size: 0.65rem;
+      font-weight: 600;
+      color: #d97706;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+  }
+
+  &:hover {
+    background-color: #f0fdf4;
+    border-color: #86efac;
+    transform: translateY(-1px);
+    box-shadow: 0 3px 8px rgba(22, 101, 52, 0.08);
+
+    .mill-icon-box {
+      transform: scale(1.08);
+      background: linear-gradient(135deg, #15803d, #166534);
+      color: #ffffff;
+      border-color: #15803d;
+      box-shadow: 0 2px 6px rgba(22, 101, 52, 0.25);
+    }
+
+    .mill-profile-text .mill-btn-title {
+      color: #166534;
+    }
+  }
+
+  &.active {
+    background-color: #ecfdf5;
+    border-color: #10b981;
+    box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+
+    .mill-icon-box {
+      background: linear-gradient(135deg, #10b981, #047857);
+      color: #ffffff;
+      border-color: #059669;
+    }
+
+    .mill-profile-text .mill-btn-title {
+      color: #065f46;
+    }
+  }
+
+  @media (max-width: 840px) {
+    padding: 0.25rem;
+    .mill-profile-text {
+      display: none;
+    }
+  }
 }
 
 .user-badge-container {

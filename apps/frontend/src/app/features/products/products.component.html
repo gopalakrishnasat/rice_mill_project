@@ -1,0 +1,432 @@
+<div class="products-page">
+  <main class="page-container">
+    <!-- Header Row -->
+    <div class="page-header-row">
+      <div class="header-titles">
+        <h2>Products & Variety Catalog</h2>
+        <p>Manage standard rice varieties, by-products (bran, kani, husk), packaging weights, HSN codes, and default rates</p>
+      </div>
+
+      <div class="header-actions">
+        <a routerLink="/invoices/new" class="btn-new-bill" id="btn-create-bill-from-products">
+          <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="12" y1="18" x2="12" y2="12"></line>
+            <line x1="9" y1="15" x2="15" y2="15"></line>
+          </svg>
+          <span>Create New Bill</span>
+        </a>
+
+        <button
+          type="button"
+          class="create-btn"
+          *ngIf="canManageProducts()"
+          (click)="openCreateModal()"
+          id="btn-add-product"
+        >
+          <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+          <span>Add New Product</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Metric Cards Grid -->
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <span class="metric-label">Active Catalog Products</span>
+        <span class="metric-val text-blue">{{ activeProductsCount() }} / {{ totalProductsCount() }}</span>
+      </div>
+      <div class="metric-card">
+        <span class="metric-label">Rice Varieties</span>
+        <span class="metric-val text-green">{{ riceProductsCount() }}</span>
+      </div>
+      <div class="metric-card">
+        <span class="metric-label">By-Products (Bran/Kani)</span>
+        <span class="metric-val text-amber">{{ byProductsCount() }}</span>
+      </div>
+      <div class="metric-card">
+        <span class="metric-label">Packaged Foods</span>
+        <span class="metric-val text-purple">{{ packagedProductsCount() }}</span>
+      </div>
+    </div>
+
+    <!-- Search and Filters Bar -->
+    <div class="filters-card">
+      <div class="search-box">
+        <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <input
+          type="text"
+          placeholder="Search by Product Name, Code, HSN, or Weight (e.g. 25kg)..."
+          [ngModel]="searchTerm()"
+          (ngModelChange)="searchTerm.set($event)"
+          id="product-search-input"
+        />
+      </div>
+
+      <div class="filters-group">
+        <button
+          type="button"
+          class="filter-pill"
+          [class.active]="selectedCategory() === 'ALL'"
+          (click)="selectedCategory.set('ALL')"
+        >
+          All Categories ({{ totalProductsCount() }})
+        </button>
+        <button
+          type="button"
+          class="filter-pill"
+          [class.active]="selectedCategory() === ProductCategory.RICE"
+          (click)="selectedCategory.set(ProductCategory.RICE)"
+        >
+          🌾 Rice Varieties
+        </button>
+        <button
+          type="button"
+          class="filter-pill"
+          [class.active]="selectedCategory() === ProductCategory.BY_PRODUCT"
+          (click)="selectedCategory.set(ProductCategory.BY_PRODUCT)"
+        >
+          📦 By-Products
+        </button>
+        <button
+          type="button"
+          class="filter-pill"
+          [class.active]="selectedCategory() === ProductCategory.PACKAGED"
+          (click)="selectedCategory.set(ProductCategory.PACKAGED)"
+        >
+          🛍️ Packaged Foods
+        </button>
+
+        <div class="status-select-wrap">
+          <select
+            [ngModel]="statusFilter()"
+            (ngModelChange)="statusFilter.set($event)"
+            class="status-dropdown"
+          >
+            <option value="ALL">All Status</option>
+            <option value="ACTIVE">Active Only</option>
+            <option value="INACTIVE">Inactive Only</option>
+          </select>
+        </div>
+
+        <button type="button" class="refresh-btn" (click)="loadProducts()" title="Refresh Catalog">
+          <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+            <polyline points="23 4 23 10 17 10"></polyline>
+            <polyline points="1 20 1 14 7 14"></polyline>
+            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Products Table Card -->
+    <div class="table-card">
+      <div class="loading-state" *ngIf="isLoading()">
+        <span class="spinner"></span>
+        <p>Loading product catalog from database...</p>
+      </div>
+
+      <div class="empty-state" *ngIf="!isLoading() && filteredProducts().length === 0">
+        <svg viewBox="0 0 24 24" width="48" height="48" stroke="#94a3b8" stroke-width="1.5" fill="none">
+          <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+          <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+          <line x1="12" y1="22.08" x2="12" y2="12"></line>
+        </svg>
+        <h3>No Products Found</h3>
+        <p *ngIf="searchTerm() || selectedCategory() !== 'ALL' || statusFilter() !== 'ALL'">
+          Try adjusting your search query or category filter.
+        </p>
+        <p *ngIf="!searchTerm() && selectedCategory() === 'ALL' && statusFilter() === 'ALL'">
+          Get started by adding your first rice variety or product.
+        </p>
+        <button
+          type="button"
+          class="create-btn"
+          *ngIf="canManageProducts()"
+          (click)="openCreateModal()"
+        >
+          Add Product Now
+        </button>
+      </div>
+
+      <div class="table-responsive" *ngIf="!isLoading() && filteredProducts().length > 0">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th class="col-code">Code</th>
+              <th class="col-name">Product / Variety Name</th>
+              <th class="col-cat">Category</th>
+              <th class="col-hsn">HSN Code</th>
+              <th class="col-uom">Package Wt (UOM)</th>
+              <th class="col-unit">Unit</th>
+              <th class="col-rate text-right">Default Rate (₹)</th>
+              <th class="col-tax text-center">GST %</th>
+              <th class="col-status text-center">Status</th>
+              <th class="col-actions text-center" *ngIf="canManageProducts()">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              *ngFor="let p of filteredProducts()"
+              [class.is-inactive]="!p.isActive"
+              (click)="canManageProducts() ? openEditModal(p) : null"
+              class="clickable-row"
+            >
+              <!-- Code -->
+              <td class="col-code">
+                <span class="code-badge">{{ p.productCode }}</span>
+              </td>
+
+              <!-- Name -->
+              <td class="col-name">
+                <span class="product-title">{{ p.name }}</span>
+              </td>
+
+              <!-- Category -->
+              <td class="col-cat">
+                <span
+                  class="cat-badge"
+                  [class.cat-rice]="p.category === ProductCategory.RICE"
+                  [class.cat-byprod]="p.category === ProductCategory.BY_PRODUCT"
+                  [class.cat-pkg]="p.category === ProductCategory.PACKAGED"
+                >
+                  {{ getCategoryLabel(p.category) }}
+                </span>
+              </td>
+
+              <!-- HSN -->
+              <td class="col-hsn">
+                <span class="hsn-text">{{ p.hsnCode }}</span>
+              </td>
+
+              <!-- Package Wt / UOM -->
+              <td class="col-uom">
+                <span class="uom-badge" *ngIf="p.unit === 'BAG'">{{ p.bagWeightKg }} kg / bag</span>
+                <span class="uom-loose" *ngIf="p.unit === 'KG'">Loose (per kg)</span>
+              </td>
+
+              <!-- Unit -->
+              <td class="col-unit">
+                <span class="unit-pill">{{ p.unit === 'BAG' ? 'Bag' : 'Kg' }}</span>
+              </td>
+
+              <!-- Rate -->
+              <td class="col-rate text-right">
+                <span class="rate-val">₹{{ p.defaultRate | number:'1.2-2' }}</span>
+                <span class="rate-unit-sub">/ {{ p.unit === 'BAG' ? 'bag' : 'kg' }}</span>
+              </td>
+
+              <!-- Tax -->
+              <td class="col-tax text-center">
+                <span class="tax-badge">{{ p.taxRatePercent }}%</span>
+              </td>
+
+              <!-- Status -->
+              <td class="col-status text-center">
+                <span
+                  class="status-pill"
+                  [class.status-active]="p.isActive"
+                  [class.status-inactive]="!p.isActive"
+                  (click)="toggleProductStatus(p, $event)"
+                  [title]="canManageProducts() ? 'Click to toggle status' : ''"
+                >
+                  {{ p.isActive ? 'Active' : 'Inactive' }}
+                </span>
+              </td>
+
+              <!-- Actions -->
+              <td class="col-actions text-center" *ngIf="canManageProducts()">
+                <div class="row-actions" (click)="$event.stopPropagation()">
+                  <button
+                    type="button"
+                    class="btn-action-edit"
+                    (click)="openEditModal(p)"
+                    title="Edit Product"
+                  >
+                    <svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" stroke-width="2" fill="none">
+                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                    </svg>
+                    <span>Edit</span>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <!-- Create / Edit Product Modal -->
+  <div class="modal-backdrop" *ngIf="isModalOpen()" (click)="closeModal()">
+    <div class="modal-container" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div class="modal-header-titles">
+          <h3>{{ isEditMode() ? 'Edit Product Variety' : 'Add New Product Variety' }}</h3>
+          <p>{{ isEditMode() ? 'Update rice specifications, packaging, HSN, and pricing' : 'Register a new rice variety or by-product into the mill catalog' }}</p>
+        </div>
+        <button type="button" class="btn-modal-close" (click)="closeModal()" title="Close dialog">✕</button>
+      </div>
+
+      <div class="modal-alert-error" *ngIf="modalError()">
+        <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="12"></line>
+          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        </svg>
+        <span>{{ modalError() }}</span>
+      </div>
+
+      <form [formGroup]="productForm" (ngSubmit)="saveProduct()" class="modal-form">
+        <div class="form-row-2">
+          <!-- Product Code -->
+          <div class="form-group">
+            <label class="label-with-pricing-hint">
+              <span>Product Code *</span>
+              <span class="locked-badge" *ngIf="isEditMode()">
+                <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.2">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                </svg>
+                Non-Editable
+              </span>
+            </label>
+            <input
+              type="text"
+              formControlName="productCode"
+              placeholder="e.g. PROD-007"
+              autocomplete="off"
+              [readonly]="isEditMode()"
+              [class.input-disabled]="isEditMode()"
+            />
+            <span class="field-hint">{{ isEditMode() ? 'Product code cannot be changed once created' : 'Unique product identifier' }}</span>
+          </div>
+
+          <!-- Category -->
+          <div class="form-group">
+            <label>Category *</label>
+            <select formControlName="category" (change)="onCategoryChange()">
+              <option [value]="ProductCategory.RICE">🌾 Rice Variety</option>
+              <option [value]="ProductCategory.BY_PRODUCT">📦 By-Product (Bran, Kani, Husk)</option>
+              <option [value]="ProductCategory.PACKAGED">🛍️ Packaged Food (Murmura, etc.)</option>
+            </select>
+            <span class="field-hint">Classification for reporting & GST</span>
+          </div>
+        </div>
+
+        <!-- Product Name -->
+        <div class="form-group">
+          <label>Product / Variety Name *</label>
+          <input
+            type="text"
+            formControlName="name"
+            placeholder="e.g. Sona Masoori Raw Rice, Broken Rice (Kani)"
+            autocomplete="off"
+          />
+          <span class="field-hint">Enter clean variety name without bag weight (bag weight is set below)</span>
+        </div>
+
+        <div class="form-row-3">
+          <!-- HSN Code -->
+          <div class="form-group">
+            <label>HSN Code *</label>
+            <input
+              type="text"
+              formControlName="hsnCode"
+              placeholder="e.g. 1006"
+              autocomplete="off"
+            />
+            <span class="field-hint">Standard GST HSN</span>
+          </div>
+
+          <!-- Unit -->
+          <div class="form-group">
+            <label>Default Unit *</label>
+            <select formControlName="unit" (change)="onUnitChange()">
+              <option value="BAG">Bag</option>
+              <option value="KG">Kg (Loose)</option>
+            </select>
+            <span class="field-hint">Billing measurement unit</span>
+          </div>
+
+          <!-- Package Weight (UOM in kg) -->
+          <div class="form-group">
+            <label>Bag Weight (Pkg Wt) *</label>
+            <div class="input-with-suffix" [class.input-disabled]="productForm.get('unit')?.value === 'KG'">
+              <input
+                type="number"
+                formControlName="bagWeightKg"
+                placeholder="25"
+                min="0.1"
+                step="any"
+                [readonly]="productForm.get('unit')?.value === 'KG'"
+              />
+              <span class="input-suffix" *ngIf="productForm.get('unit')?.value !== 'KG'">kg</span>
+            </div>
+            <span class="field-hint">{{ productForm.get('unit')?.value === 'KG' ? 'Not needed for loose Kg' : 'Standard bag weight in kg' }}</span>
+          </div>
+        </div>
+
+        <div class="form-row-2">
+          <!-- Default Rate -->
+          <div class="form-group">
+            <label class="label-with-pricing-hint">
+              <span>Default Selling Rate (₹) *</span>
+              <span class="pricing-basis-tag">
+                Basis: ₹ per {{ productForm.get('unit')?.value === 'KG' ? 'Kg' : 'Bag' }}
+              </span>
+            </label>
+            <input
+              type="number"
+              formControlName="defaultRate"
+              placeholder="0.00"
+              min="0"
+              step="any"
+            />
+            <span class="field-hint">Auto-fills into invoice items when preset is selected</span>
+          </div>
+
+          <!-- Tax Rate Percent -->
+          <div class="form-group">
+            <label>GST / Tax Rate (%)</label>
+            <select formControlName="taxRatePercent">
+              <option [value]="0">0% (Exempt)</option>
+              <option [value]="5">5% (Standard GST on Packaged Rice)</option>
+              <option [value]="12">12%</option>
+              <option [value]="18">18%</option>
+            </select>
+            <span class="field-hint">Standard GST rate on branded/packaged goods</span>
+          </div>
+        </div>
+
+        <!-- Active Status Checkbox -->
+        <div class="form-group-checkbox">
+          <label class="checkbox-label">
+            <input type="checkbox" formControlName="isActive" />
+            <span class="checkbox-text">
+              <strong>Active in Catalog</strong>
+              <small>When active, this variety is selectable in Invoice & Billing presets</small>
+            </span>
+          </label>
+        </div>
+
+        <!-- Modal Actions -->
+        <div class="modal-footer">
+          <button type="button" class="btn-modal-cancel" (click)="closeModal()">Cancel</button>
+          <button type="submit" class="btn-modal-submit" [disabled]="isSubmitting()">
+            <span class="btn-spinner" *ngIf="isSubmitting()"></span>
+            <span>{{ isEditMode() ? 'Update Product' : 'Save Product' }}</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

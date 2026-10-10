@@ -34,11 +34,18 @@ import {
   PaymentMode,
   RecordPaymentDto,
 } from '@rice-mill-project/shared-types';
+import { RecordPaymentModalComponent } from '../../shared/components/record-payment-modal/record-payment-modal.component';
 
 @Component({
   selector: 'app-invoice-list',
   standalone: true,
-  imports: [CommonModule, RouterModule, ReactiveFormsModule, FormsModule],
+  imports: [
+    CommonModule,
+    RouterModule,
+    ReactiveFormsModule,
+    FormsModule,
+    RecordPaymentModalComponent,
+  ],
   templateUrl: './invoice-list.component.html',
   styleUrls: ['./invoice-list.component.scss'],
 })
@@ -87,7 +94,6 @@ export class InvoiceListComponent implements OnInit, OnDestroy {
 
   // Payment Recording Modal
   readonly selectedInvoiceForPayment = signal<IInvoice | null>(null);
-  paymentForm!: FormGroup;
 
   // Active matched buyer info (resolved from explicit selection, loaded suggestions, or cache)
   readonly activeBuyerInfo = computed(() => {
@@ -237,7 +243,6 @@ export class InvoiceListComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    this.initPaymentForm();
     this.loadInvoices();
     this.setupBuyerSearchPipeline();
 
@@ -498,16 +503,6 @@ export class InvoiceListComponent implements OnInit, OnDestroy {
     this.currentPage.set(1);
   }
 
-  private initPaymentForm(): void {
-    this.paymentForm = this.fb.group({
-      amount: [0, [Validators.required, Validators.min(1)]],
-      paymentDate: [new Date().toISOString().split('T')[0], [Validators.required]],
-      paymentMode: [PaymentMode.UPI, [Validators.required]],
-      transactionReference: [''],
-      notes: [''],
-    });
-  }
-
   loadInvoices(): void {
     this.isLoading.set(true);
     this.invoicesService.getInvoices().subscribe({
@@ -524,67 +519,15 @@ export class InvoiceListComponent implements OnInit, OnDestroy {
 
   openPaymentModal(invoice: IInvoice): void {
     this.selectedInvoiceForPayment.set(invoice);
-    const pendingDue = (invoice.balanceAmount !== undefined && invoice.balanceAmount !== null)
-      ? Number(invoice.balanceAmount)
-      : Math.max(0, Number(((invoice.totalAmount || 0) - (invoice.paidAmount || 0)).toFixed(2)));
-
-    this.paymentForm.reset({
-      amount: pendingDue,
-      paymentDate: new Date().toISOString().split('T')[0],
-      paymentMode: PaymentMode.UPI,
-      transactionReference: '',
-      notes: '',
-    });
-    this.paymentForm
-      .get('amount')
-      ?.setValidators([
-        Validators.required,
-        Validators.min(1),
-        Validators.max(pendingDue),
-      ]);
-    this.paymentForm.get('amount')?.updateValueAndValidity();
   }
 
   closePaymentModal(): void {
     this.selectedInvoiceForPayment.set(null);
   }
 
-  onPaymentSubmit(): void {
-    if (this.paymentForm.invalid || !this.selectedInvoiceForPayment()) {
-      this.paymentForm.markAllAsTouched();
-      return;
-    }
-
-    const val = this.paymentForm.value;
-    const dto: RecordPaymentDto = {
-      amount: Number(val.amount),
-      paymentDate: val.paymentDate,
-      paymentMode: val.paymentMode,
-      transactionReference: val.transactionReference || undefined,
-      notes: val.notes || undefined,
-    };
-
-    const inv = this.selectedInvoiceForPayment()!;
-    this.isSubmitting.set(true);
-    this.invoicesService.recordPayment(inv.id, dto).subscribe({
-      next: () => {
-        this.isSubmitting.set(false);
-        this.closePaymentModal();
-        const formattedAmount = new Intl.NumberFormat('en-IN', {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2,
-        }).format(dto.amount);
-        this.showAlert(
-          'success',
-          `Payment of ₹${formattedAmount} successfully recorded against invoice ${inv.invoiceNumber}!`,
-        );
-        this.loadInvoices();
-      },
-      error: (err) => {
-        this.isSubmitting.set(false);
-        this.showAlert('error', err.error?.message || 'Failed to record payment.');
-      },
-    });
+  onPaymentRecorded(_event: { invoice: IInvoice; amount: number }): void {
+    this.selectedInvoiceForPayment.set(null);
+    this.loadInvoices();
   }
 
   downloadInvoiceDirectly(invoice: IInvoice): void {

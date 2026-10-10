@@ -8,6 +8,8 @@ import { CustomerStatementPrintComponent } from './features/customers/customer-s
 import { InvoiceListComponent } from './features/invoices/invoice-list.component';
 import { InvoiceCreateComponent } from './features/invoices/invoice-create.component';
 import { InvoicePrintComponent } from './features/invoices/invoice-print.component';
+import { ProductsComponent } from './features/products/products.component';
+import { CompanyDetailsComponent } from './features/company/company-details.component';
 import { authGuard } from './core/guards/auth.guard';
 import { guestGuard } from './core/guards/guest.guard';
 import { superAdminGuard } from './core/guards/super-admin.guard';
@@ -26,6 +28,16 @@ export const appRoutes: Route[] = [
   {
     path: 'dashboard',
     component: DashboardPlaceholderComponent,
+    canActivate: [authGuard],
+  },
+  {
+    path: 'company',
+    component: CompanyDetailsComponent,
+    canActivate: [authGuard, superAdminGuard],
+  },
+  {
+    path: 'products',
+    component: ProductsComponent,
     canActivate: [authGuard],
   },
   {

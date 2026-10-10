@@ -50,7 +50,7 @@ export class User {
     type: String,
     required: true,
     enum: Object.values(UserRole),
-    default: UserRole.OPERATOR,
+    default: UserRole.VIEW_ONLY_ADMIN,
   })
   role!: UserRole;
 

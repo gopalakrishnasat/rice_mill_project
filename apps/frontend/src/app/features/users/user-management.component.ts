@@ -7,7 +7,7 @@ import {
   ReactiveFormsModule,
   Validators,
 } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
 import { UsersService } from '../../core/services/users.service';
 import { AuthService } from '../../core/services/auth.service';
 import { ConfirmDialogService } from '../../core/services/confirm-dialog.service';
@@ -17,7 +17,7 @@ import { IUser, UserRole } from '../../core/models/auth.models';
 @Component({
   selector: 'app-user-management',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, FormsModule, RouterLink],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule],
   templateUrl: './user-management.component.html',
   styleUrls: ['./user-management.component.scss'],
 })
@@ -45,6 +45,19 @@ export class UserManagementComponent implements OnInit {
   // Available roles for creation
   readonly systemRoles = Object.values(UserRole);
 
+  formatRole(role: UserRole | string): string {
+    switch (role) {
+      case UserRole.SUPER_ADMIN:
+        return 'Super Admin';
+      case UserRole.ADMIN:
+        return 'Admin';
+      case UserRole.VIEW_ONLY_ADMIN:
+        return 'View-Only Admin';
+      default:
+        return role;
+    }
+  }
+
   // Create User Modal State
   showCreateModal = signal(false);
   isSubmitting = signal(false);
@@ -55,7 +68,7 @@ export class UserManagementComponent implements OnInit {
     name: ['', [Validators.required, Validators.minLength(2)]],
     email: ['', [Validators.required, Validators.email]],
     mobile: ['', [Validators.pattern('^[+]?[0-9\\s-]{8,15}$')]],
-    role: [UserRole.OPERATOR, [Validators.required]],
+    role: [UserRole.VIEW_ONLY_ADMIN, [Validators.required]],
     password: ['Mill@2026', [Validators.required, Validators.minLength(6)]],
     mustChangePassword: [true],
   });
@@ -63,7 +76,7 @@ export class UserManagementComponent implements OnInit {
   // Change Role Modal State
   showRoleModal = signal(false);
   selectedUserForRole = signal<IUser | null>(null);
-  newRoleSelection = signal<UserRole>(UserRole.OPERATOR);
+  newRoleSelection = signal<UserRole>(UserRole.VIEW_ONLY_ADMIN);
 
   // Reset Password Modal State
   showPasswordModal = signal(false);
@@ -146,7 +159,7 @@ export class UserManagementComponent implements OnInit {
 
   openCreateModal(): void {
     this.createUserForm.reset({
-      role: UserRole.OPERATOR,
+      role: UserRole.VIEW_ONLY_ADMIN,
       password: 'Mill@2026',
       mustChangePassword: true,
     });

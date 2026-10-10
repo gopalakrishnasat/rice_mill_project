@@ -43,36 +43,26 @@ export class InvoicesController {
   @Roles(
     UserRole.SUPER_ADMIN,
     UserRole.ADMIN,
-    UserRole.SALES_MANAGER,
-    UserRole.ACCOUNTANT,
-    UserRole.MANAGER,
-    UserRole.STORE_MANAGER,
-    UserRole.OPERATOR,
+    UserRole.VIEW_ONLY_ADMIN,
   )
   async downloadInvoicePdf(
     @Param('id') id: string,
-    @Req() req: any,
+    @Res() res: Response,
   ) {
     const invoice = await this.invoicesService.findById(id);
     const pdfBuffer = await this.pdfGeneratorService.generateInvoicePdf(invoice as any);
-    const res: Response = req.res;
 
     res.set({
       'Content-Type': 'application/pdf',
       'Content-Disposition': `attachment; filename="Invoice_${invoice.invoiceNumber}.pdf"`,
-      'Content-Length': pdfBuffer.length,
+      'Content-Length': pdfBuffer.length.toString(),
     });
 
     res.end(pdfBuffer);
   }
 
   @Get('next-number')
-  @Roles(
-    UserRole.SUPER_ADMIN,
-    UserRole.ADMIN,
-    UserRole.SALES_MANAGER,
-    UserRole.ACCOUNTANT,
-  )
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
   async getNextInvoiceNumber() {
     const nextNumber = await this.invoicesService.getNextInvoiceNumber();
     return {
@@ -88,9 +78,7 @@ export class InvoicesController {
   @Roles(
     UserRole.SUPER_ADMIN,
     UserRole.ADMIN,
-    UserRole.SALES_MANAGER,
-    UserRole.ACCOUNTANT,
-    UserRole.MANAGER,
+    UserRole.VIEW_ONLY_ADMIN,
   )
   async getCustomerLedger(@Param('customerId') customerId: string) {
     const ledger = await this.invoicesService.getCustomerLedger(customerId);
@@ -105,9 +93,7 @@ export class InvoicesController {
   @Roles(
     UserRole.SUPER_ADMIN,
     UserRole.ADMIN,
-    UserRole.SALES_MANAGER,
-    UserRole.ACCOUNTANT,
-    UserRole.MANAGER,
+    UserRole.VIEW_ONLY_ADMIN,
   )
   async downloadCustomerStatementPdf(
     @Param('customerId') customerId: string,
@@ -137,12 +123,7 @@ export class InvoicesController {
   }
 
   @Post('customer/:customerId/allocate-payment')
-  @Roles(
-    UserRole.SUPER_ADMIN,
-    UserRole.ADMIN,
-    UserRole.ACCOUNTANT,
-    UserRole.MANAGER,
-  )
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
   async allocateCustomerPayment(
     @Param('customerId') customerId: string,
     @Body() dto: RecordPaymentDto,
@@ -164,11 +145,7 @@ export class InvoicesController {
   @Roles(
     UserRole.SUPER_ADMIN,
     UserRole.ADMIN,
-    UserRole.SALES_MANAGER,
-    UserRole.ACCOUNTANT,
-    UserRole.MANAGER,
-    UserRole.STORE_MANAGER,
-    UserRole.OPERATOR,
+    UserRole.VIEW_ONLY_ADMIN,
   )
   async listInvoices(
     @Query('customerId') customerId?: string,
@@ -193,11 +170,7 @@ export class InvoicesController {
   @Roles(
     UserRole.SUPER_ADMIN,
     UserRole.ADMIN,
-    UserRole.SALES_MANAGER,
-    UserRole.ACCOUNTANT,
-    UserRole.MANAGER,
-    UserRole.STORE_MANAGER,
-    UserRole.OPERATOR,
+    UserRole.VIEW_ONLY_ADMIN,
   )
   async getInvoiceById(@Param('id') id: string) {
     const invoice = await this.invoicesService.findById(id);
@@ -209,7 +182,7 @@ export class InvoicesController {
   }
 
   @Post()
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.SALES_MANAGER)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
   @HttpCode(HttpStatus.CREATED)
   async createInvoice(
     @Body() createDto: CreateInvoiceDto,
@@ -224,7 +197,7 @@ export class InvoicesController {
   }
 
   @Put(':id')
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.SALES_MANAGER)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
   async updateInvoice(
     @Param('id') id: string,
     @Body() updateDto: UpdateInvoiceDto,
@@ -239,12 +212,7 @@ export class InvoicesController {
   }
 
   @Post(':id/payments')
-  @Roles(
-    UserRole.SUPER_ADMIN,
-    UserRole.ADMIN,
-    UserRole.ACCOUNTANT,
-    UserRole.SALES_MANAGER,
-  )
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
   async recordPayment(
     @Param('id') id: string,
     @Body() paymentDto: RecordPaymentDto,

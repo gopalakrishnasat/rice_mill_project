@@ -55,7 +55,7 @@
         <!-- Role Filter Dropdown -->
         <select [ngModel]="selectedRoleFilter()" (ngModelChange)="selectedRoleFilter.set($event)" class="filter-select">
           <option value="ALL">All Roles</option>
-          <option *ngFor="let role of systemRoles" [value]="role">{{ role }}</option>
+          <option *ngFor="let role of systemRoles" [value]="role">{{ formatRole(role) }}</option>
         </select>
 
         <!-- Status Filter Dropdown -->
@@ -83,48 +83,50 @@
         <table class="users-table" *ngIf="filteredUsers().length > 0">
           <thead>
             <tr>
-              <th>Employee ID</th>
-              <th>Personnel Name</th>
-              <th>Work Email</th>
-              <th>Contact Mobile</th>
-              <th>Assigned Role</th>
-              <th>Status</th>
-              <th>Last Login</th>
-              <th class="text-right">Actions</th>
+              <th class="col-empid">Employee ID</th>
+              <th class="col-name">Personnel Name</th>
+              <th class="col-email">Work Email</th>
+              <th class="col-mobile">Contact Mobile</th>
+              <th class="col-role">Assigned Role</th>
+              <th class="col-status">Status</th>
+              <th class="col-login">Last Login</th>
+              <th class="text-right col-actions">Actions</th>
             </tr>
           </thead>
           <tbody>
             <tr *ngFor="let u of filteredUsers()">
-              <td>
+              <td class="col-empid">
                 <span class="emp-badge">{{ u.employeeId || 'EMP-N/A' }}</span>
               </td>
-              <td class="font-bold text-dark">
+              <td class="col-name font-bold text-dark">
                 {{ u.name }}
               </td>
-              <td class="text-muted">
+              <td class="col-email text-muted">
                 {{ u.email }}
               </td>
-              <td class="text-muted">
+              <td class="col-mobile text-muted">
                 {{ u.mobile || '—' }}
               </td>
-              <td>
+              <td class="col-role">
                 <span class="role-badge" [class.badge-super]="u.role === 'SUPER_ADMIN'"
-                  [class.badge-admin]="u.role === 'ADMIN'" [class.badge-op]="u.role === 'OPERATOR'"
-                  [class.badge-store]="u.role === 'STORE_MANAGER'" [class.badge-mgr]="u.role === 'MANAGER'">
-                  {{ u.role === 'SUPER_ADMIN' ? '👑 ' : '' }}{{ u.role }}
+                  [class.badge-admin]="u.role === 'ADMIN'" [class.badge-view]="u.role === 'VIEW_ONLY_ADMIN'">
+                  <span class="role-icon" *ngIf="u.role === 'SUPER_ADMIN'">👑</span>
+                  <span class="role-icon" *ngIf="u.role === 'ADMIN'">🛡️</span>
+                  <span class="role-icon" *ngIf="u.role === 'VIEW_ONLY_ADMIN'">👁️</span>
+                  <span class="role-text">{{ formatRole(u.role) }}</span>
                 </span>
               </td>
-              <td>
+              <td class="col-status">
                 <span class="status-pill" [class.status-pill-active]="u.isActive"
                   [class.status-pill-inactive]="!u.isActive">
                   <span class="status-dot"></span>
-                  {{ u.isActive ? 'Active' : 'Disabled' }}
+                  <span class="status-text">{{ u.isActive ? 'Active' : 'Disabled' }}</span>
                 </span>
               </td>
-              <td class="text-muted text-sm">
+              <td class="col-login text-muted text-sm">
                 {{ u.lastLoginAt ? (u.lastLoginAt | date:'mediumDate') : 'Never' }}
               </td>
-              <td class="text-right">
+              <td class="text-right col-actions">
                 <div class="actions-cell">
                   <!-- Toggle Status (Deactivate / Activate) -->
                   <button type="button" class="action-btn" [class.btn-deact]="u.isActive" [class.btn-act]="!u.isActive"
@@ -225,7 +227,7 @@
           <label for="newRole">Assign Enterprise Role *</label>
           <div class="input-wrapper">
             <select id="newRole" formControlName="role" class="select-input">
-              <option *ngFor="let role of systemRoles" [value]="role">{{ role }}</option>
+              <option *ngFor="let role of systemRoles" [value]="role">{{ formatRole(role) }}</option>
             </select>
           </div>
         </div>
@@ -282,7 +284,7 @@
           <div class="input-wrapper">
             <select id="editRoleSelect" [ngModel]="newRoleSelection()" (ngModelChange)="newRoleSelection.set($event)"
               class="select-input">
-              <option *ngFor="let role of systemRoles" [value]="role">{{ role }}</option>
+              <option *ngFor="let role of systemRoles" [value]="role">{{ formatRole(role) }}</option>
             </select>
           </div>
         </div>

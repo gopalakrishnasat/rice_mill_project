@@ -9,6 +9,7 @@ import { AuditModule } from './common/audit/audit.module';
 import { CustomersModule } from './customers/customers.module';
 import { ProductsModule } from './products/products.module';
 import { InvoicesModule } from './invoices/invoices.module';
+import { CompanyModule } from './company/company.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { InvoicesModule } from './invoices/invoices.module';
     CustomersModule,
     ProductsModule,
     InvoicesModule,
+    CompanyModule,
   ],
   controllers: [],
   providers: [],

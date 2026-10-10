@@ -1648,27 +1648,6 @@
   }
 }
 
-.label-with-due {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  margin-bottom: 0.35rem;
-
-  label {
-    margin-bottom: 0;
-  }
-
-  .max-due-hint {
-    font-size: 0.78rem;
-    color: #64748b;
-
-    strong {
-      color: #dc2626;
-      font-family: monospace;
-    }
-  }
-}
-
 .field-error {
   display: block;
   font-size: 0.75rem;

@@ -524,59 +524,11 @@
     </div>
   </main>
 
-  <!-- MODAL: RECORD PAYMENT RECEIPT -->
-  <div class="modal-backdrop" *ngIf="selectedInvoiceForPayment()">
-    <div class="modal-card">
-      <div class="modal-header">
-        <div class="modal-title-group">
-          <h3>Record Payment Receipt</h3>
-          <p>Invoice: <strong>{{ selectedInvoiceForPayment()?.invoiceNumber }}</strong> (Due: ₹{{
-            selectedInvoiceForPayment()?.balanceAmount | number:'1.2-2' }})</p>
-        </div>
-        <button type="button" class="modal-close-btn" (click)="closePaymentModal()">✕</button>
-      </div>
-
-      <form [formGroup]="paymentForm" (ngSubmit)="onPaymentSubmit()" class="modal-form" novalidate>
-        <div class="form-group"
-          [class.has-error]="paymentForm.get('amount')?.invalid && paymentForm.get('amount')?.touched">
-          <label>Payment Amount (₹) *</label>
-          <input type="number" formControlName="amount" placeholder="0" />
-        </div>
-
-        <div class="form-row">
-          <div class="form-group flex-1">
-            <label>Payment Date *</label>
-            <input type="date" formControlName="paymentDate" />
-          </div>
-          <div class="form-group flex-1">
-            <label>Payment Mode *</label>
-            <select formControlName="paymentMode" class="form-select">
-              <option value="UPI">UPI / QR Code</option>
-              <option value="NEFT_RTGS">Bank Transfer (NEFT/RTGS)</option>
-              <option value="CASH">Cash</option>
-              <option value="CHEQUE">Cheque</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label>Transaction / UTR / Cheque Reference</label>
-          <input type="text" formControlName="transactionReference" placeholder="e.g. UTR-9988224411" />
-        </div>
-
-        <div class="form-group">
-          <label>Payment Remarks / Notes</label>
-          <input type="text" formControlName="notes" placeholder="e.g. Advance payment for dispatch" />
-        </div>
-
-        <div class="modal-actions">
-          <button type="button" class="btn-cancel" (click)="closePaymentModal()">Cancel</button>
-          <button type="submit" class="btn-submit" [disabled]="isSubmitting() || paymentForm.invalid">
-            <span class="spinner" *ngIf="isSubmitting()"></span>
-            <span>{{ isSubmitting() ? 'Recording...' : 'Record Payment' }}</span>
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
+  <!-- REUSABLE MODAL: RECORD PAYMENT RECEIPT -->
+  <app-record-payment-modal
+    *ngIf="selectedInvoiceForPayment()"
+    [invoice]="selectedInvoiceForPayment()!"
+    (closed)="closePaymentModal()"
+    (paymentRecorded)="onPaymentRecorded($event)"
+  ></app-record-payment-modal>
 </div>

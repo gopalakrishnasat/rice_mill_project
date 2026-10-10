@@ -29,6 +29,10 @@ export class InvoiceItemDto implements IInvoiceItem {
   @IsNotEmpty()
   hsnCode!: string;
 
+  @IsString()
+  @IsOptional()
+  uom?: string;
+
   @IsNumber()
   @IsNotEmpty()
   qty!: number;

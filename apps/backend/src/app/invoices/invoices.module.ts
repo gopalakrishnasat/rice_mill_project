@@ -9,6 +9,7 @@ import { InvoicesService } from './invoices.service';
 import { InvoicesController } from './invoices.controller';
 import { CustomersModule } from '../customers/customers.module';
 import { AuditModule } from '../common/audit/audit.module';
+import { CompanyModule } from '../company/company.module';
 
 import { PdfGeneratorService } from './services/pdf-generator.service';
 
@@ -20,6 +21,7 @@ import { PdfGeneratorService } from './services/pdf-generator.service';
     ]),
     CustomersModule,
     AuditModule,
+    CompanyModule,
   ],
   controllers: [InvoicesController],
   providers: [InvoicesService, PdfGeneratorService],

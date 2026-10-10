@@ -25,6 +25,7 @@ import {
 } from '@rice-mill-project/shared-types';
 import { convertNumberToIndianWords } from './utils/number-to-words.util';
 import { AuditService } from '../common/audit/audit.service';
+import { CompanyService } from '../company/company.service';
 
 const MILL_BANK_DETAILS: IInvoiceBankDetails = {
   bankName: 'HDFC Bank Ltd',
@@ -45,6 +46,7 @@ export class InvoicesService {
     private readonly paymentReceiptModel: Model<PaymentReceiptDocument>,
     private readonly customersService: CustomersService,
     private readonly auditService: AuditService,
+    private readonly companyService: CompanyService,
   ) {}
 
   getFinancialYearPrefix(date: Date = new Date()): string {
@@ -206,6 +208,18 @@ export class InvoicesService {
       dto.invoiceType,
     );
 
+    const company = await this.companyService.getCompanyDetails();
+    const bankDetails: IInvoiceBankDetails = {
+      bankName: company.bankDetails?.bankName || MILL_BANK_DETAILS.bankName,
+      accountNo: company.bankDetails?.accountNumber || MILL_BANK_DETAILS.accountNo,
+      ifsc: company.bankDetails?.ifsc || MILL_BANK_DETAILS.ifsc,
+      branch: company.bankDetails?.branch || MILL_BANK_DETAILS.branch,
+      upiId: company.bankDetails?.upiId || MILL_BANK_DETAILS.upiId,
+    };
+    const terms = company.termsAndConditions?.length
+      ? company.termsAndConditions.join(' ')
+      : '1. Goods once sold will not be taken back. 2. Interest @ 18% p.a. will be charged if bill is not paid on due date. 3. Subject to Pune jurisdiction.';
+
     const newInvoice = new this.invoiceModel({
       invoiceNumber,
       invoiceType: dto.invoiceType,
@@ -245,10 +259,9 @@ export class InvoicesService {
       paidAmount: 0,
       balanceAmount: totals.totalAmount,
       status: dto.status || InvoiceStatus.ISSUED,
-      bankDetails: MILL_BANK_DETAILS,
+      bankDetails,
       notes: dto.notes,
-      terms:
-        '1. Goods once sold will not be taken back. 2. Interest @ 18% p.a. will be charged if bill is not paid on due date. 3. Subject to Pune jurisdiction.',
+      terms,
       createdBy: actorUser?.id,
       issuedBy: actorUser?.name,
     });

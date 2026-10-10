@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterModule, ActivatedRoute, Router } from '@angular/router';
 import { InvoicesService } from '../../core/services/invoices.service';
 import { PdfExportService } from '../../core/services/pdf-export.service';
+import { CompanyService } from '../../core/services/company.service';
 import { IInvoice } from '@rice-mill-project/shared-types';
 
 import { SnackbarService } from '../../core/services/snackbar.service';
@@ -19,15 +20,18 @@ export class InvoicePrintComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly invoicesService = inject(InvoicesService);
   private readonly pdfExportService = inject(PdfExportService);
+  private readonly companyService = inject(CompanyService);
   private readonly snackbar = inject(SnackbarService);
 
   @ViewChild('invoiceSheet') invoiceSheetRef!: ElementRef<HTMLElement>;
 
   readonly invoice = signal<IInvoice | null>(null);
+  readonly company = this.companyService.currentCompany;
   readonly isLoading = signal<boolean>(true);
   readonly isGeneratingPdf = signal<boolean>(false);
 
   ngOnInit(): void {
+    this.companyService.getCompanyDetails().subscribe();
     this.route.paramMap.subscribe((params) => {
       const id = params.get('id');
       if (id) {

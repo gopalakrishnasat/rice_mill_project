@@ -1,0 +1,125 @@
+<div class="modal-backdrop" (click)="onBackdropClick($event)">
+  <div class="modal-card">
+    <div class="modal-header">
+      <div class="modal-title-group">
+        <h3>Record Payment Receipt</h3>
+        <p>Invoice: <strong>{{ invoice.invoiceNumber }}</strong></p>
+      </div>
+      <button type="button" class="modal-close-btn" (click)="close()" title="Close popup">✕</button>
+    </div>
+
+    <!-- Invoice Financial Summary Card -->
+    <div class="invoice-amount-summary">
+      <div class="summary-item">
+        <span class="summary-label">Invoice Total</span>
+        <span class="summary-val total">₹{{ (invoice.totalAmount || 0) | number:'1.2-2' }}</span>
+      </div>
+      <div class="summary-divider"></div>
+      <div class="summary-item">
+        <span class="summary-label">Paid So Far</span>
+        <span class="summary-val paid">₹{{ (invoice.paidAmount || 0) | number:'1.2-2' }}</span>
+      </div>
+      <div class="summary-divider"></div>
+      <div class="summary-item">
+        <span class="summary-label">Pending Due</span>
+        <span class="summary-val pending">₹{{ (invoice.balanceAmount || 0) | number:'1.2-2' }}</span>
+      </div>
+    </div>
+
+    <form [formGroup]="paymentForm" (ngSubmit)="onSubmit()" class="modal-form" novalidate *ngIf="paymentForm">
+      <div
+        class="form-group"
+        [class.has-error]="paymentForm.get('amount')?.invalid && (paymentForm.get('amount')?.touched || paymentForm.get('amount')?.dirty)"
+      >
+        <label for="input-payment-amount">Payment Amount (₹) *</label>
+        <input
+          type="number"
+          id="input-payment-amount"
+          formControlName="amount"
+          placeholder="0.00"
+          min="1"
+          [max]="pendingDueAmount()"
+          step="0.01"
+        />
+        <div
+          class="field-error-msg"
+          *ngIf="paymentForm.get('amount')?.hasError('max') && (paymentForm.get('amount')?.dirty || paymentForm.get('amount')?.touched)"
+        >
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+          </svg>
+          <span>Amount cannot exceed pending balance of ₹{{ (invoice.balanceAmount || 0) | number:'1.2-2' }}.</span>
+        </div>
+        <div
+          class="field-error-msg"
+          *ngIf="paymentForm.get('amount')?.hasError('min') && (paymentForm.get('amount')?.dirty || paymentForm.get('amount')?.touched)"
+        >
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+          </svg>
+          <span>Payment amount must be at least ₹1.</span>
+        </div>
+        <div
+          class="field-error-msg"
+          *ngIf="paymentForm.get('amount')?.hasError('required') && paymentForm.get('amount')?.touched"
+        >
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+          </svg>
+          <span>Payment amount is required.</span>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group flex-1">
+          <label for="input-payment-date">Payment Date *</label>
+          <input id="input-payment-date" type="date" formControlName="paymentDate" />
+        </div>
+        <div class="form-group flex-1">
+          <label for="select-payment-mode">Payment Mode *</label>
+          <select id="select-payment-mode" formControlName="paymentMode" class="form-select">
+            <option *ngFor="let mode of paymentModes" [value]="mode.value">
+              {{ mode.label }}
+            </option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="input-tx-ref">Transaction / UTR / Cheque Reference</label>
+        <input
+          id="input-tx-ref"
+          type="text"
+          formControlName="transactionReference"
+          placeholder="e.g. UTR-9988224411 or Cheque #45210"
+        />
+      </div>
+
+      <div class="form-group">
+        <label for="input-notes">Payment Remarks / Notes</label>
+        <input
+          id="input-notes"
+          type="text"
+          formControlName="notes"
+          placeholder="e.g. Part payment received via RTGS"
+        />
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn-cancel" (click)="close()" [disabled]="isSubmitting()">
+          Cancel
+        </button>
+        <button type="submit" class="btn-submit" [disabled]="isSubmitting() || paymentForm.invalid">
+          <span class="spinner" *ngIf="isSubmitting()"></span>
+          <span>{{ isSubmitting() ? 'Recording...' : 'Record Payment' }}</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

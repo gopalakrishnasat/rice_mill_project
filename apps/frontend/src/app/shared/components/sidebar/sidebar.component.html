@@ -26,7 +26,26 @@
       <span class="active-glow" *ngIf="!isCollapsed()"></span>
     </a>
 
-    <!-- 2. Invoices & Billing -->
+    <!-- 2. Products & Catalog -->
+    <a
+      routerLink="/products"
+      routerLinkActive="active"
+      class="nav-link"
+      [title]="isCollapsed() ? 'Products & Catalog' : ''"
+      id="sidebar-nav-products"
+    >
+      <span class="nav-icon">
+        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none">
+          <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+          <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+          <line x1="12" y1="22.08" x2="12" y2="12"></line>
+        </svg>
+      </span>
+      <span class="nav-text" *ngIf="!isCollapsed()">Products & Catalog</span>
+      <span class="active-glow" *ngIf="!isCollapsed()"></span>
+    </a>
+
+    <!-- 3. Invoices & Billing -->
     <a
       routerLink="/invoices"
       routerLinkActive="active"
@@ -46,7 +65,7 @@
       <span class="active-glow" *ngIf="!isCollapsed()"></span>
     </a>
 
-    <!-- 3. Buyers & Customers -->
+    <!-- 4. Buyers & Customers -->
     <a
       routerLink="/customers"
       routerLinkActive="active"
@@ -66,7 +85,7 @@
       <span class="active-glow" *ngIf="!isCollapsed()"></span>
     </a>
 
-    <!-- 4. User Directory (Super Admin Only) -->
+    <!-- 5. User Directory (Super Admin Only) -->
     <a
       routerLink="/users"
       routerLinkActive="active"

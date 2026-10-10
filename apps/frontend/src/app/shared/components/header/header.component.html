@@ -9,13 +9,41 @@
       </svg>
     </div>
     <div class="brand-title">
-      <h3>SHREE LAXMINARAYAN RICE MILL</h3>
-      <span>Operations Hub</span>
+      <h3>{{ currentCompany()?.millName || 'SHREE LAXMINARAYAN RICE MILL' }}</h3>
+      <span>{{ currentCompany()?.tagline || 'Operations Hub' }}</span>
     </div>
   </div>
 
-  <!-- Right Side: User Profile & Logout -->
+  <!-- Right Side: User Profile, Mill Profile & Logout -->
   <div class="topbar-right" *ngIf="currentUser()">
+    <!-- Mill / Company Details Link (Super Admin Only) -->
+    <a
+      *ngIf="isSuperAdmin()"
+      routerLink="/company"
+      routerLinkActive="active"
+      class="mill-profile-btn"
+      id="header-mill-profile-btn"
+      title="Mill & Company Profile (GST, Bank, Mill Details)"
+    >
+      <div class="mill-icon-box">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <!-- Building / Mill Factory Icon -->
+          <rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect>
+          <path d="M9 22v-4h6v4"></path>
+          <line x1="8" y1="6" x2="8.01" y2="6"></line>
+          <line x1="16" y1="6" x2="16.01" y2="6"></line>
+          <line x1="8" y1="10" x2="8.01" y2="10"></line>
+          <line x1="16" y1="10" x2="16.01" y2="10"></line>
+          <line x1="8" y1="14" x2="8.01" y2="14"></line>
+          <line x1="16" y1="14" x2="16.01" y2="14"></line>
+        </svg>
+      </div>
+      <div class="mill-profile-text">
+        <span class="mill-btn-title">Mill Profile</span>
+        <span class="mill-btn-sub">Enterprise</span>
+      </div>
+    </a>
+
     <div class="user-badge-container">
       <div class="user-avatar" [class.avatar-super]="isSuperAdmin()">
         {{ currentUser()?.name?.charAt(0) || 'U' }}

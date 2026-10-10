@@ -1,16 +1,12 @@
-import {
-  Injectable,
-  OnApplicationBootstrap,
-  Logger,
-} from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Product, ProductDocument } from './schemas/product.schema';
 import { CreateProductDto } from './dto/create-product.dto';
-import { ProductCategory } from '@rice-mill-project/shared-types';
+import { UpdateProductDto } from './dto/update-product.dto';
 
 @Injectable()
-export class ProductsService implements OnApplicationBootstrap {
+export class ProductsService {
   private readonly logger = new Logger(ProductsService.name);
 
   constructor(
@@ -18,93 +14,17 @@ export class ProductsService implements OnApplicationBootstrap {
     private readonly productModel: Model<ProductDocument>,
   ) {}
 
-  async onApplicationBootstrap() {
-    await this.seedDefaultProducts();
+  async findAll(includeInactive = false): Promise<ProductDocument[]> {
+    const query = includeInactive ? {} : { isActive: true };
+    return this.productModel.find(query).sort({ productCode: 1 }).exec();
   }
 
-  async seedDefaultProducts() {
-    try {
-      const count = await this.productModel.countDocuments().exec();
-      if (count > 0) return;
-
-      const defaults = [
-        {
-          productCode: 'PROD-001',
-          name: 'Murmura - 9kg Bag',
-          category: ProductCategory.PACKAGED,
-          hsnCode: '80000000',
-          bagWeightKg: 9,
-          unit: 'BAG',
-          defaultRate: 490.0,
-          taxRatePercent: 5,
-        },
-        {
-          productCode: 'PROD-002',
-          name: 'Sona Masoori Rice - 25kg Bag',
-          category: ProductCategory.RICE,
-          hsnCode: '1006',
-          bagWeightKg: 25,
-          unit: 'BAG',
-          defaultRate: 1450.0,
-          taxRatePercent: 5,
-        },
-        {
-          productCode: 'PROD-003',
-          name: 'Steam Rice Premium - 50kg Bag',
-          category: ProductCategory.RICE,
-          hsnCode: '1006',
-          bagWeightKg: 50,
-          unit: 'BAG',
-          defaultRate: 2850.0,
-          taxRatePercent: 5,
-        },
-        {
-          productCode: 'PROD-004',
-          name: 'Raw Rice (Kolam) - 25kg Bag',
-          category: ProductCategory.RICE,
-          hsnCode: '1006',
-          bagWeightKg: 25,
-          unit: 'BAG',
-          defaultRate: 1650.0,
-          taxRatePercent: 5,
-        },
-        {
-          productCode: 'PROD-005',
-          name: 'Broken Rice (Kani) - 50kg Bag',
-          category: ProductCategory.BY_PRODUCT,
-          hsnCode: '1006',
-          bagWeightKg: 50,
-          unit: 'BAG',
-          defaultRate: 1150.0,
-          taxRatePercent: 5,
-        },
-        {
-          productCode: 'PROD-006',
-          name: 'Rice Bran (Bhusa) - 50kg Bag',
-          category: ProductCategory.BY_PRODUCT,
-          hsnCode: '2302',
-          bagWeightKg: 50,
-          unit: 'BAG',
-          defaultRate: 850.0,
-          taxRatePercent: 5,
-        },
-      ];
-
-      for (const item of defaults) {
-        await this.productModel.create(item);
-      }
-      this.logger.log(`🌾 Seeded ${defaults.length} default rice mill products.`);
-    } catch (err) {
-      this.logger.error('Failed to seed default products', err);
+  async findById(id: string): Promise<ProductDocument> {
+    const prod = await this.productModel.findById(id).exec();
+    if (!prod) {
+      throw new NotFoundException(`Product with ID "${id}" not found.`);
     }
-  }
-
-  async findAll(): Promise<ProductDocument[]> {
-    return this.productModel.find({ isActive: true }).sort({ productCode: 1 }).exec();
-  }
-
-  async findById(id: string): Promise<ProductDocument | null> {
-    return this.productModel.findById(id).exec();
+    return prod;
   }
 
   async create(dto: CreateProductDto): Promise<ProductDocument> {
@@ -119,5 +39,21 @@ export class ProductsService implements OnApplicationBootstrap {
     });
 
     return newProd.save();
+  }
+
+  async update(id: string, dto: UpdateProductDto): Promise<ProductDocument> {
+    const updated = await this.productModel
+      .findByIdAndUpdate(id, { $set: dto }, { new: true })
+      .exec();
+    if (!updated) {
+      throw new NotFoundException(`Product with ID "${id}" not found.`);
+    }
+    return updated;
+  }
+
+  async toggleStatus(id: string): Promise<ProductDocument> {
+    const prod = await this.findById(id);
+    prod.isActive = !prod.isActive;
+    return prod.save();
   }
 }

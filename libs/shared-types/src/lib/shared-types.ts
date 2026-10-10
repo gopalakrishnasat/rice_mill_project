@@ -1,11 +1,7 @@
 export enum UserRole {
   SUPER_ADMIN = 'SUPER_ADMIN',
   ADMIN = 'ADMIN',
-  MANAGER = 'MANAGER',
-  OPERATOR = 'OPERATOR',
-  ACCOUNTANT = 'ACCOUNTANT',
-  STORE_MANAGER = 'STORE_MANAGER',
-  SALES_MANAGER = 'SALES_MANAGER',
+  VIEW_ONLY_ADMIN = 'VIEW_ONLY_ADMIN',
 }
 
 export enum Permission {
@@ -22,39 +18,20 @@ export enum Permission {
   CUSTOMER_EDIT = 'CUSTOMER_EDIT',
   CUSTOMER_LEDGER_VIEW = 'CUSTOMER_LEDGER_VIEW',
 
-  // Product & Inventory Catalog
+  // Product Catalog
   PRODUCT_VIEW = 'PRODUCT_VIEW',
   PRODUCT_MANAGE = 'PRODUCT_MANAGE',
 
-  // Invoicing & Sales
+  // Invoicing & Billing
   INVOICE_VIEW = 'INVOICE_VIEW',
   INVOICE_CREATE = 'INVOICE_CREATE',
   INVOICE_EDIT = 'INVOICE_EDIT',
   INVOICE_PRINT = 'INVOICE_PRINT',
   INVOICE_PAYMENT_RECORD = 'INVOICE_PAYMENT_RECORD',
 
-  // Procurement & Weighbridge
-  PROCUREMENT_VIEW = 'PROCUREMENT_VIEW',
-  PROCUREMENT_CREATE = 'PROCUREMENT_CREATE',
-  PROCUREMENT_EDIT = 'PROCUREMENT_EDIT',
-  WEIGHBRIDGE_MANAGE = 'WEIGHBRIDGE_MANAGE',
-
-  // Milling & Production
-  MILLING_VIEW = 'MILLING_VIEW',
-  MILLING_MANAGE = 'MILLING_MANAGE',
-
-  // Inventory & Godowns
-  INVENTORY_VIEW = 'INVENTORY_VIEW',
-  INVENTORY_CREATE = 'INVENTORY_CREATE',
-  INVENTORY_MANAGE = 'INVENTORY_MANAGE',
-
-  // Sales & Billing
-  SALES_VIEW = 'SALES_VIEW',
-  SALES_CREATE = 'SALES_CREATE',
-
-  // Reports & Audits
-  REPORT_VIEW = 'REPORT_VIEW',
-  AUDIT_VIEW = 'AUDIT_VIEW',
+  // Company Profile (EXCLUSIVELY Super Admin)
+  COMPANY_VIEW = 'COMPANY_VIEW',
+  COMPANY_MANAGE = 'COMPANY_MANAGE',
 }
 
 export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
@@ -71,73 +48,13 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     Permission.INVOICE_EDIT,
     Permission.INVOICE_PRINT,
     Permission.INVOICE_PAYMENT_RECORD,
-    Permission.PROCUREMENT_VIEW,
-    Permission.PROCUREMENT_CREATE,
-    Permission.PROCUREMENT_EDIT,
-    Permission.WEIGHBRIDGE_MANAGE,
-    Permission.MILLING_VIEW,
-    Permission.MILLING_MANAGE,
-    Permission.INVENTORY_VIEW,
-    Permission.INVENTORY_CREATE,
-    Permission.INVENTORY_MANAGE,
-    Permission.SALES_VIEW,
-    Permission.SALES_CREATE,
-    Permission.REPORT_VIEW,
-    Permission.AUDIT_VIEW,
   ],
-  [UserRole.SALES_MANAGER]: [
-    Permission.CUSTOMER_VIEW,
-    Permission.CUSTOMER_CREATE,
-    Permission.CUSTOMER_EDIT,
-    Permission.CUSTOMER_LEDGER_VIEW,
-    Permission.PRODUCT_VIEW,
-    Permission.INVOICE_VIEW,
-    Permission.INVOICE_CREATE,
-    Permission.INVOICE_EDIT,
-    Permission.INVOICE_PRINT,
-    Permission.INVOICE_PAYMENT_RECORD,
-    Permission.SALES_VIEW,
-    Permission.SALES_CREATE,
-    Permission.REPORT_VIEW,
-  ],
-  [UserRole.ACCOUNTANT]: [
+  [UserRole.VIEW_ONLY_ADMIN]: [
     Permission.CUSTOMER_VIEW,
     Permission.CUSTOMER_LEDGER_VIEW,
+    Permission.PRODUCT_VIEW,
     Permission.INVOICE_VIEW,
     Permission.INVOICE_PRINT,
-    Permission.INVOICE_PAYMENT_RECORD,
-    Permission.SALES_VIEW,
-    Permission.REPORT_VIEW,
-  ],
-  [UserRole.MANAGER]: [
-    Permission.CUSTOMER_VIEW,
-    Permission.PRODUCT_VIEW,
-    Permission.INVOICE_VIEW,
-    Permission.PROCUREMENT_VIEW,
-    Permission.PROCUREMENT_CREATE,
-    Permission.PROCUREMENT_EDIT,
-    Permission.WEIGHBRIDGE_MANAGE,
-    Permission.MILLING_VIEW,
-    Permission.MILLING_MANAGE,
-    Permission.INVENTORY_VIEW,
-    Permission.INVENTORY_MANAGE,
-    Permission.SALES_VIEW,
-    Permission.REPORT_VIEW,
-  ],
-  [UserRole.STORE_MANAGER]: [
-    Permission.PRODUCT_VIEW,
-    Permission.PRODUCT_MANAGE,
-    Permission.INVOICE_VIEW,
-    Permission.INVENTORY_VIEW,
-    Permission.INVENTORY_CREATE,
-    Permission.INVENTORY_MANAGE,
-    Permission.PROCUREMENT_VIEW,
-  ],
-  [UserRole.OPERATOR]: [
-    Permission.INVOICE_VIEW,
-    Permission.WEIGHBRIDGE_MANAGE,
-    Permission.MILLING_VIEW,
-    Permission.MILLING_MANAGE,
   ],
 };
 
@@ -290,7 +207,7 @@ export interface IProduct {
   category: ProductCategory;
   hsnCode: string; // e.g. "1006" or "80000000"
   bagWeightKg: number; // e.g. 9, 25, 50
-  unit: 'BAG' | 'QUINTAL' | 'KG';
+  unit: 'BAG' | 'KG';
   defaultRate: number; // Default price per unit
   taxRatePercent: number; // e.g. 5 or 0
   isActive: boolean;
@@ -302,9 +219,74 @@ export interface CreateProductDto {
   category: ProductCategory;
   hsnCode: string;
   bagWeightKg: number;
-  unit: 'BAG' | 'QUINTAL' | 'KG';
+  unit: 'BAG' | 'KG';
   defaultRate: number;
   taxRatePercent?: number;
+}
+
+export interface UpdateProductDto extends Partial<CreateProductDto> {
+  isActive?: boolean;
+}
+
+/* ==========================================================================
+   MILL & COMPANY PROFILE CONTRACTS
+   ========================================================================== */
+
+export interface ICompanyAddress {
+  street: string;
+  taluka?: string;
+  district?: string;
+  state: string;
+  pincode: string;
+}
+
+export interface ICompanyBankDetails {
+  bankName: string;
+  accountNumber: string;
+  ifsc: string;
+  branch: string;
+  upiId?: string;
+}
+
+export interface IDevotionalHeaders {
+  left?: string;
+  center?: string;
+  right?: string;
+}
+
+export interface ICompanyDetails {
+  id?: string;
+  _id?: string;
+  millName: string;
+  tagline?: string;
+  gstin: string;
+  fssaiNumber: string;
+  mobile: string;
+  alternatePhone?: string;
+  email?: string;
+  contactPerson?: string;
+  address: ICompanyAddress;
+  bankDetails: ICompanyBankDetails;
+  termsAndConditions: string[];
+  jurisdiction: string;
+  devotionalHeaders?: IDevotionalHeaders;
+  updatedAt?: string | Date;
+}
+
+export interface UpdateCompanyDetailsDto {
+  millName?: string;
+  tagline?: string;
+  gstin?: string;
+  fssaiNumber?: string;
+  mobile?: string;
+  alternatePhone?: string;
+  email?: string;
+  contactPerson?: string;
+  address?: Partial<ICompanyAddress>;
+  bankDetails?: Partial<ICompanyBankDetails>;
+  termsAndConditions?: string[];
+  jurisdiction?: string;
+  devotionalHeaders?: Partial<IDevotionalHeaders>;
 }
 
 /* ==========================================================================
@@ -337,10 +319,11 @@ export enum PaymentMode {
 
 export interface IInvoiceItem {
   productId?: string;
-  description: string; // e.g. "Murmura - 9kg Bag"
+  description: string; // Product / Item name, e.g. "Rice", "Raw Rice (Kolam)"
   hsnCode: string; // "1006" / "80000000"
+  uom?: string; // Bag weight / capacity, e.g. "30kg", "25kg", "50kg" (or "—" for loose Kg)
   qty: number; // Bag count or weight
-  unit: string; // "Bag", "Kg", "Qtl"
+  unit: string; // "Bag", "Kg"
   rate: number; // Rate per unit (₹)
   amount: number; // qty * rate
 }
@@ -466,3 +449,4 @@ export interface ApiResponse<T = unknown> {
   timestamp?: string;
   path?: string;
 }
+

@@ -272,7 +272,7 @@
                   <!-- Description -->
                   <div class="form-group grid-desc">
                     <label>Description *</label>
-                    <input type="text" formControlName="description" placeholder="Enter item name (e.g. Sona Masoori Rice - 25kg)" />
+                    <input type="text" formControlName="description" placeholder="Enter item name (e.g. Sona Masoori Rice)" />
                   </div>
 
                   <!-- HSN Code -->
@@ -281,25 +281,63 @@
                     <input type="text" formControlName="hsnCode" placeholder="e.g. 1006" />
                   </div>
 
+                  <!-- Unit -->
+                  <div class="form-group grid-unit">
+                    <label>Unit</label>
+                    <select formControlName="unit" (change)="onItemUnitChange(i)">
+                      <option value="Bag">Bag</option>
+                      <option value="Kg">Kg</option>
+                    </select>
+                  </div>
+
+                  <!-- UOM (Bag capacity in kg, not needed when unit is Kg) -->
+                  <div class="form-group grid-uom">
+                    <label>UOM (Pkg Wt)</label>
+                    <div class="input-with-suffix" [class.input-disabled]="itemsFormArray.at(i).get('unit')?.value === 'Kg'">
+                      <input
+                        type="text"
+                        formControlName="uom"
+                        [placeholder]="itemsFormArray.at(i).get('unit')?.value === 'Kg' ? '—' : '25'"
+                        [readonly]="itemsFormArray.at(i).get('unit')?.value === 'Kg'"
+                      />
+                      <span class="input-suffix" *ngIf="itemsFormArray.at(i).get('unit')?.value !== 'Kg'">kg</span>
+                    </div>
+                  </div>
+
                   <!-- Qty -->
                   <div class="form-group grid-qty">
                     <label>Quantity *</label>
                     <input type="number" formControlName="qty" placeholder="Qty" min="0.1" />
                   </div>
 
-                  <!-- Unit -->
-                  <div class="form-group grid-unit">
-                    <label>Unit</label>
-                    <select formControlName="unit">
-                      <option value="Bag">Bag</option>
-                      <option value="Kg">Kg</option>
-                      <option value="Qtl">Quintal</option>
-                    </select>
-                  </div>
-
                   <!-- Rate -->
                   <div class="form-group grid-rate">
-                    <label>Rate (₹) *</label>
+                    <label class="label-with-tooltip">
+                      <span>Rate (₹) *</span>
+                      <span class="rate-tooltip-wrapper" tabindex="0" title="Rate pricing basis">
+                        <svg class="rate-info-icon" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                          <circle cx="12" cy="12" r="10"></circle>
+                          <line x1="12" y1="16" x2="12" y2="12"></line>
+                          <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                        </svg>
+                        <span class="rate-tooltip-box">
+                          <span class="tooltip-title">
+                            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5">
+                              <circle cx="12" cy="12" r="10"></circle>
+                              <line x1="12" y1="16" x2="12" y2="12"></line>
+                              <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                            </svg>
+                            Pricing Basis
+                          </span>
+                          <span class="tooltip-desc">Rate is calculated based on the selected Unit:</span>
+                          <span class="tooltip-item">• <strong>₹ per Bag</strong> when Unit is <em>Bag</em></span>
+                          <span class="tooltip-item">• <strong>₹ per Kg</strong> when Unit is <em>Kg</em></span>
+                          <span class="tooltip-current">
+                            Currently: <strong>₹ / {{ itemsFormArray.at(i).get('unit')?.value || 'Bag' }}</strong>
+                          </span>
+                        </span>
+                      </span>
+                    </label>
                     <input type="number" formControlName="rate" placeholder="Rate in ₹" min="0" />
                   </div>
                 </div>
@@ -351,23 +389,28 @@
         <div class="mill-bill-sheet">
           <!-- Devotional Header Banner -->
           <div class="devotional-header">
-            <span>|| Perantal Mata Prasana ||</span>
-            <span>|| Shree Ganeshya Namha ||</span>
-            <span>|| Shree Mukatai Prasana ||</span>
+            <span>{{ company()?.devotionalHeaders?.left || '|| Perantal Mata Prasana ||' }}</span>
+            <span>{{ company()?.devotionalHeaders?.center || '|| Shree Ganeshya Namha ||' }}</span>
+            <span>{{ company()?.devotionalHeaders?.right || '|| Shree Mukatai Prasana ||' }}</span>
           </div>
 
           <!-- Main Mill Entity Header -->
           <div class="mill-header">
             <div class="mill-title-group">
-              <h1 class="mill-name">SHREE LAXMINARAYAN RICE MILL</h1>
-              <p class="mill-address">Hivare Tarfe Narayangaon, Khodad Road, Tal:- Junnar, Dist:- Pune 410504</p>
+              <h1 class="mill-name">{{ company()?.millName || 'SHREE LAXMINARAYAN RICE MILL' }}</h1>
+              <p class="mill-address">
+                {{ company()?.address?.street || 'Hivare Tarfe Narayangaon, Khodad Road' }},
+                {{ company()?.address?.taluka ? company()?.address?.taluka + ',' : 'Tal:- Junnar,' }}
+                {{ company()?.address?.district ? company()?.address?.district + ',' : 'Dist:- Pune,' }}
+                {{ company()?.address?.state || 'Maharashtra' }} {{ company()?.address?.pincode || '410504' }}
+              </p>
               <div class="mill-compliance">
-                <span><strong>GSTIN:</strong> 27ACHFS3445C1Z8</span>
-                <span><strong>FSSAI:</strong> 21526038000229</span>
+                <span><strong>GSTIN:</strong> {{ company()?.gstin || '27ACHFS3445C1Z8' }}</span>
+                <span><strong>FSSAI:</strong> {{ company()?.fssaiNumber || '21526038000229' }}</span>
               </div>
               <div class="mill-contact">
-                <span><strong>Mob:</strong> 9960186123 / 9970901007</span>
-                <span><strong>Email:</strong> slricemill&#64;gmail.com</span>
+                <span><strong>Mob:</strong> {{ company()?.mobile || '9960186123' }}<ng-container *ngIf="company()?.alternatePhone"> / {{ company()?.alternatePhone }}</ng-container></span>
+                <span><strong>Email:</strong> {{ company()?.email || 'slricemill@gmail.com' }}</span>
               </div>
             </div>
 
@@ -426,44 +469,47 @@
           </div>
 
           <!-- Items Table -->
+          <!-- Items Table -->
           <table class="bill-items-table">
             <thead>
               <tr>
                 <th class="col-desc">Items Table / Description</th>
                 <th class="col-hsn">HSN</th>
+                <th class="col-uom">UOM</th>
                 <th class="col-qty">Qty</th>
-                <th class="col-rate">Rate</th>
-                <th class="col-amt">Amount</th>
+                <th class="col-rate">Rate (₹)</th>
+                <th class="col-amt">Amount (₹)</th>
               </tr>
             </thead>
             <tbody>
               <tr *ngFor="let item of liveItems()">
                 <td class="col-desc"><strong>{{ item.description || '—' }}</strong></td>
                 <td class="col-hsn">{{ item.hsnCode || '—' }}</td>
+                <td class="col-uom">{{ item.uom || (item.unit === 'Kg' ? '—' : '') }}</td>
                 <td class="col-qty">{{ item.qty > 0 ? (item.qty + ' ' + item.unit) : '—' }}</td>
-                <td class="col-rate">{{ item.rate > 0 ? ('₹' + (item.rate | number:'1.2-2')) : '—' }}</td>
-                <td class="col-amt font-bold">{{ item.amount > 0 ? ('₹' + (item.amount | number:'1.2-2')) : '—' }}</td>
+                <td class="col-rate">{{ item.rate > 0 ? (item.rate | number:'1.2-2') : '—' }}</td>
+                <td class="col-amt font-bold">{{ item.amount > 0 ? (item.amount | number:'1.2-2') : '—' }}</td>
               </tr>
             </tbody>
           </table>
 
           <!-- Transport Summary Bar -->
           <div class="transport-summary-bar" *ngIf="liveTransport() > 0 || liveHamali() > 0">
-            <span class="bar-title">Transport & Handling Summary</span>
+            <span class="bar-title">Transport & Handling Charges</span>
             <span>Freight: ₹{{ liveTransport() | number:'1.2-2' }}</span>
-            <span>Hamali: ₹{{ liveHamali() | number:'1.2-2' }}</span>
-            <span class="bar-total">₹{{ (liveTransport() + liveHamali()) | number:'1.2-2' }}</span>
+            <span>Hamali / Loading: ₹{{ liveHamali() | number:'1.2-2' }}</span>
+            <span class="bar-total">Total: ₹{{ (liveTransport() + liveHamali()) | number:'1.2-2' }}</span>
           </div>
 
           <!-- Calculation & Tax Box -->
           <div class="tax-calculation-block">
             <div class="bank-details-box">
               <span class="box-title">Bank Account Details (Supplier)</span>
-              <p><strong>Bank:</strong> HDFC Bank Ltd</p>
-              <p><strong>A/C No:</strong> 50200067891234</p>
-              <p><strong>IFSC Code:</strong> HDFC0001234</p>
-              <p><strong>Branch:</strong> Narayangaon, Pune</p>
-              <p><strong>UPI ID:</strong> slricemill&#64;hdfcbank</p>
+              <p><strong>Bank:</strong> {{ company()?.bankDetails?.bankName || 'HDFC Bank Ltd' }}</p>
+              <p><strong>A/C No:</strong> {{ company()?.bankDetails?.accountNumber || '50200067891234' }}</p>
+              <p><strong>IFSC Code:</strong> {{ company()?.bankDetails?.ifsc || 'HDFC0001234' }}</p>
+              <p><strong>Branch:</strong> {{ company()?.bankDetails?.branch || 'Narayangaon, Pune' }}</p>
+              <p *ngIf="company()?.bankDetails?.upiId"><strong>UPI ID:</strong> {{ company()?.bankDetails?.upiId }}</p>
             </div>
 
             <div class="totals-table-box">
@@ -500,14 +546,26 @@
             </div>
           </div>
 
-          <!-- Signatory Footer -->
+          <!-- Amount In Words -->
+          <div class="amount-words-box">
+            <strong>Amount in Words:</strong> {{ liveTotalAmountWords() }}
+          </div>
+
+          <!-- Footer & Signatures -->
           <div class="bill-footer-row">
             <div class="footer-left">
-              <span>Shree Laxminarayan Rice Mill</span>
-              <span>Hivare Tarfe Narayangaon, Khodad Road</span>
+              <span class="terms-title">Terms & Conditions (Subject to {{ company()?.jurisdiction || 'Pune' }} Jurisdiction):</span>
+              <ng-container *ngIf="company()?.termsAndConditions?.length; else defaultCreateTermsBlock">
+                <span *ngFor="let t of company()?.termsAndConditions">{{ t }}</span>
+              </ng-container>
+              <ng-template #defaultCreateTermsBlock>
+                <span>1. Goods once sold will not be taken back.</span>
+                <span>2. Interest @ 18% p.a. will be charged if bill is not paid on due date.</span>
+                <span>3. Subject to Pune jurisdiction.</span>
+              </ng-template>
             </div>
             <div class="footer-sign">
-              <span>For Shree Laxminarayan Rice Mill</span>
+              <span>For {{ company()?.millName || 'Shree Laxminarayan Rice Mill' }}</span>
               <div class="sign-space"></div>
               <strong>Authorized Signature</strong>
             </div>

@@ -5,6 +5,7 @@ import { RouterModule, ActivatedRoute, Router } from '@angular/router';
 import { CustomersService } from '../../core/services/customers.service';
 import { PdfExportService } from '../../core/services/pdf-export.service';
 import { SnackbarService } from '../../core/services/snackbar.service';
+import { CompanyService } from '../../core/services/company.service';
 import { ICustomer, ICustomerLedgerEntry } from '@rice-mill-project/shared-types';
 import { convertNumberToIndianWords } from '../../core/utils/number-to-words.util';
 
@@ -24,12 +25,14 @@ export class CustomerStatementPrintComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly customersService = inject(CustomersService);
   private readonly pdfExportService = inject(PdfExportService);
+  private readonly companyService = inject(CompanyService);
   private readonly snackbar = inject(SnackbarService);
 
   @ViewChild('statementSheet') statementSheetRef!: ElementRef<HTMLElement>;
 
   readonly customer = signal<ICustomer | null>(null);
   readonly allLedger = signal<ICustomerLedgerEntry[]>([]);
+  readonly company = this.companyService.currentCompany;
   readonly isLoading = signal<boolean>(true);
   readonly isGeneratingPdf = signal<boolean>(false);
 
@@ -128,6 +131,7 @@ export class CustomerStatementPrintComponent implements OnInit {
   });
 
   ngOnInit(): void {
+    this.companyService.getCompanyDetails().subscribe();
     this.initDefaultDates();
 
     this.route.paramMap.subscribe((params) => {

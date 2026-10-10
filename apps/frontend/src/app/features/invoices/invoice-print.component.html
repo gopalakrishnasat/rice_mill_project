@@ -27,23 +27,28 @@
   <div class="printable-sheet" #invoiceSheet *ngIf="invoice()">
     <!-- Devotional Header -->
     <div class="devotional-header">
-      <span>|| Perantal Mata Prasana ||</span>
-      <span>|| Shree Ganeshya Namha ||</span>
-      <span>|| Shree Mukatai Prasana ||</span>
+      <span>{{ company()?.devotionalHeaders?.left || '|| Perantal Mata Prasana ||' }}</span>
+      <span>{{ company()?.devotionalHeaders?.center || '|| Shree Ganeshya Namha ||' }}</span>
+      <span>{{ company()?.devotionalHeaders?.right || '|| Shree Mukatai Prasana ||' }}</span>
     </div>
 
     <!-- Mill Header -->
     <div class="mill-header">
       <div class="mill-title-group">
-        <h1 class="mill-name">SHREE LAXMINARAYAN RICE MILL</h1>
-        <p class="mill-address">Hivare Tarfe Narayangaon, Khodad Road, Tal:- Junnar, Dist:- Pune 410504</p>
+        <h1 class="mill-name">{{ company()?.millName || 'SHREE LAXMINARAYAN RICE MILL' }}</h1>
+        <p class="mill-address">
+          {{ company()?.address?.street || 'Hivare Tarfe Narayangaon, Khodad Road' }},
+          {{ company()?.address?.taluka ? company()?.address?.taluka + ',' : 'Tal:- Junnar,' }}
+          {{ company()?.address?.district ? company()?.address?.district + ',' : 'Dist:- Pune,' }}
+          {{ company()?.address?.state || 'Maharashtra' }} {{ company()?.address?.pincode || '410504' }}
+        </p>
         <div class="mill-compliance">
-          <span><strong>GSTIN:</strong> 27ACHFS3445C1Z8</span>
-          <span><strong>FSSAI:</strong> 21526038000229</span>
+          <span><strong>GSTIN:</strong> {{ company()?.gstin || '27ACHFS3445C1Z8' }}</span>
+          <span><strong>FSSAI:</strong> {{ company()?.fssaiNumber || '21526038000229' }}</span>
         </div>
         <div class="mill-contact">
-          <span><strong>Mob:</strong> 9960186123 / 9970901007</span>
-          <span><strong>Email:</strong> slricemill&#64;gmail.com</span>
+          <span><strong>Mob:</strong> {{ company()?.mobile || '9960186123' }}<ng-container *ngIf="company()?.alternatePhone"> / {{ company()?.alternatePhone }}</ng-container></span>
+          <span><strong>Email:</strong> {{ company()?.email || 'slricemill@gmail.com' }}</span>
         </div>
       </div>
 
@@ -109,6 +114,7 @@
         <tr>
           <th class="col-desc">Items Table / Description</th>
           <th class="col-hsn">HSN</th>
+          <th class="col-uom">UOM</th>
           <th class="col-qty">Qty</th>
           <th class="col-rate">Rate (₹)</th>
           <th class="col-amt">Amount (₹)</th>
@@ -118,6 +124,7 @@
         <tr *ngFor="let item of invoice()?.items">
           <td class="col-desc"><strong>{{ item.description }}</strong></td>
           <td class="col-hsn">{{ item.hsnCode }}</td>
+          <td class="col-uom">{{ item.uom || (item.unit === 'Kg' ? '—' : '') }}</td>
           <td class="col-qty">{{ item.qty }} {{ item.unit }}</td>
           <td class="col-rate">{{ item.rate | number:'1.2-2' }}</td>
           <td class="col-amt font-bold">{{ item.amount | number:'1.2-2' }}</td>
@@ -186,13 +193,18 @@
     <!-- Terms and Signatory Footer -->
     <div class="bill-footer-row">
       <div class="footer-left">
-        <span class="terms-title">Terms & Conditions:</span>
-        <span>1. Goods once sold will not be taken back.</span>
-        <span>2. Interest @ 18% p.a. will be charged if bill is not paid on due date.</span>
-        <span>3. Subject to Pune jurisdiction.</span>
+        <span class="terms-title">Terms & Conditions (Subject to {{ company()?.jurisdiction || 'Pune' }} Jurisdiction):</span>
+        <ng-container *ngIf="company()?.termsAndConditions?.length; else defaultTermsBlock">
+          <span *ngFor="let t of company()?.termsAndConditions">{{ t }}</span>
+        </ng-container>
+        <ng-template #defaultTermsBlock>
+          <span>1. Goods once sold will not be taken back.</span>
+          <span>2. Interest @ 18% p.a. will be charged if bill is not paid on due date.</span>
+          <span>3. Subject to Pune jurisdiction.</span>
+        </ng-template>
       </div>
       <div class="footer-sign">
-        <span>For Shree Laxminarayan Rice Mill</span>
+        <span>For {{ company()?.millName || 'Shree Laxminarayan Rice Mill' }}</span>
         <div class="sign-space"></div>
         <strong>Authorized Signature</strong>
       </div>

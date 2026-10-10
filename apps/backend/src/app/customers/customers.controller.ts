@@ -26,7 +26,7 @@ export class CustomersController {
   constructor(private readonly customersService: CustomersService) {}
 
   @Get('next-code')
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.SALES_MANAGER)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
   async getNextCustomerCode() {
     const nextCode = await this.customersService.getNextCustomerCode();
     return {
@@ -42,9 +42,7 @@ export class CustomersController {
   @Roles(
     UserRole.SUPER_ADMIN,
     UserRole.ADMIN,
-    UserRole.SALES_MANAGER,
-    UserRole.ACCOUNTANT,
-    UserRole.MANAGER,
+    UserRole.VIEW_ONLY_ADMIN,
   )
   async listCustomers(
     @Query('search') search?: string,
@@ -76,9 +74,7 @@ export class CustomersController {
   @Roles(
     UserRole.SUPER_ADMIN,
     UserRole.ADMIN,
-    UserRole.SALES_MANAGER,
-    UserRole.ACCOUNTANT,
-    UserRole.MANAGER,
+    UserRole.VIEW_ONLY_ADMIN,
   )
   async getCustomerById(@Param('id') id: string) {
     const customer = await this.customersService.findById(id);
@@ -90,7 +86,7 @@ export class CustomersController {
   }
 
   @Post()
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.SALES_MANAGER)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
   @HttpCode(HttpStatus.CREATED)
   async createCustomer(
     @Body() createDto: CreateCustomerDto,
@@ -105,7 +101,7 @@ export class CustomersController {
   }
 
   @Put(':id')
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.SALES_MANAGER)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
   async updateCustomer(
     @Param('id') id: string,
     @Body() updateDto: UpdateCustomerDto,
@@ -120,7 +116,7 @@ export class CustomersController {
   }
 
   @Patch(':id/status')
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.SALES_MANAGER)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
   async toggleCustomerStatus(
     @Param('id') id: string,
     @Body('isActive') isActive: boolean,

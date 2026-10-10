@@ -30,7 +30,7 @@ export class CreateProductDto {
 
   @IsString()
   @IsNotEmpty()
-  unit!: 'BAG' | 'QUINTAL' | 'KG';
+  unit!: 'BAG' | 'KG';
 
   @IsNumber()
   @IsNotEmpty()

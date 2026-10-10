@@ -30,6 +30,7 @@ import {
 import { InvoicesService } from '../../core/services/invoices.service';
 import { CustomersService } from '../../core/services/customers.service';
 import { ProductsService } from '../../core/services/products.service';
+import { CompanyService } from '../../core/services/company.service';
 import { AuthService } from '../../core/services/auth.service';
 import { SnackbarService } from '../../core/services/snackbar.service';
 import {
@@ -41,6 +42,7 @@ import {
   UpdateInvoiceDto,
   CreateCustomerDto,
 } from '@rice-mill-project/shared-types';
+import { convertNumberToIndianWords } from '../../core/utils/number-to-words.util';
 
 @Component({
   selector: 'app-invoice-create',
@@ -54,6 +56,7 @@ export class InvoiceCreateComponent implements OnInit, OnDestroy {
   private readonly invoicesService = inject(InvoicesService);
   private readonly customersService = inject(CustomersService);
   private readonly productsService = inject(ProductsService);
+  private readonly companyService = inject(CompanyService);
   private readonly authService = inject(AuthService);
   private readonly snackbarService = inject(SnackbarService);
   private readonly router = inject(Router);
@@ -61,6 +64,7 @@ export class InvoiceCreateComponent implements OnInit, OnDestroy {
 
   readonly currentUser = this.authService.currentUser;
   readonly isSuperAdmin = this.authService.isSuperAdmin;
+  readonly company = this.companyService.currentCompany;
 
   // Edit Mode state
   readonly isEditMode = signal<boolean>(false);
@@ -137,11 +141,15 @@ export class InvoiceCreateComponent implements OnInit, OnDestroy {
     return raw.map((item: any) => {
       const qty = item?.qty ? Number(item.qty) : 0;
       const rate = item?.rate ? Number(item.rate) : 0;
+      const unit = item?.unit || 'Bag';
+      const rawUom = item?.uom ? String(item.uom).trim() : '';
+      const uomDisplay = unit === 'Kg' ? '—' : (rawUom ? (rawUom.toLowerCase().endsWith('kg') ? rawUom : `${rawUom}kg`) : '');
       return {
         description: item?.description || '',
         hsnCode: item?.hsnCode || '',
+        uom: uomDisplay,
         qty: qty,
-        unit: item?.unit || 'Bag',
+        unit: unit,
         rate: rate,
         amount: Number((qty * rate).toFixed(2)),
       };
@@ -195,6 +203,10 @@ export class InvoiceCreateComponent implements OnInit, OnDestroy {
     return Math.round(raw);
   });
 
+  readonly liveTotalAmountWords = computed(() => {
+    return convertNumberToIndianWords(this.liveTotalAmount());
+  });
+
   readonly selectedCustomerObj = computed(() => {
     const custId = this.formValue()?.customerId;
     return this.customers().find((c) => c.id === custId) || null;
@@ -206,6 +218,7 @@ export class InvoiceCreateComponent implements OnInit, OnDestroy {
   readonly liveTransportDetails = computed(() => this.formValue()?.transportDetails || '—');
 
   ngOnInit(): void {
+    this.companyService.getCompanyDetails().subscribe();
     this.initForms();
     this.loadCatalogData();
     this.setupBuyerFilterPipeline();
@@ -286,15 +299,32 @@ export class InvoiceCreateComponent implements OnInit, OnDestroy {
   addItemRow(item?: {
     description?: string;
     hsnCode?: string;
+    uom?: string;
     qty?: number | string;
     unit?: string;
     rate?: number | string;
   }): void {
+    let cleanDesc = item?.description ?? '';
+    let autoUom = item?.uom ?? '';
+
+    // If legacy description has embedded weight like "- 25kg Bag" and no uom is provided:
+    if (!autoUom && cleanDesc) {
+      const match = cleanDesc.match(/(?:-\s*|\()(\d+\s*kg)(?:\s*bag)?\)?/i);
+      if (match) {
+        autoUom = match[1].replace(/\s+/g, '').toLowerCase();
+        cleanDesc = cleanDesc.replace(/\s*-\s*\d+\s*kg(?:\s*bag)?/i, '').replace(/\s*\(\d+\s*kg(?:\s*bag)?\)/i, '').trim();
+      }
+    }
+
+    const unitVal = item?.unit === 'Qtl' || item?.unit === 'QUINTAL' ? 'Kg' : (item?.unit || 'Bag');
+    const formUom = unitVal === 'Kg' ? '' : (autoUom ? autoUom.replace(/kg$/i, '').trim() : '');
+
     const group = this.fb.group({
-      description: [item?.description ?? '', [Validators.required]],
+      description: [cleanDesc, [Validators.required]],
       hsnCode: [item?.hsnCode ?? '', [Validators.required]],
+      uom: [formUom],
       qty: [item?.qty !== undefined && item?.qty !== '' ? item.qty : '', [Validators.required, Validators.min(0.1)]],
-      unit: [item?.unit || 'Bag', [Validators.required]],
+      unit: [unitVal, [Validators.required]],
       rate: [item?.rate !== undefined && item?.rate !== '' ? item.rate : '', [Validators.required, Validators.min(0)]],
     });
     this.itemsFormArray.push(group);
@@ -314,14 +344,30 @@ export class InvoiceCreateComponent implements OnInit, OnDestroy {
     const prod = this.products().find((p) => p.id === prodId);
     if (prod) {
       const row = this.itemsFormArray.at(index);
+      const cleanName = prod.name
+        .replace(/\s*-\s*\d+\s*kg(?:\s*bag)?/i, '')
+        .replace(/\s*\(\d+\s*kg(?:\s*bag)?\)/i, '')
+        .trim();
+      const bagUom = prod.bagWeightKg ? String(prod.bagWeightKg).replace(/kg$/i, '').trim() : '';
+      const unit = prod.unit === 'BAG' ? 'Bag' : (prod.unit === 'KG' ? 'Kg' : 'Bag');
+
       row.patchValue({
-        description: prod.name,
+        description: cleanName || prod.name,
         hsnCode: prod.hsnCode,
+        uom: unit === 'Bag' ? bagUom : '',
         rate: prod.defaultRate,
-        unit: prod.unit === 'BAG' ? 'Bag' : prod.unit,
+        unit: unit,
       });
       this.formValue.set(this.invoiceForm.value);
     }
+  }
+
+  onItemUnitChange(index: number): void {
+    const row = this.itemsFormArray.at(index);
+    if (row.get('unit')?.value === 'Kg') {
+      row.patchValue({ uom: '' });
+    }
+    this.formValue.set(this.invoiceForm.value);
   }
 
   private loadCatalogData(): void {
@@ -489,15 +535,21 @@ export class InvoiceCreateComponent implements OnInit, OnDestroy {
       return;
     }
 
+    const formRaw = this.invoiceForm.getRawValue();
     const val = this.invoiceForm.value;
-    const items = val.items.map((it: any) => ({
-      description: it.description,
-      hsnCode: it.hsnCode,
-      qty: Number(it.qty),
-      unit: it.unit,
-      rate: Number(it.rate),
-      amount: Number((Number(it.qty) * Number(it.rate)).toFixed(2)),
-    }));
+    const items = (formRaw.items || []).map((it: any) => {
+      const rawUom = it.uom ? String(it.uom).trim() : '';
+      const cleanUom = it.unit === 'Kg' ? '' : (rawUom ? (rawUom.toLowerCase().endsWith('kg') ? rawUom : `${rawUom}kg`) : '');
+      return {
+        description: it.description,
+        hsnCode: it.hsnCode,
+        uom: cleanUom,
+        qty: Number(it.qty),
+        unit: it.unit,
+        rate: Number(it.rate),
+        amount: Number((Number(it.qty) * Number(it.rate)).toFixed(2)),
+      };
+    });
 
     this.isSubmitting.set(true);
 

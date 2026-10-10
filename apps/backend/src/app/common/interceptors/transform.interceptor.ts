@@ -18,6 +18,11 @@ export class TransformInterceptor<T>
   ): Observable<ApiResponse<T>> {
     return next.handle().pipe(
       map((data) => {
+        const httpResponse = context.switchToHttp().getResponse();
+        if (httpResponse?.headersSent) {
+          return data;
+        }
+
         // If already structured as an ApiResponse, pass through
         if (data && typeof data === 'object' && 'success' in data) {
           return data;

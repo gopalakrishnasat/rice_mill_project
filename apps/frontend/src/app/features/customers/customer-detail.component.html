@@ -766,67 +766,13 @@
     </div>
   </div>
 
-  <!-- MODAL: RECORD PAYMENT FOR AN INVOICE -->
-  <div class="modal-backdrop" *ngIf="showPaymentModal()">
-    <div class="modal-card">
-      <div class="modal-header">
-        <div class="header-titles">
-          <h3>Record Payment Receipt</h3>
-          <p>Invoice <strong>{{ selectedInvoiceForPayment()?.invoiceNumber }}</strong> (Due: ₹{{ (selectedInvoiceForPayment()?.balanceAmount || 0) | number:'1.2-2' }})</p>
-        </div>
-        <button type="button" class="modal-close-btn" (click)="closePaymentModal()">✕</button>
-      </div>
-
-      <form [formGroup]="paymentForm" (ngSubmit)="onPaymentSubmit()" class="modal-form">
-        <div class="form-group" [class.has-error]="paymentForm.get('amount')?.invalid && paymentForm.get('amount')?.touched">
-          <div class="label-with-due">
-            <label>Amount Received (₹) *</label>
-            <span class="max-due-hint text-sm text-muted">
-              Max Due: <strong>₹{{ (selectedInvoiceForPayment()?.balanceAmount || 0) | number:'1.2-2' }}</strong>
-            </span>
-          </div>
-          <input type="number" formControlName="amount" placeholder="0.00" min="1" [max]="selectedInvoiceForPayment()?.balanceAmount || 0" step="0.01" />
-          <span class="field-error" *ngIf="paymentForm.get('amount')?.hasError('max') && paymentForm.get('amount')?.touched">
-            Amount cannot exceed pending balance of ₹{{ (selectedInvoiceForPayment()?.balanceAmount || 0) | number:'1.2-2' }}.
-          </span>
-        </div>
-
-        <div class="form-row">
-          <div class="form-group flex-1">
-            <label>Payment Date *</label>
-            <input type="date" formControlName="paymentDate" />
-          </div>
-          <div class="form-group flex-1">
-            <label>Payment Mode *</label>
-            <select formControlName="paymentMode">
-              <option value="NEFT_RTGS">Bank Transfer (NEFT/RTGS/IMPS)</option>
-              <option value="UPI">UPI / QR Code</option>
-              <option value="CHEQUE">Cheque</option>
-              <option value="CASH">Cash</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label>Transaction Reference / Cheque No / UTR</label>
-          <input type="text" formControlName="transactionReference" placeholder="e.g. UTR12345678 or Cheque #45210" />
-        </div>
-
-        <div class="form-group">
-          <label>Notes / Remarks</label>
-          <input type="text" formControlName="notes" placeholder="e.g. Part payment via HDFC" />
-        </div>
-
-        <div class="modal-actions">
-          <button type="button" class="btn-cancel" (click)="closePaymentModal()">Cancel</button>
-          <button type="submit" class="btn-submit" [disabled]="isSubmittingPayment() || paymentForm.invalid">
-            <span class="spinner" *ngIf="isSubmittingPayment()"></span>
-            <span>{{ isSubmittingPayment() ? 'Recording...' : 'Record Payment' }}</span>
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
+  <!-- REUSABLE MODAL: RECORD PAYMENT FOR AN INVOICE -->
+  <app-record-payment-modal
+    *ngIf="showPaymentModal() && selectedInvoiceForPayment()"
+    [invoice]="selectedInvoiceForPayment()!"
+    (closed)="closePaymentModal()"
+    (paymentRecorded)="onSingleInvoicePaymentRecorded($event)"
+  ></app-record-payment-modal>
 
   <!-- MODAL: COLLECT CUSTOMER PAYMENT & FIFO AUTO-SETTLE BILLS -->
   <div class="modal-backdrop" *ngIf="showLumpSumPaymentModal()">

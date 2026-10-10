@@ -1,92 +1,469 @@
-<div class="dashboard-layout">
-  <!-- Main Content Area -->
-  <main class="content-container">
-    <div class="placeholder-card">
-      <div class="card-hero-icon">
-        <span>🌾</span>
+<div class="dashboard-wrapper">
+  <!-- Top Welcome & Command Center Header -->
+  <header class="dash-header">
+    <div class="header-left">
+      <div class="title-row">
+        <h2>Operations & Financial Meta Analysis</h2>
+        <span class="user-greeting">
+          Welcome back, <strong>{{ user()?.name }}</strong>
+          <span class="role-tag" [class.role-super]="isSuperAdmin()">
+            {{ isSuperAdmin() ? '👑 ' : '' }}{{ user()?.role }}
+          </span>
+        </span>
       </div>
-      <h2>Dashboard coming soon</h2>
-      <p class="subtitle">
-        Enterprise RBAC, Super Admin Bootstrap, and Private User Governance are active.
-      </p>
+    </div>
 
-      <!-- Active Session Information Box -->
-      <div class="session-info-card" *ngIf="user()">
-        <h4>Authenticated Session Profile</h4>
-        <div class="info-grid">
-          <div class="info-row" *ngIf="user()?.employeeId">
-            <span class="info-label">Employee ID:</span>
-            <span class="info-val emp-highlight">{{ user()?.employeeId }}</span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">Full Name:</span>
-            <span class="info-val">{{ user()?.name }}</span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">Work Email:</span>
-            <span class="info-val">{{ user()?.email }}</span>
-          </div>
-          <div class="info-row" *ngIf="user()?.mobile">
-            <span class="info-label">Mobile Contact:</span>
-            <span class="info-val">{{ user()?.mobile }}</span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">Assigned Role:</span>
-            <span class="role-pill" [class.super-pill]="isSuperAdmin()">
-              {{ isSuperAdmin() ? '👑 ' : '' }}{{ user()?.role }}
-            </span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">Account Governance:</span>
-            <span class="status-active">● Active & Admin Controlled</span>
-          </div>
-        </div>
+    <!-- Header Actions & Period Filter -->
+    <div class="header-right">
+      <!-- Period Selector -->
+      <div class="period-pill-group">
+        <button
+          type="button"
+          class="period-btn"
+          [class.active]="selectedPeriod() === 'ALL'"
+          (click)="setPeriod('ALL')"
+        >
+          All Records
+        </button>
+        <button
+          type="button"
+          class="period-btn"
+          [class.active]="selectedPeriod() === 'FY'"
+          (click)="setPeriod('FY')"
+        >
+          {{ currentFinancialYear().label }}
+        </button>
+        <button
+          type="button"
+          class="period-btn"
+          [class.active]="selectedPeriod() === 'MONTH'"
+          (click)="setPeriod('MONTH')"
+        >
+          Recent 30 Days
+        </button>
       </div>
 
-      <!-- Super Admin Governance Card (Exclusively For Super Admin) -->
-      <div class="admin-governance-box" *ngIf="isSuperAdmin()">
-        <div class="gov-header">
-          <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none">
-            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-            <circle cx="9" cy="7" r="4"></circle>
-            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+      <!-- Action Buttons -->
+      <div class="action-buttons-group">
+        <button
+          type="button"
+          class="btn-refresh"
+          (click)="loadDashboardData()"
+          [title]="'Last updated: ' + (lastUpdated() | date:'mediumTime')"
+        >
+          <svg
+            [class.spin]="isLoading()"
+            viewBox="0 0 24 24"
+            width="16"
+            height="16"
+            stroke="currentColor"
+            stroke-width="2.2"
+            fill="none"
+          >
+            <polyline points="23 4 23 10 17 10"></polyline>
+            <polyline points="1 20 1 14 7 14"></polyline>
+            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
           </svg>
-          <h4>Super Admin User Governance & Provisioning</h4>
+          <span>Sync</span>
+        </button>
+
+        <a routerLink="/invoices/new" class="btn-primary-action" id="dash-btn-new-invoice">
+          <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2.5" fill="none">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+          <span>New Invoice</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Loading Overlay / Spinner -->
+  <div class="loading-bar-wrapper" *ngIf="isLoading()">
+    <div class="loading-bar-indeterminate"></div>
+  </div>
+
+  <!-- SECTION 1: TOP 4 HERO KPI METRIC CARDS (SLIM - MATCHING OTHER PAGES) -->
+  <section class="metrics-grid">
+    <!-- KPI 1: Gross Mill Turnover -->
+    <div class="metric-card card-turnover" [title]="'Avg ' + formatInr(avgInvoiceValue()) + ' / bill'">
+      <div class="metric-top">
+        <span class="metric-icon-box">
+          <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.2" fill="none">
+            <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+          </svg>
+        </span>
+        <span class="metric-label">Gross Mill Turnover</span>
+      </div>
+      <div class="metric-bottom">
+        <span class="metric-val">{{ formatInr(totalTurnover()) }}</span>
+        <span class="metric-chip chip-gold">{{ filteredInvoices().length }} Bills</span>
+      </div>
+    </div>
+
+    <!-- KPI 2: Amount Collected -->
+    <div class="metric-card card-collected" [title]="paymentBreakdown().paidCount + ' Fully Paid Bills'">
+      <div class="metric-top">
+        <span class="metric-icon-box">
+          <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.2" fill="none">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+          </svg>
+        </span>
+        <span class="metric-label">Amount Collected</span>
+      </div>
+      <div class="metric-bottom">
+        <span class="metric-val text-green">{{ formatInr(totalCollected()) }}</span>
+        <span class="metric-chip chip-emerald">⚡ {{ collectionRatePercent() }}%</span>
+      </div>
+      <div class="metric-progress-track" *ngIf="collectionRatePercent() > 0">
+        <div class="metric-progress-fill fill-emerald" [style.width.%]="collectionRatePercent()"></div>
+      </div>
+    </div>
+
+    <!-- KPI 3: Outstanding Receivables -->
+    <div class="metric-card card-due" [title]="(paymentBreakdown().unpaidCount + paymentBreakdown().partialCount) + ' Bills Pending'">
+      <div class="metric-top">
+        <span class="metric-icon-box">
+          <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.2" fill="none">
+            <circle cx="12" cy="12" r="10"></circle>
+            <polyline points="12 6 12 12 16 14"></polyline>
+          </svg>
+        </span>
+        <span class="metric-label">Outstanding Receivables</span>
+      </div>
+      <div class="metric-bottom">
+        <span class="metric-val text-red">{{ formatInr(totalOutstanding()) }}</span>
+        <span class="metric-chip chip-rose">⏳ {{ outstandingRatePercent() }}% Due</span>
+      </div>
+      <div class="metric-progress-track" *ngIf="outstandingRatePercent() > 0">
+        <div class="metric-progress-fill fill-rose" [style.width.%]="outstandingRatePercent()"></div>
+      </div>
+    </div>
+
+    <!-- KPI 4: Total Dispatch Volume -->
+    <div class="metric-card card-volume" [title]="totalProductCount() + ' Active SKUs'">
+      <div class="metric-top">
+        <span class="metric-icon-box">
+          <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.2" fill="none">
+            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+            <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+            <line x1="12" y1="22.08" x2="12" y2="12"></line>
+          </svg>
+        </span>
+        <span class="metric-label">Mill Dispatch Volume</span>
+      </div>
+      <div class="metric-bottom">
+        <span class="metric-val text-blue">{{ totalBagsDispatched() | number }} Bags</span>
+        <span class="metric-chip chip-sky">🌾 ~{{ dynamicMetricTons() }} MT</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 2: DUAL DEEP-DIVE ANALYTICS ROW -->
+  <div class="analytics-row">
+    <!-- Left Column: Financial Health & Invoicing Recovery Gauge -->
+    <div class="analytics-card financial-gauge-card">
+      <div class="card-title-bar">
+        <div class="title-group">
+          <h3>Cash Flow & Collection Efficiency</h3>
+          <p>Real-time meta reconciliation of billed amounts vs customer recoveries</p>
         </div>
-        <p>
-          As the Executive Super Admin, you hold exclusive authorization to manage all enterprise accounts, provision personnel with automatic sequential IDs, deactivate accounts, and govern role privileges.
-        </p>
-        <div class="gov-cta">
-          <a routerLink="/users" class="gov-btn" id="btn-open-user-mgmt">
-            <span>👥 Open Super Admin User Directory</span>
-            <span>→</span>
-          </a>
+        <span class="health-pill" [class.health-good]="collectionRatePercent() >= 60">
+          ● {{ collectionRatePercent() }}% Collected
+        </span>
+      </div>
+
+      <!-- Segmented Visual Bar Gauge -->
+      <div class="recovery-gauge-box">
+        <div class="gauge-labels-row">
+          <div class="gauge-col label-collected">
+            <span class="indicator-dot dot-emerald"></span>
+            <span class="label-title">Collected: {{ formatInr(totalCollected()) }}</span>
+            <span class="label-pct">({{ collectionRatePercent() }}%)</span>
+          </div>
+          <div class="gauge-col label-outstanding">
+            <span class="indicator-dot dot-rose"></span>
+            <span class="label-title">Khata Dues: {{ formatInr(totalOutstanding()) }}</span>
+            <span class="label-pct">({{ outstandingRatePercent() }}%)</span>
+          </div>
+        </div>
+
+        <div class="dual-gauge-bar">
+          <div
+            class="gauge-segment segment-emerald"
+            [style.width.%]="collectionRatePercent()"
+            [title]="'Collected: ' + formatInr(totalCollected())"
+          ></div>
+          <div
+            class="gauge-segment segment-rose"
+            [style.width.%]="outstandingRatePercent()"
+            [title]="'Pending: ' + formatInr(totalOutstanding())"
+          ></div>
         </div>
       </div>
 
-      <!-- RBAC Permissions Assigned -->
-      <div class="permissions-box" *ngIf="permissions().length > 0">
-        <h4>Active Role Permissions ({{ permissions().length }})</h4>
-        <div class="perm-chips">
-          <span class="perm-chip" *ngFor="let perm of permissions()">{{ perm }}</span>
+      <!-- Bill Payment Settlement Meta Breakdown -->
+      <div class="settlement-breakdown-grid">
+        <div class="breakdown-stat-card card-paid">
+          <div class="stat-top">
+            <span class="stat-badge badge-paid">Fully Settled</span>
+            <span class="stat-count">{{ paymentBreakdown().paidCount }} Bills</span>
+          </div>
+          <span class="stat-sum">{{ formatInr(paymentBreakdown().paidVolume) }}</span>
+          <span class="stat-pct-bar" [style.width.%]="paymentBreakdown().paidPct"></span>
+        </div>
+
+        <div class="breakdown-stat-card card-partial">
+          <div class="stat-top">
+            <span class="stat-badge badge-partial">Partially Paid</span>
+            <span class="stat-count">{{ paymentBreakdown().partialCount }} Bills</span>
+          </div>
+          <span class="stat-sum">{{ formatInr(paymentBreakdown().partialVolume) }}</span>
+          <span class="stat-pct-bar" [style.width.%]="paymentBreakdown().partialPct"></span>
+        </div>
+
+        <div class="breakdown-stat-card card-unpaid">
+          <div class="stat-top">
+            <span class="stat-badge badge-unpaid">Unpaid / Khata</span>
+            <span class="stat-count">{{ paymentBreakdown().unpaidCount }} Bills</span>
+          </div>
+          <span class="stat-sum">{{ formatInr(paymentBreakdown().unpaidVolume) }}</span>
+          <span class="stat-pct-bar" [style.width.%]="paymentBreakdown().unpaidPct"></span>
         </div>
       </div>
 
-      <!-- Modules Roadmap preview -->
-      <div class="roadmap-preview">
-        <h4>Future Business Modules In Roadmap</h4>
-        <div class="modules-grid">
-          <span class="module-chip">🌾 Paddy Procurement</span>
-          <span class="module-chip">⚖️ Weighbridge Entry</span>
-          <span class="module-chip">🏭 Milling Operations</span>
-          <span class="module-chip">📦 Rice Stock & Godowns</span>
-          <span class="module-chip">🔬 Quality Inspection</span>
-          <span class="module-chip">🧾 GST Invoicing & Billing</span>
-          <span class="module-chip">👥 Farmers & Suppliers</span>
-          <span class="module-chip">📊 Management Reports</span>
+      <!-- GST & Levies Sub-Section -->
+      <div class="gst-levies-panel">
+        <div class="gst-header">
+          <div class="gst-title-group">
+            <span class="panel-subtitle">GST Levies & Logistics Reconciliation</span>
+            <span class="gst-scope-note">Taxes & transport charges across all sales transactions</span>
+          </div>
+          <span class="hsn-pill">
+            All Invoiced Sales
+          </span>
+        </div>
+        <div class="gst-metrics-row">
+          <div class="gst-metric-col">
+            <span class="gst-label">CGST (2.5%)</span>
+            <span class="gst-val">{{ formatInr(taxBreakdown().totalCgst) }}</span>
+          </div>
+          <div class="gst-metric-col">
+            <span class="gst-label">SGST (2.5%)</span>
+            <span class="gst-val">{{ formatInr(taxBreakdown().totalSgst) }}</span>
+          </div>
+          <div class="gst-metric-col">
+            <span class="gst-label">IGST (5%)</span>
+            <span class="gst-val">{{ formatInr(taxBreakdown().totalIgst) }}</span>
+          </div>
+          <div class="gst-metric-col">
+            <span class="gst-label">Freight & Hamali</span>
+            <span class="gst-val">{{ formatInr(taxBreakdown().totalLogistics) }}</span>
+          </div>
+          <div class="gst-metric-col col-total-tax">
+            <span class="gst-label font-bold text-dark">Total Taxes</span>
+            <span class="gst-val text-gold font-bold">{{ formatInr(taxBreakdown().totalTax) }}</span>
+          </div>
         </div>
       </div>
     </div>
-  </main>
+
+    <!-- Right Column: Product Variety & SKU Dispatch Distribution -->
+    <div class="analytics-card products-meta-card">
+      <div class="card-title-bar">
+        <div class="title-group">
+          <div class="title-with-badge">
+            <h3>Rice Variety & SKU Dispatch Mix</h3>
+            <span class="varieties-count-badge" *ngIf="totalProductVarietiesCount() > 0">
+              {{ displayedProducts().length }} of {{ totalProductVarietiesCount() }} Varieties
+            </span>
+          </div>
+          <p>Sales volume and revenue distribution across all available mill grain varieties</p>
+        </div>
+        <a routerLink="/products" class="view-all-link">Catalog →</a>
+      </div>
+
+      <!-- Scrollable Container with Progressive Loading (First 5, then +5 on scroll down) -->
+      <div
+        class="product-scroll-container"
+        (scroll)="onProductListScroll($event)"
+        *ngIf="displayedProducts().length > 0"
+        id="dash-product-scroll-container"
+      >
+        <div class="product-bars-list">
+          <div class="product-bar-item" *ngFor="let prod of displayedProducts(); let i = index">
+            <div class="prod-info-row">
+              <div class="prod-name-group">
+                <span class="prod-rank-num">#{{ i + 1 }}</span>
+                <span
+                  class="prod-badge"
+                  [class.badge-byproduct]="prod.category === 'BY_PRODUCT'"
+                  [class.badge-packaged]="prod.category === 'PACKAGED'"
+                  [class.badge-rice]="prod.category === 'RICE'"
+                >
+                  {{ getCategoryLabel(prod.category) }}
+                </span>
+                <strong class="prod-name">{{ prod.name }}</strong>
+              </div>
+              <div class="prod-val-group">
+                <span class="prod-revenue">{{ formatInr(prod.revenue) }}</span>
+                <span class="prod-pct">({{ prod.percent }}%)</span>
+              </div>
+            </div>
+
+            <div class="prod-progress-track">
+              <div
+                class="prod-progress-fill"
+                [class.fill-gold]="prod.category === 'RICE'"
+                [class.fill-amber]="prod.category === 'BY_PRODUCT'"
+                [class.fill-sky]="prod.category === 'PACKAGED'"
+                [style.width.%]="prod.percent"
+              ></div>
+            </div>
+
+            <div class="prod-meta-row">
+              <span class="prod-bags-count">📦 {{ prod.bags | number }} Bags Dispatched</span>
+              <span class="prod-uom" *ngIf="prod.uom">Pack: {{ prod.uom }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Scroll Loader Indicator when fetching next 5 -->
+        <div class="scroll-loader-wrapper" *ngIf="isLoadingMoreProducts()">
+          <span class="scroll-spinner"></span>
+          <span>Fetching next 5 varieties...</span>
+        </div>
+
+        <!-- Scroll down prompt / Tap to load next batch -->
+        <div
+          class="scroll-more-prompt"
+          *ngIf="hasMoreProducts() && !isLoadingMoreProducts()"
+          (click)="loadNextProductBatch()"
+          title="Scroll down or click to load next 5 varieties"
+        >
+          <span>Scroll down for more varieties ({{ totalProductVarietiesCount() - displayedProducts().length }} remaining) ↓</span>
+        </div>
+
+        <!-- End of list confirmation when all products loaded -->
+        <div class="all-varieties-loaded" *ngIf="!hasMoreProducts() && totalProductVarietiesCount() > 5">
+          <span>✓ All {{ totalProductVarietiesCount() }} product varieties loaded</span>
+        </div>
+      </div>
+
+      <div class="empty-mini-state" *ngIf="displayedProducts().length === 0">
+        <p>No dispatch records found for this period.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 3: TOP BUYERS LEADERBOARD & RECENT BILLING ACTIVITY -->
+  <div class="analytics-row row-tables">
+    <!-- Left Column: Top Buyers Leaderboard -->
+    <div class="analytics-card buyers-leaderboard-card">
+      <div class="card-title-bar">
+        <div class="title-group">
+          <h3>Top Buyers & Khata Exposure</h3>
+          <p>Highest-volume buyers ranked by cumulative mill billing & ledger balances</p>
+        </div>
+        <a routerLink="/customers" class="view-all-link">All Buyers →</a>
+      </div>
+
+      <div class="table-responsive" *ngIf="topBuyers().length > 0">
+        <table class="dash-table">
+          <thead>
+            <tr>
+              <th>Buyer / Trader</th>
+              <th>Bills</th>
+              <th class="text-right">Billed Amount</th>
+              <th class="text-right">Paid</th>
+              <th class="text-right">Khata Due</th>
+              <th class="text-right">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let b of topBuyers()">
+              <td>
+                <div class="buyer-cell">
+                  <span class="buyer-code">{{ b.code }}</span>
+                  <div class="buyer-text">
+                    <strong class="buyer-name">{{ b.name }}</strong>
+                    <span class="buyer-city" *ngIf="b.city">📍 {{ b.city }}</span>
+                  </div>
+                </div>
+              </td>
+              <td>
+                <span class="bills-tag">{{ b.billsCount }}</span>
+              </td>
+              <td class="text-right font-bold text-dark">
+                {{ formatInr(b.billed) }}
+              </td>
+              <td class="text-right text-emerald font-semibold">
+                {{ formatInr(b.paid) }}
+              </td>
+              <td class="text-right">
+                <span
+                  class="balance-tag"
+                  [class.tag-due]="b.balance > 0"
+                  [class.tag-clear]="b.balance <= 0"
+                >
+                  {{ b.balance > 0 ? formatInr(b.balance) : '✓ Settled' }}
+                </span>
+              </td>
+              <td class="text-right">
+                <a [routerLink]="['/customers', b.id, 'statement']" class="btn-statement-sm" title="View Khata Statement">
+                  Statement
+                </a>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Right Column: Recent Invoicing Stream -->
+    <div class="analytics-card recent-invoices-card">
+      <div class="card-title-bar">
+        <div class="title-group">
+          <h3>Recent Invoices & Dispatches</h3>
+          <p>Latest trade transactions processed through the ERP</p>
+        </div>
+        <a routerLink="/invoices" class="view-all-link">View All →</a>
+      </div>
+
+      <div class="invoices-stream-list" *ngIf="recentInvoices().length > 0">
+        <div class="invoice-stream-item" *ngFor="let inv of recentInvoices()">
+          <div class="stream-left">
+            <div class="inv-number-row">
+              <span class="inv-code">{{ inv.invoiceNumber }}</span>
+              <span class="inv-date">{{ inv.invoiceDate | date:'mediumDate' }}</span>
+            </div>
+            <span class="inv-buyer-name">{{ inv.customerSnapshot?.companyName || 'Buyer' }}</span>
+            <span class="inv-city" *ngIf="getInvoiceCity(inv)">📍 {{ getInvoiceCity(inv) }}</span>
+          </div>
+
+          <div class="stream-right">
+            <div class="inv-amount-group">
+              <span class="inv-total-amount">{{ formatInr(inv.totalAmount) }}</span>
+              <span
+                class="status-pill-mini"
+                [class.pill-paid]="inv.paymentStatus === 'PAID'"
+                [class.pill-partial]="inv.paymentStatus === 'PARTIAL'"
+                [class.pill-unpaid]="inv.paymentStatus === 'UNPAID'"
+              >
+                {{ inv.paymentStatus }}
+              </span>
+            </div>
+            <a [routerLink]="['/invoices', inv.id, 'print']" class="btn-print-icon" title="Print Invoice">
+              <svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" stroke-width="2" fill="none">
+                <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                <rect x="6" y="14" width="12" height="8"></rect>
+              </svg>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>

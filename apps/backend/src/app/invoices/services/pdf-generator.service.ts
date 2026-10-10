@@ -1,10 +1,17 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import PDFDocument from 'pdfkit';
 import { InvoiceDocument } from '../schemas/invoice.schema';
+import { CompanyService } from '../../company/company.service';
 
 @Injectable()
 export class PdfGeneratorService {
-  generateInvoicePdf(invoice: InvoiceDocument): Promise<Buffer> {
+  constructor(@Optional() private readonly companyService?: CompanyService) {}
+
+  async generateInvoicePdf(invoice: InvoiceDocument): Promise<Buffer> {
+    const company = this.companyService
+      ? await this.companyService.getCompanyDetails()
+      : ({} as any);
+
     return new Promise((resolve, reject) => {
       const doc = new PDFDocument({
         size: 'A4',
@@ -12,7 +19,7 @@ export class PdfGeneratorService {
         bufferPages: true,
         info: {
           Title: `Invoice_${invoice.invoiceNumber}`,
-          Author: 'Shree Laxminarayan Rice Mill',
+          Author: company.millName || 'Shree Laxminarayan Rice Mill',
         },
       });
 
@@ -36,9 +43,9 @@ export class PdfGeneratorService {
 
       // 1. Devotional Header (Space-around 3 phrases)
       doc.fontSize(7.5).fillColor(GRAY_TEXT).font('Helvetica-Oblique');
-      doc.text('|| Perantal Mata Prasana ||', 30, 26, { width: 178, align: 'center' });
-      doc.text('|| Shree Ganeshya Namha ||', 208, 26, { width: 178, align: 'center' });
-      doc.text('|| Shree Mukatai Prasana ||', 386, 26, { width: 178, align: 'center' });
+      doc.text(company.devotionalHeaders?.left || '|| Perantal Mata Prasana ||', 30, 26, { width: 178, align: 'center' });
+      doc.text(company.devotionalHeaders?.center || '|| Shree Ganeshya Namha ||', 208, 26, { width: 178, align: 'center' });
+      doc.text(company.devotionalHeaders?.right || '|| Shree Mukatai Prasana ||', 386, 26, { width: 178, align: 'center' });
 
       // 2. Mill Header
       const millY = 42;
@@ -46,13 +53,17 @@ export class PdfGeneratorService {
         .fontSize(14.5)
         .fillColor(MAROON)
         .font('Helvetica-Bold')
-        .text('SHREE LAXMINARAYAN RICE MILL', 30, millY);
+        .text(company.millName || 'SHREE LAXMINARAYAN RICE MILL', 30, millY);
+
+      const addressStr = company.address
+        ? `${company.address.street}, ${company.address.taluka ? company.address.taluka + ', ' : ''}${company.address.district ? company.address.district + ', ' : ''}${company.address.state} ${company.address.pincode}`
+        : 'Hivare Tarfe Narayangaon, Khodad Road, Tal:- Junnar, Dist:- Pune 410504';
 
       doc
         .fontSize(8)
         .fillColor('#222222')
         .font('Helvetica')
-        .text('Hivare Tarfe Narayangaon, Khodad Road, Tal:- Junnar, Dist:- Pune 410504', 30, millY + 19);
+        .text(addressStr, 30, millY + 19);
 
       doc
         .fontSize(7.8)
@@ -60,11 +71,15 @@ export class PdfGeneratorService {
         .font('Helvetica-Bold')
         .text('GSTIN: ', 30, millY + 31, { continued: true })
         .font('Helvetica')
-        .text('27ACHFS3445C1Z8          ', { continued: true })
+        .text(`${company.gstin || '27ACHFS3445C1Z8'}          `, { continued: true })
         .font('Helvetica-Bold')
         .text('FSSAI: ', { continued: true })
         .font('Helvetica')
-        .text('21526038000229');
+        .text(company.fssaiNumber || '21526038000229');
+
+      const contactStr = company.alternatePhone
+        ? `${company.mobile || '9960186123'} / ${company.alternatePhone}`
+        : company.mobile || '9960186123';
 
       doc
         .fontSize(7.8)
@@ -72,11 +87,11 @@ export class PdfGeneratorService {
         .font('Helvetica-Bold')
         .text('Mob: ', 30, millY + 43, { continued: true })
         .font('Helvetica')
-        .text('9960186123 / 9970901007          ', { continued: true })
+        .text(`${contactStr}          `, { continued: true })
         .font('Helvetica-Bold')
         .text('Email: ', { continued: true })
         .font('Helvetica')
-        .text('slricemill@gmail.com');
+        .text(company.email || 'slricemill@gmail.com');
 
       // Copy Box (Right side)
       const copyBoxX = 415;
@@ -195,8 +210,8 @@ export class PdfGeneratorService {
 
       // 5. Items Table
       let tableY = metaY + metaHeight + 6;
-      // CSS: 45% (240.75), 15% (80.25), 12% (64.2), 13% (69.55), 15% (80.25)
-      const itemColX = [30, 271, 351, 415, 485, 565];
+      // CSS: 36% (192.6), 12% (64.2), 11% (58.85), 13% (69.55), 13% (69.55), 15% (80.25)
+      const itemColX = [30, 223, 287, 346, 416, 486, 565];
 
       const drawTableHeader = (yPos: number) => {
         doc.rect(30, yPos, 535, 20).fillAndStroke('#F1F1F1', BLACK);
@@ -209,10 +224,11 @@ export class PdfGeneratorService {
           .fontSize(8.2)
           .font('Helvetica-Bold')
           .text('Items Table / Description', itemColX[0] + 6, yPos + 5.5, { width: itemColX[1] - itemColX[0] - 12 })
-          .text('HSN', itemColX[1] + 6, yPos + 5.5, { width: itemColX[2] - itemColX[1] - 12 })
-          .text('Qty', itemColX[2] + 6, yPos + 5.5, { width: itemColX[3] - itemColX[2] - 12 })
-          .text('Rate (Rs)', itemColX[3], yPos + 5.5, { width: itemColX[4] - itemColX[3] - 6, align: 'right' })
-          .text('Amount (Rs)', itemColX[4], yPos + 5.5, { width: itemColX[5] - itemColX[4] - 8, align: 'right' });
+          .text('HSN', itemColX[1], yPos + 5.5, { width: itemColX[2] - itemColX[1], align: 'center' })
+          .text('UOM', itemColX[2], yPos + 5.5, { width: itemColX[3] - itemColX[2], align: 'center' })
+          .text('Qty', itemColX[3], yPos + 5.5, { width: itemColX[4] - itemColX[3], align: 'center' })
+          .text('Rate (Rs)', itemColX[4], yPos + 5.5, { width: itemColX[5] - itemColX[4] - 6, align: 'right' })
+          .text('Amount (Rs)', itemColX[5], yPos + 5.5, { width: itemColX[6] - itemColX[5] - 8, align: 'right' });
       };
 
       drawTableHeader(tableY);
@@ -232,17 +248,20 @@ export class PdfGeneratorService {
           doc.moveTo(itemColX[i], rowY).lineTo(itemColX[i], rowY + rowH).lineWidth(1).stroke(BLACK);
         }
 
+        const uomDisplay = item.uom || (item.unit === 'Kg' ? '—' : '');
+
         doc
           .fillColor(BLACK)
           .fontSize(8)
           .font('Helvetica-Bold')
           .text(item.description, itemColX[0] + 6, rowY + 5.5, { width: itemColX[1] - itemColX[0] - 12 })
           .font('Helvetica')
-          .text(item.hsnCode, itemColX[1] + 6, rowY + 5.5, { width: itemColX[2] - itemColX[1] - 12 })
-          .text(`${item.qty} ${item.unit}`, itemColX[2] + 6, rowY + 5.5, { width: itemColX[3] - itemColX[2] - 12 })
-          .text(formatCurrency(item.rate), itemColX[3], rowY + 5.5, { width: itemColX[4] - itemColX[3] - 6, align: 'right' })
+          .text(item.hsnCode, itemColX[1], rowY + 5.5, { width: itemColX[2] - itemColX[1], align: 'center' })
+          .text(uomDisplay, itemColX[2], rowY + 5.5, { width: itemColX[3] - itemColX[2], align: 'center' })
+          .text(`${item.qty} ${item.unit}`, itemColX[3], rowY + 5.5, { width: itemColX[4] - itemColX[3], align: 'center' })
+          .text(formatCurrency(item.rate), itemColX[4], rowY + 5.5, { width: itemColX[5] - itemColX[4] - 6, align: 'right' })
           .font('Helvetica-Bold')
-          .text(formatCurrency(item.amount), itemColX[4], rowY + 5.5, { width: itemColX[5] - itemColX[4] - 8, align: 'right' });
+          .text(formatCurrency(item.amount), itemColX[5], rowY + 5.5, { width: itemColX[6] - itemColX[5] - 8, align: 'right' });
 
         rowY += rowH;
       }
@@ -378,14 +397,18 @@ export class PdfGeneratorService {
         .fontSize(7.8)
         .font('Helvetica-Bold')
         .fillColor(BLACK)
-        .text('Terms & Conditions:', 30, footerY);
+        .text(`Terms & Conditions (Subject to ${company.jurisdiction || 'Pune'} Jurisdiction):`, 30, footerY);
+
+      const termsText = company.termsAndConditions?.length
+        ? company.termsAndConditions.join('\n')
+        : '1. Goods once sold will not be taken back.\n2. Interest @ 18% p.a. will be charged if bill is not paid on due date.\n3. Subject to Pune jurisdiction.';
 
       doc
         .fontSize(7.2)
         .font('Helvetica')
         .fillColor(MUTED_TEXT)
         .text(
-          '1. Goods once sold will not be taken back.\n2. Interest @ 18% p.a. will be charged if bill is not paid on due date.\n3. Subject to Pune jurisdiction.',
+          termsText,
           30,
           footerY + 11,
           { lineGap: 2.2 }
@@ -395,7 +418,7 @@ export class PdfGeneratorService {
         .fontSize(7.8)
         .font('Helvetica')
         .fillColor(BLACK)
-        .text('For Shree Laxminarayan Rice Mill', 380, footerY, { width: 185, align: 'center' });
+        .text(`For ${company.millName || 'Shree Laxminarayan Rice Mill'}`, 380, footerY, { width: 185, align: 'center' });
 
       doc
         .fontSize(8)
@@ -407,11 +430,15 @@ export class PdfGeneratorService {
     });
   }
 
-  generateCustomerStatementPdf(
+  async generateCustomerStatementPdf(
     customer: any,
     ledgerEntries: any[],
     options: { startDate?: string; endDate?: string } = {},
   ): Promise<Buffer> {
+    const company = this.companyService
+      ? await this.companyService.getCompanyDetails()
+      : ({} as any);
+
     return new Promise((resolve, reject) => {
       const doc = new PDFDocument({
         size: 'A4',
@@ -419,7 +446,7 @@ export class PdfGeneratorService {
         bufferPages: true,
         info: {
           Title: `Statement_${customer?.customerCode || 'Customer'}`,
-          Author: 'Shree Laxminarayan Rice Mill',
+          Author: company.millName || 'Shree Laxminarayan Rice Mill',
         },
       });
 
@@ -574,12 +601,18 @@ export class PdfGeneratorService {
       const generatedOnTime = formatStatementDateTime();
 
       // 1. Devotional Header
+      const devStr = [
+        company.devotionalHeaders?.left || '|| Perantal Mata Prasanna ||',
+        company.devotionalHeaders?.center || '|| Shree Ganeshay Namah ||',
+        company.devotionalHeaders?.right || '|| Shree Mukatai Prasanna ||',
+      ].join('          ');
+
       doc
         .fontSize(7)
         .fillColor(TEXT_MUTED)
         .font('Helvetica-Oblique')
         .text(
-          '|| Perantal Mata Prasanna ||          || Shree Ganeshay Namah ||          || Shree Mukatai Prasanna ||',
+          devStr,
           28,
           22,
           { align: 'center', width: 539 },
@@ -619,24 +652,28 @@ export class PdfGeneratorService {
         .fontSize(13.5)
         .font('Helvetica-Bold')
         .fillColor(PRIMARY)
-        .text('SHREE LAXMINARAYAN RICE MILL', brandX, headerY - 1);
+        .text(company.millName || 'SHREE LAXMINARAYAN RICE MILL', brandX, headerY - 1);
 
       doc
         .fontSize(7.5)
         .font('Helvetica-Bold')
         .fillColor(SECONDARY)
         .text(
-          'PRODUCERS, PROCESSORS & WHOLESALERS OF PREMIUM QUALITY RICE',
+          company.tagline ? company.tagline.toUpperCase() : 'PRODUCERS, PROCESSORS & WHOLESALERS OF PREMIUM QUALITY RICE',
           brandX,
           headerY + 15,
         );
+
+      const stmtAddressStr = company.address
+        ? `${company.address.street}, ${company.address.taluka ? company.address.taluka + ', ' : ''}${company.address.district ? company.address.district + ', ' : ''}${company.address.state} ${company.address.pincode}`
+        : 'Hivare Tarfe Narayangaon, Khodad Road, Taluka Junnar, Dist: Pune - 410504, Maharashtra, India';
 
       doc
         .fontSize(7.5)
         .font('Helvetica')
         .fillColor('#475569')
         .text(
-          'Hivare Tarfe Narayangaon, Khodad Road, Taluka Junnar, Dist: Pune - 410504, Maharashtra, India',
+          stmtAddressStr,
           brandX,
           headerY + 26,
         );
@@ -648,37 +685,41 @@ export class PdfGeneratorService {
         .fillColor(PRIMARY)
         .text('GSTIN: ', brandX, headerY + 37, { continued: true })
         .font('Helvetica')
-        .text('27ACHFS3445C1Z8', { continued: true })
+        .text(company.gstin || '27ACHFS3445C1Z8', { continued: true })
         .fillColor(TEXT_MUTED)
         .text('   •   ', { continued: true })
         .fillColor(PRIMARY)
         .font('Helvetica-Bold')
         .text('PAN: ', { continued: true })
         .font('Helvetica')
-        .text('ACHFS3445C', { continued: true })
+        .text(company.gstin ? company.gstin.substring(2, 12) : 'ACHFS3445C', { continued: true })
         .fillColor(TEXT_MUTED)
         .text('   •   ', { continued: true })
         .fillColor(PRIMARY)
         .font('Helvetica-Bold')
         .text('FSSAI: ', { continued: true })
         .font('Helvetica')
-        .text('21526038000229');
+        .text(company.fssaiNumber || '21526038000229');
 
       // Contact row
+      const stmtContactPhone = company.alternatePhone
+        ? `+91 ${company.mobile || '9960186123'}, +91 ${company.alternatePhone}`
+        : `+91 ${company.mobile || '9960186123'}`;
+
       doc
         .fontSize(7.2)
         .font('Helvetica-Bold')
         .fillColor(PRIMARY)
         .text('Phone: ', brandX, headerY + 48, { continued: true })
         .font('Helvetica')
-        .text('+91 9960186123, +91 9970901007', { continued: true })
+        .text(stmtContactPhone, { continued: true })
         .fillColor(TEXT_MUTED)
         .text('   •   ', { continued: true })
         .fillColor(PRIMARY)
         .font('Helvetica-Bold')
         .text('Email: ', { continued: true })
         .font('Helvetica')
-        .text('slricemill@gmail.com');
+        .text(company.email || 'slricemill@gmail.com');
 
       // 3. Statement Document Banner
       const bannerY = headerY + 63;
@@ -1348,7 +1389,7 @@ export class PdfGeneratorService {
         .font('Helvetica')
         .fillColor('#475569')
         .text(
-          '1. This is a computer-generated official Statement of Accounts and Khata Ledger.\n2. Please examine this statement immediately upon receipt. If any discrepancy or missing entry is noticed, kindly notify Shree Laxminarayan Rice Mill within 7 days.\n3. All payments must be made strictly through Account Payee Cheque / NEFT / RTGS payable to SHREE LAXMINARAYAN RICE MILL.',
+          `1. This is a computer-generated official Statement of Accounts and Khata Ledger.\n2. Please examine this statement immediately upon receipt. If any discrepancy or missing entry is noticed, kindly notify ${company.millName || 'Shree Laxminarayan Rice Mill'} within 7 days.\n3. All payments must be made strictly through Account Payee Cheque / NEFT / RTGS payable to ${company.millName || 'SHREE LAXMINARAYAN RICE MILL'}.`,
           34,
           tableY + 17,
           { width: termsW - 14, lineGap: 2.2 },
@@ -1395,7 +1436,7 @@ export class PdfGeneratorService {
         .font('Helvetica-Bold')
         .fillColor(PRIMARY)
         .text(
-          'For SHREE LAXMINARAYAN RICE MILL',
+          `For ${company.millName || 'SHREE LAXMINARAYAN RICE MILL'}`,
           sigX + singleSigW + 8,
           tableY + signBoxH - 20,
           { width: singleSigW, align: 'center' },
@@ -1434,7 +1475,7 @@ export class PdfGeneratorService {
           });
 
         doc.text(
-          `Generated by Shree Laxminarayan Rice Mill ERP on ${generatedOnTime}`,
+          `Generated by ${company.millName || 'Shree Laxminarayan Rice Mill'} ERP on ${generatedOnTime}`,
           200,
           796,
           { width: 367, align: 'right', lineBreak: false },

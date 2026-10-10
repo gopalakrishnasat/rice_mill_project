@@ -29,11 +29,18 @@ import {
   PaymentStatus,
   InvoiceStatus,
 } from '@rice-mill-project/shared-types';
+import { RecordPaymentModalComponent } from '../../shared/components/record-payment-modal/record-payment-modal.component';
 
 @Component({
   selector: 'app-customer-detail',
   standalone: true,
-  imports: [CommonModule, RouterModule, ReactiveFormsModule, FormsModule],
+  imports: [
+    CommonModule,
+    RouterModule,
+    ReactiveFormsModule,
+    FormsModule,
+    RecordPaymentModalComponent,
+  ],
   templateUrl: './customer-detail.component.html',
   styleUrls: ['./customer-detail.component.scss'],
 })
@@ -74,8 +81,6 @@ export class CustomerDetailComponent implements OnInit {
   // Payment Recording Modal State & Form (Single Invoice)
   readonly showPaymentModal = signal<boolean>(false);
   readonly selectedInvoiceForPayment = signal<IInvoice | null>(null);
-  readonly isSubmittingPayment = signal<boolean>(false);
-  paymentForm!: FormGroup;
 
   // Lump-Sum Account Payment Modal State & Form (FIFO Auto-Knock-off)
   readonly showLumpSumPaymentModal = signal<boolean>(false);
@@ -396,7 +401,6 @@ export class CustomerDetailComponent implements OnInit {
 
   ngOnInit(): void {
     this.initEditForm();
-    this.initPaymentForm();
     this.initLumpSumPaymentForm();
 
     this.route.paramMap.subscribe((params) => {
@@ -424,16 +428,6 @@ export class CustomerDetailComponent implements OnInit {
       state: ['Maharashtra', [Validators.required]],
       stateCode: ['27', [Validators.required]],
       pincode: ['', [Validators.required, Validators.pattern(/^\d{6}$/)]],
-      notes: [''],
-    });
-  }
-
-  private initPaymentForm(): void {
-    this.paymentForm = this.fb.group({
-      amount: [0, [Validators.required, Validators.min(1)]],
-      paymentDate: [new Date().toISOString().split('T')[0], [Validators.required]],
-      paymentMode: [PaymentMode.NEFT_RTGS, [Validators.required]],
-      transactionReference: [''],
       notes: [''],
     });
   }
@@ -627,25 +621,6 @@ export class CustomerDetailComponent implements OnInit {
   // Record Payment Modal (Single Invoice)
   openPaymentModal(invoice: IInvoice): void {
     this.selectedInvoiceForPayment.set(invoice);
-    const pendingDue = (invoice.balanceAmount !== undefined && invoice.balanceAmount !== null)
-      ? Number(invoice.balanceAmount)
-      : Math.max(0, Number(((invoice.totalAmount || 0) - (invoice.paidAmount || 0)).toFixed(2)));
-
-    this.paymentForm.reset({
-      amount: pendingDue,
-      paymentDate: new Date().toISOString().split('T')[0],
-      paymentMode: PaymentMode.NEFT_RTGS,
-      transactionReference: '',
-      notes: `Payment for ${invoice.invoiceNumber}`,
-    });
-    this.paymentForm
-      .get('amount')
-      ?.setValidators([
-        Validators.required,
-        Validators.min(1),
-        Validators.max(pendingDue),
-      ]);
-    this.paymentForm.get('amount')?.updateValueAndValidity();
     this.showPaymentModal.set(true);
   }
 
@@ -654,39 +629,9 @@ export class CustomerDetailComponent implements OnInit {
     this.selectedInvoiceForPayment.set(null);
   }
 
-  onPaymentSubmit(): void {
-    const inv = this.selectedInvoiceForPayment();
-    if (!inv || this.paymentForm.invalid) {
-      this.paymentForm.markAllAsTouched();
-      return;
-    }
-
-    const formVal = this.paymentForm.value;
-    const dto: RecordPaymentDto = {
-      amount: Number(formVal.amount),
-      paymentDate: formVal.paymentDate,
-      paymentMode: formVal.paymentMode,
-      transactionReference: formVal.transactionReference || undefined,
-      notes: formVal.notes || undefined,
-    };
-
-    this.isSubmittingPayment.set(true);
-    this.invoicesService.recordPayment(inv.id, dto).subscribe({
-      next: () => {
-        this.isSubmittingPayment.set(false);
-        this.closePaymentModal();
-        this.showAlert(
-          'success',
-          `Payment of ₹${dto.amount.toFixed(2)} recorded for ${inv.invoiceNumber}!`
-        );
-        // Refresh all buyer data (customer balance, ledger, invoices)
-        this.loadCustomerAllData(this.customerId());
-      },
-      error: (err) => {
-        this.isSubmittingPayment.set(false);
-        this.showAlert('error', err.error?.message || 'Failed to record payment.');
-      },
-    });
+  onSingleInvoicePaymentRecorded(_event: { invoice: IInvoice; amount: number }): void {
+    this.closePaymentModal();
+    this.loadCustomerAllData(this.customerId());
   }
 
   // Lump-Sum Account Payment Handlers (FIFO Auto-Knock-off)

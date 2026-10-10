@@ -1,0 +1,590 @@
+<div class="company-container">
+  <!-- Top Breadcrumb & Page Header -->
+  <div class="page-header">
+    <div class="header-left">
+      <nav class="breadcrumb-nav">
+        <a routerLink="/dashboard">Dashboard</a>
+        <span class="separator">/</span>
+        <span class="current">Mill Profile</span>
+      </nav>
+      <div class="title-with-badge">
+        <div class="header-icon-box">
+          <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect>
+            <path d="M9 22v-4h6v4"></path>
+            <line x1="8" y1="6" x2="8.01" y2="6"></line>
+            <line x1="16" y1="6" x2="16.01" y2="6"></line>
+            <line x1="8" y1="10" x2="8.01" y2="10"></line>
+            <line x1="16" y1="10" x2="16.01" y2="10"></line>
+            <line x1="8" y1="14" x2="8.01" y2="14"></line>
+            <line x1="16" y1="14" x2="16.01" y2="14"></line>
+          </svg>
+        </div>
+        <div>
+          <h1 class="page-title">Mill & Enterprise Profile</h1>
+          <p class="page-subtitle">
+            Configure legal entity trade details, GSTIN, FSSAI, factory address, banking information, and invoice billing terms.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="header-actions">
+      <button
+        type="button"
+        class="btn-secondary"
+        (click)="loadCompanyDetails()"
+        [disabled]="isLoading() || isSaving()"
+        id="reload-company-btn"
+        title="Reload saved details"
+      >
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M23 4v6h-6"></path>
+          <path d="M1 20v-6h6"></path>
+          <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+        </svg>
+        <span>Refresh</span>
+      </button>
+
+      <button
+        *ngIf="canEdit"
+        type="button"
+        class="btn-primary"
+        (click)="onSubmit()"
+        [disabled]="!hasChanges || isSaving() || isLoading()"
+        [title]="!hasChanges ? 'No unsaved changes' : 'Save profile changes'"
+        id="save-company-btn"
+      >
+        <span *ngIf="isSaving()" class="spinner-sm"></span>
+        <svg *ngIf="!isSaving()" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+          <polyline points="17 21 17 13 7 13 7 21"></polyline>
+          <polyline points="7 3 7 8 15 8"></polyline>
+        </svg>
+        <span>{{ isSaving() ? 'Saving Changes...' : 'Save Profile Changes' }}</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div class="loading-state" *ngIf="isLoading()">
+    <div class="spinner-large"></div>
+    <p>Loading enterprise profile details from database...</p>
+  </div>
+
+  <!-- Main Content Layout (Form + Live Miniature Preview) -->
+  <div class="profile-layout" *ngIf="!isLoading()">
+    <!-- Left Column: Settings Form -->
+    <div class="form-column">
+      <form [formGroup]="companyForm" (ngSubmit)="onSubmit()" id="company-settings-form">
+        <!-- Section 1: Legal Identity & Devotional Headers -->
+        <div class="form-card">
+          <div class="card-header">
+            <div class="header-icon gold">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="3" y1="9" x2="21" y2="9"></line>
+                <line x1="9" y1="21" x2="9" y2="9"></line>
+              </svg>
+            </div>
+            <div>
+              <h3>Legal Business Identity & Branding</h3>
+              <p>Trade name, tax registration numbers, and invoice greeting banners</p>
+            </div>
+          </div>
+
+          <div class="card-body">
+            <div class="form-grid col-2">
+              <div class="form-group span-2">
+                <label for="millName">Mill / Trade Name <span class="required">*</span></label>
+                <input
+                  type="text"
+                  id="millName"
+                  formControlName="millName"
+                  placeholder="e.g. SHREE LAXMINARAYAN RICE MILL"
+                  [class.is-invalid]="companyForm.get('millName')?.invalid && companyForm.get('millName')?.touched"
+                />
+                <span class="field-hint">Prints in large bold title on all official Tax Invoices and Khata Statements</span>
+              </div>
+
+              <div class="form-group span-2">
+                <label for="tagline">Enterprise Tagline / Subtitle</label>
+                <input
+                  type="text"
+                  id="tagline"
+                  formControlName="tagline"
+                  placeholder="e.g. Operations Hub"
+                />
+              </div>
+
+              <div class="form-group">
+                <label for="gstin">GSTIN (15 Digits) <span class="required">*</span></label>
+                <input
+                  type="text"
+                  id="gstin"
+                  formControlName="gstin"
+                  placeholder="e.g. 27ACHFS3445C1Z8"
+                  style="text-transform: uppercase;"
+                  [class.is-invalid]="companyForm.get('gstin')?.invalid && companyForm.get('gstin')?.touched"
+                />
+              </div>
+
+              <div class="form-group">
+                <label for="fssaiNumber">FSSAI License No. (14 Digits) <span class="required">*</span></label>
+                <input
+                  type="text"
+                  id="fssaiNumber"
+                  formControlName="fssaiNumber"
+                  placeholder="e.g. 21526038000229"
+                  [class.is-invalid]="companyForm.get('fssaiNumber')?.invalid && companyForm.get('fssaiNumber')?.touched"
+                />
+                <span class="field-hint">Food safety license printed on rice packaging & invoices</span>
+              </div>
+            </div>
+
+            <!-- Devotional Headers Sub-Group -->
+            <div class="sub-section" formGroupName="devotionalHeaders">
+              <h4 class="sub-title">Devotional Invoice Header Greetings</h4>
+              <p class="sub-description">Tradition greetings printed at the top-most row of invoice documents</p>
+
+              <div class="form-grid col-3">
+                <div class="form-group">
+                  <label for="devLeft">Left Greeting</label>
+                  <input
+                    type="text"
+                    id="devLeft"
+                    formControlName="left"
+                    placeholder="|| Perantal Mata Prasana ||"
+                  />
+                </div>
+                <div class="form-group">
+                  <label for="devCenter">Center Greeting</label>
+                  <input
+                    type="text"
+                    id="devCenter"
+                    formControlName="center"
+                    placeholder="|| Shree Ganeshya Namha ||"
+                  />
+                </div>
+                <div class="form-group">
+                  <label for="devRight">Right Greeting</label>
+                  <input
+                    type="text"
+                    id="devRight"
+                    formControlName="right"
+                    placeholder="|| Shree Mukatai Prasana ||"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 2: Factory & Operational Address -->
+        <div class="form-card" formGroupName="address">
+          <div class="card-header">
+            <div class="header-icon emerald">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                <circle cx="12" cy="10" r="3"></circle>
+              </svg>
+            </div>
+            <div>
+              <h3>Factory & Mill Location</h3>
+              <p>Operational site address printed as Supplier / Consignor location</p>
+            </div>
+          </div>
+
+          <div class="card-body">
+            <div class="form-grid col-2">
+              <div class="form-group span-2">
+                <label for="street">Street Address / Landmark <span class="required">*</span></label>
+                <input
+                  type="text"
+                  id="street"
+                  formControlName="street"
+                  placeholder="e.g. Hivare Tarfe Narayangaon, Khodad Road"
+                />
+              </div>
+
+              <div class="form-group">
+                <label for="taluka">Taluka / Area</label>
+                <input
+                  type="text"
+                  id="taluka"
+                  formControlName="taluka"
+                  placeholder="e.g. Tal:- Junnar"
+                />
+              </div>
+
+              <div class="form-group">
+                <label for="district">District</label>
+                <input
+                  type="text"
+                  id="district"
+                  formControlName="district"
+                  placeholder="e.g. Dist:- Pune"
+                />
+              </div>
+
+              <div class="form-group">
+                <label for="state">State <span class="required">*</span></label>
+                <input
+                  type="text"
+                  id="state"
+                  formControlName="state"
+                  placeholder="e.g. Maharashtra"
+                />
+              </div>
+
+              <div class="form-group">
+                <label for="pincode">PIN Code <span class="required">*</span></label>
+                <input
+                  type="text"
+                  id="pincode"
+                  formControlName="pincode"
+                  placeholder="e.g. 410504"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 3: Contact & Communication -->
+        <div class="form-card">
+          <div class="card-header">
+            <div class="header-icon blue">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+              </svg>
+            </div>
+            <div>
+              <h3>Official Contact & Communication</h3>
+              <p>Primary telephone numbers and official email for order queries</p>
+            </div>
+          </div>
+
+          <div class="card-body">
+            <div class="form-grid col-2">
+              <div class="form-group">
+                <label for="mobile">Primary Mobile No. <span class="required">*</span></label>
+                <input
+                  type="tel"
+                  id="mobile"
+                  formControlName="mobile"
+                  placeholder="e.g. 9960186123"
+                />
+              </div>
+
+              <div class="form-group">
+                <label for="alternatePhone">Alternate Phone / Mobile</label>
+                <input
+                  type="tel"
+                  id="alternatePhone"
+                  formControlName="alternatePhone"
+                  placeholder="e.g. 9970901007"
+                />
+              </div>
+
+              <div class="form-group">
+                <label for="email">Official Business Email</label>
+                <input
+                  type="email"
+                  id="email"
+                  formControlName="email"
+                  placeholder="e.g. slricemill@gmail.com"
+                />
+              </div>
+
+              <div class="form-group">
+                <label for="contactPerson">Proprietor / Representative</label>
+                <input
+                  type="text"
+                  id="contactPerson"
+                  formControlName="contactPerson"
+                  placeholder="e.g. Proprietor / Managing Partner"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 4: Banking & Settlement Details -->
+        <div class="form-card" formGroupName="bankDetails">
+          <div class="card-header">
+            <div class="header-icon amber">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="1" x2="12" y2="23"></line>
+                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+              </svg>
+            </div>
+            <div>
+              <h3>Banking & Settlement Credentials</h3>
+              <p>Auto-printed on every Tax Invoice and Customer Khata Statement for payments</p>
+            </div>
+          </div>
+
+          <div class="card-body">
+            <div class="form-grid col-2">
+              <div class="form-group">
+                <label for="bankName">Bank Name <span class="required">*</span></label>
+                <input
+                  type="text"
+                  id="bankName"
+                  formControlName="bankName"
+                  placeholder="e.g. HDFC Bank Ltd"
+                />
+              </div>
+
+              <div class="form-group">
+                <label for="accountNumber">Current / Cash Credit A/C Number <span class="required">*</span></label>
+                <input
+                  type="text"
+                  id="accountNumber"
+                  formControlName="accountNumber"
+                  placeholder="e.g. 50200067891234"
+                />
+              </div>
+
+              <div class="form-group">
+                <label for="ifsc">IFSC Code <span class="required">*</span></label>
+                <input
+                  type="text"
+                  id="ifsc"
+                  formControlName="ifsc"
+                  placeholder="e.g. HDFC0001234"
+                  style="text-transform: uppercase;"
+                />
+              </div>
+
+              <div class="form-group">
+                <label for="branch">Branch Name <span class="required">*</span></label>
+                <input
+                  type="text"
+                  id="branch"
+                  formControlName="branch"
+                  placeholder="e.g. Narayangaon Branch, Pune"
+                />
+              </div>
+
+              <div class="form-group span-2">
+                <label for="upiId">Official UPI ID / VPA</label>
+                <input
+                  type="text"
+                  id="upiId"
+                  formControlName="upiId"
+                  placeholder="e.g. slricemill@hdfcbank"
+                />
+                <span class="field-hint">Used for instant mobile UPI payments by customers</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 5: Billing Terms & Jurisdiction -->
+        <div class="form-card">
+          <div class="card-header">
+            <div class="header-icon purple">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="16" y1="13" x2="8" y2="13"></line>
+                <line x1="16" y1="17" x2="8" y2="17"></line>
+                <polyline points="10 9 9 9 8 9"></polyline>
+              </svg>
+            </div>
+            <div>
+              <h3>Standard Billing Terms & Jurisdiction</h3>
+              <p>Legal clauses and dispute jurisdiction printed on all commercial invoices</p>
+            </div>
+          </div>
+
+          <div class="card-body">
+            <div class="form-group" style="margin-bottom: 1.25rem;">
+              <label for="jurisdiction">Legal Court Jurisdiction City <span class="required">*</span></label>
+              <input
+                type="text"
+                id="jurisdiction"
+                formControlName="jurisdiction"
+                placeholder="e.g. Pune"
+                style="max-width: 320px;"
+              />
+            </div>
+
+            <div class="terms-management">
+              <div class="terms-title-row">
+                <label>Terms & Conditions Clauses</label>
+                <button
+                  *ngIf="canEdit"
+                  type="button"
+                  class="btn-add-term"
+                  (click)="addTerm()"
+                  id="add-term-clause-btn"
+                >
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                  </svg>
+                  <span>Add Clause</span>
+                </button>
+              </div>
+
+              <div formArrayName="termsAndConditions" class="terms-list">
+                <div
+                  *ngFor="let term of termsArray.controls; let i = index"
+                  class="term-item-row"
+                >
+                  <span class="clause-index">{{ i + 1 }}</span>
+                  <input
+                    type="text"
+                    [formControlName]="i"
+                    placeholder="Enter invoice clause or condition"
+                    class="clause-input"
+                  />
+                  <button
+                    *ngIf="canEdit"
+                    type="button"
+                    class="btn-remove-term"
+                    (click)="removeTerm(i)"
+                    title="Remove clause"
+                  >
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                      <line x1="18" y1="6" x2="6" y2="18"></line>
+                      <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sticky Mobile Bottom Bar -->
+        <div class="mobile-save-bar" *ngIf="canEdit">
+          <button
+            type="submit"
+            class="btn-primary full-width"
+            [disabled]="!hasChanges || isSaving() || isLoading()"
+          >
+            <span *ngIf="isSaving()" class="spinner-sm"></span>
+            <span>{{ isSaving() ? 'Saving...' : 'Save Profile Changes' }}</span>
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Right Column: Live Miniature Bill Preview -->
+    <div class="preview-column">
+      <div class="sticky-preview-wrapper">
+        <div class="preview-card-header">
+          <div class="preview-header-left">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#d97706" stroke-width="2">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+              <circle cx="12" cy="12" r="3"></circle>
+            </svg>
+            <span>Live Document Header Preview</span>
+          </div>
+          <span class="live-pill">Live Sync</span>
+        </div>
+
+        <div class="mini-bill-paper">
+          <!-- Devotional Header Row -->
+          <div class="mini-devotional">
+            <span>{{ companyForm.get('devotionalHeaders.left')?.value || '|| Perantal Mata Prasana ||' }}</span>
+            <span>{{ companyForm.get('devotionalHeaders.center')?.value || '|| Shree Ganeshya Namha ||' }}</span>
+            <span>{{ companyForm.get('devotionalHeaders.right')?.value || '|| Shree Mukatai Prasana ||' }}</span>
+          </div>
+
+          <!-- Mill Title & Branding -->
+          <div class="mini-mill-header">
+            <h2 class="mini-mill-title">
+              {{ companyForm.get('millName')?.value || 'SHREE LAXMINARAYAN RICE MILL' }}
+            </h2>
+            <div class="mini-tagline" *ngIf="companyForm.get('tagline')?.value">
+              {{ companyForm.get('tagline')?.value }}
+            </div>
+            <div class="mini-address">
+              {{ companyForm.get('address.street')?.value || 'Hivare Tarfe Narayangaon, Khodad Road' }},
+              {{ companyForm.get('address.taluka')?.value }},
+              {{ companyForm.get('address.district')?.value }},
+              {{ companyForm.get('address.state')?.value || 'Maharashtra' }} - {{ companyForm.get('address.pincode')?.value || '410504' }}
+            </div>
+            <div class="mini-contacts">
+              <span><strong>Mob:</strong> {{ companyForm.get('mobile')?.value || '9960186123' }}</span>
+              <span *ngIf="companyForm.get('alternatePhone')?.value"> / {{ companyForm.get('alternatePhone')?.value }}</span>
+              <span *ngIf="companyForm.get('email')?.value"> | <strong>Email:</strong> {{ companyForm.get('email')?.value }}</span>
+            </div>
+          </div>
+
+          <!-- Registration Badges -->
+          <div class="mini-reg-row">
+            <div class="reg-tag">
+              <span class="lbl">GSTIN:</span>
+              <span class="val">{{ companyForm.get('gstin')?.value || '27ACHFS3445C1Z8' }}</span>
+            </div>
+            <div class="reg-tag">
+              <span class="lbl">FSSAI:</span>
+              <span class="val">{{ companyForm.get('fssaiNumber')?.value || '21526038000229' }}</span>
+            </div>
+          </div>
+
+          <!-- Dummy Invoice Body Lines -->
+          <div class="mini-table-placeholder">
+            <div class="placeholder-row head">
+              <span>TAX INVOICE # INV-2627-0042</span>
+              <span>DATE: 04/10/2026</span>
+            </div>
+            <div class="placeholder-divider"></div>
+            <div class="placeholder-item-row">
+              <span>1. Murmura - 9kg Bag (HSN 1006)</span>
+              <span>100 Bags</span>
+              <span>₹48,000.00</span>
+            </div>
+          </div>
+
+          <!-- Mini Bank Details Box -->
+          <div class="mini-bank-box">
+            <div class="bank-title">BANK & SETTLEMENT DETAILS</div>
+            <div class="bank-grid">
+              <div class="bank-line">
+                <span class="b-lbl">Bank:</span>
+                <span class="b-val">{{ companyForm.get('bankDetails.bankName')?.value || 'HDFC Bank Ltd' }}</span>
+              </div>
+              <div class="bank-line">
+                <span class="b-lbl">A/C No:</span>
+                <span class="b-val mono">{{ companyForm.get('bankDetails.accountNumber')?.value || '50200067891234' }}</span>
+              </div>
+              <div class="bank-line">
+                <span class="b-lbl">IFSC:</span>
+                <span class="b-val mono">{{ companyForm.get('bankDetails.ifsc')?.value || 'HDFC0001234' }}</span>
+              </div>
+              <div class="bank-line">
+                <span class="b-lbl">Branch:</span>
+                <span class="b-val">{{ companyForm.get('bankDetails.branch')?.value || 'Narayangaon Branch, Pune' }}</span>
+              </div>
+              <div class="bank-line" *ngIf="companyForm.get('bankDetails.upiId')?.value">
+                <span class="b-lbl">UPI ID:</span>
+                <span class="b-val mono">{{ companyForm.get('bankDetails.upiId')?.value }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Mini Terms Preview -->
+          <div class="mini-terms">
+            <div class="terms-head">TERMS & CONDITIONS (Subject to {{ companyForm.get('jurisdiction')?.value || 'Pune' }} Jurisdiction):</div>
+            <ol class="mini-terms-list">
+              <li *ngFor="let term of termsArray.controls">
+                {{ term.value }}
+              </li>
+            </ol>
+          </div>
+
+          <div class="mini-footer-sig">
+            <span>Customer Signature</span>
+            <span>For {{ companyForm.get('millName')?.value || 'Shree Laxminarayan Rice Mill' }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

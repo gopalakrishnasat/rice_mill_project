@@ -234,11 +234,16 @@
     padding: 0.45rem 0.5rem;
   }
 
-  .col-desc { width: 45%; }
-  .col-hsn { width: 15%; }
-  .col-qty { width: 12%; }
+  .col-desc { width: 36%; text-align: left; }
+  .col-hsn  { width: 12%; text-align: center; }
+  .col-uom  { width: 11%; text-align: center; }
+  .col-qty  { width: 13%; text-align: center; }
   .col-rate { width: 13%; text-align: right; }
-  .col-amt { width: 15%; text-align: right; }
+  .col-amt  { width: 15%; text-align: right; }
+
+  th.col-desc { text-align: left; }
+  th.col-hsn, th.col-uom, th.col-qty { text-align: center; }
+  th.col-rate, th.col-amt { text-align: right; }
 }
 
 .transport-summary-bar {

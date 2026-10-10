@@ -54,24 +54,11 @@ export class LoginComponent {
     this.showPassword.update((val) => !val);
   }
 
-  setDemoUser(
-    role:
-      | 'super_admin'
-      | 'admin'
-      | 'manager'
-      | 'store_manager'
-      | 'sales_manager'
-      | 'operator'
-      | 'accountant',
-  ): void {
+  setDemoUser(role: 'super_admin' | 'admin' | 'view_only_admin'): void {
     const credentials = {
       super_admin: { email: 'superadmin@ricemill.com', password: 'SuperAdmin@123' },
       admin: { email: 'admin@ricemill.com', password: 'Admin@123' },
-      manager: { email: 'manager@ricemill.com', password: 'Manager@123' },
-      store_manager: { email: 'store@ricemill.com', password: 'Store@123' },
-      sales_manager: { email: 'sales@ricemill.com', password: 'Sales@123' },
-      operator: { email: 'operator@ricemill.com', password: 'Operator@123' },
-      accountant: { email: 'accountant@ricemill.com', password: 'Accountant@123' },
+      view_only_admin: { email: 'viewer@ricemill.com', password: 'Viewer@123' },
     };
 
     const user = credentials[role];
