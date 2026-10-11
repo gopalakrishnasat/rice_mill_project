@@ -52,3 +52,7 @@ __screenshots__/
 .env
 .env.*
 !.env.example
+
+# Internal & troubleshooting notes
+/troubleshooting-notes/
+

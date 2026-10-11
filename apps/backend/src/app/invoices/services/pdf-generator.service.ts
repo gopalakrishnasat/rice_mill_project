@@ -209,7 +209,7 @@ export class PdfGeneratorService {
       });
 
       // 5. Items Table
-      let tableY = metaY + metaHeight + 6;
+      const tableY = metaY + metaHeight + 6;
       // CSS: 36% (192.6), 12% (64.2), 11% (58.85), 13% (69.55), 13% (69.55), 15% (80.25)
       const itemColX = [30, 223, 287, 346, 416, 486, 565];
 

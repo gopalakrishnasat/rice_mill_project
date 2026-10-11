@@ -375,6 +375,7 @@ export interface IInvoice {
   paymentStatus: PaymentStatus;
   paidAmount: number;
   balanceAmount: number;
+  settlementDiscount?: number; // Payment-stage discount given to settle invoice
   status: InvoiceStatus;
   bankDetails: IInvoiceBankDetails;
   notes?: string;
@@ -427,6 +428,24 @@ export interface RecordPaymentDto {
   paymentMode: PaymentMode;
   transactionReference?: string; // Cheque No / UTR / UPI Ref
   notes?: string;
+  discount?: number; // Optional settlement discount applied to the bill
+  discounts?: Array<{ invoiceId: string; discount: number }>; // For lump-sum allocation per bill
+}
+
+export interface IPaymentReceipt {
+  id: string;
+  receiptNumber: string;
+  customerId: string;
+  invoiceId?: string;
+  amount: number;
+  discountGiven?: number;
+  paymentDate: string | Date;
+  paymentMode: PaymentMode;
+  transactionReference?: string;
+  notes?: string;
+  recordedBy?: string;
+  createdAt?: string | Date;
+  updatedAt?: string | Date;
 }
 
 export interface ICustomerLedgerEntry {

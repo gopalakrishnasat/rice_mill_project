@@ -464,6 +464,7 @@
                 <th>Vehicle No</th>
                 <th>Type</th>
                 <th class="text-right">Bill Total (₹)</th>
+                <th class="text-right">Discount (₹)</th>
                 <th class="text-right">Pending Due (₹)</th>
                 <th>Status</th>
                 <th class="text-right actions-col">Actions</th>
@@ -485,6 +486,12 @@
                 </td>
                 <td class="text-right font-bold font-mono text-blue">
                   ₹{{ inv.totalAmount | number:'1.2-2' }}
+                </td>
+                <td class="text-right font-mono">
+                  <span class="discount-pill" *ngIf="(inv.settlementDiscount || 0) > 0">
+                    ₹{{ inv.settlementDiscount | number:'1.2-2' }}
+                  </span>
+                  <span class="text-muted text-sm" *ngIf="!inv.settlementDiscount || inv.settlementDiscount <= 0">—</span>
                 </td>
                 <td class="text-right font-mono">
                   <span class="text-red font-bold" *ngIf="inv.balanceAmount > 0">
@@ -875,6 +882,16 @@
             <span class="preview-badge">{{ lumpSumPreview().affectedCount }} bill(s) impacted</span>
           </div>
 
+          <!-- Over-Discount Validation Alert -->
+          <div class="field-error-msg banner-error" *ngIf="hasInvalidLumpSumDiscount()">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="8" x2="12" y2="12"></line>
+              <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
+            <span>{{ invalidDiscountErrorMessage() }}</span>
+          </div>
+
           <div class="preview-table-wrapper" *ngIf="lumpSumPreview().items.length > 0">
             <table class="preview-table">
               <thead>
@@ -883,17 +900,37 @@
                   <th>Date</th>
                   <th class="text-right">Total Bill</th>
                   <th class="text-right">Current Due</th>
+                  <th class="text-center">Discount (₹)</th>
                   <th class="text-right">Allocated (₹)</th>
                   <th class="text-right">Remaining Due</th>
                   <th class="text-center">Resulting Status</th>
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor="let item of lumpSumPreview().items" [class.row-affected]="item.allocatedAmount > 0">
+                <tr *ngFor="let item of lumpSumPreview().items; trackBy: trackByBillId" [class.row-affected]="item.allocatedAmount > 0 || item.discountAmount > 0">
                   <td class="font-mono font-bold">{{ item.invoiceNumber }}</td>
                   <td class="text-muted text-sm font-mono">{{ item.invoiceDate | date:'dd MMM yyyy' }}</td>
                   <td class="text-right font-mono">₹{{ item.totalAmount | number:'1.2-2' }}</td>
                   <td class="text-right font-mono text-red font-medium">₹{{ item.previousBalance | number:'1.2-2' }}</td>
+                  <td class="text-center">
+                    <div class="disc-input-wrapper">
+                      <input
+                        type="number"
+                        class="bill-disc-input font-mono"
+                        [class.input-error]="isBillDiscountExceeded(item.id)"
+                        [value]="lumpSumDiscounts()[item.id] !== undefined ? lumpSumDiscounts()[item.id] : ''"
+                        (input)="setLumpSumBillDiscount(item.id, $any($event.target).value)"
+                        placeholder="0.00"
+                        min="0"
+                        [max]="item.previousBalance"
+                        step="0.01"
+                        title="Settlement discount for this specific bill"
+                      />
+                      <span class="disc-error-tip" *ngIf="isBillDiscountExceeded(item.id)">
+                        Max: ₹{{ item.previousBalance | number:'1.2-2' }}
+                      </span>
+                    </div>
+                  </td>
                   <td class="text-right font-mono font-bold" [class.text-blue]="item.allocatedAmount > 0" [class.text-muted]="item.allocatedAmount === 0">
                     {{ item.allocatedAmount > 0 ? ('₹' + (item.allocatedAmount | number:'1.2-2')) : '₹0.00' }}
                   </td>
@@ -922,12 +959,20 @@
           <!-- Allocation Summary Badges -->
           <div class="preview-totals-bar">
             <div class="total-stat">
-              <span>Total Payment:</span>
+              <span>Payment Amount:</span>
               <strong class="font-mono">₹{{ lumpSumPreview().totalPayment | number:'1.2-2' }}</strong>
+            </div>
+            <div class="total-stat text-amber" *ngIf="lumpSumPreview().totalDiscountsGiven > 0">
+              <span>Total Discounts:</span>
+              <strong class="font-mono text-amber">₹{{ lumpSumPreview().totalDiscountsGiven | number:'1.2-2' }}</strong>
             </div>
             <div class="total-stat text-blue">
               <span>Allocated to Bills:</span>
               <strong class="font-mono">₹{{ lumpSumPreview().totalAllocated | number:'1.2-2' }}</strong>
+            </div>
+            <div class="total-stat font-bold" *ngIf="lumpSumPreview().totalDiscountsGiven > 0">
+              <span>Total Settled:</span>
+              <strong class="font-mono">₹{{ lumpSumPreview().totalSettled | number:'1.2-2' }}</strong>
             </div>
             <div class="total-stat" *ngIf="lumpSumPreview().advanceCredit > 0">
               <span class="text-green font-bold">Advance Credit:</span>
@@ -945,7 +990,7 @@
           <button
             type="submit"
             class="btn-submit btn-confirm-allocation"
-            [disabled]="isSubmittingLumpSum() || lumpSumPaymentForm.invalid || lumpSumEnteredAmount() <= 0"
+            [disabled]="isSubmittingLumpSum() || lumpSumPaymentForm.invalid || lumpSumEnteredAmount() <= 0 || hasInvalidLumpSumDiscount()"
           >
             <span>Confirm & Allocate ₹{{ ((lumpSumEnteredAmount() || 0) | number:'1.2-2') }}</span>
           </button>
@@ -1008,6 +1053,9 @@
             </li>
             <li>
               <strong>{{ lumpSumPreview().fullyPaidCount }} bill(s)</strong> will be fully settled to <strong>PAID (₹0 Due)</strong>.
+            </li>
+            <li *ngIf="lumpSumPreview().totalDiscountsGiven > 0">
+              <strong>₹{{ lumpSumPreview().totalDiscountsGiven | number:'1.2-2' }}</strong> settlement discount will be granted across affected bills.
             </li>
             <li *ngIf="lumpSumPreview().advanceCredit > 0">
               <strong>₹{{ lumpSumPreview().advanceCredit | number:'1.2-2' }}</strong> unallocated amount will be kept as <strong>Advance Credit</strong>.

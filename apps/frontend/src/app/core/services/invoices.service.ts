@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, of } from 'rxjs';
 import { map } from 'rxjs/operators';
 import {
   IInvoice,
@@ -80,10 +80,12 @@ export class InvoicesService {
       invoiceId: string;
       invoiceNumber: string;
       allocatedAmount: number;
+      discountAmount?: number;
       previousBalance: number;
       newBalance: number;
       status: string;
     }>;
+    totalDiscountsApplied?: number;
     unallocatedAdvance: number;
     customer: any;
   }> {
@@ -101,25 +103,33 @@ export class InvoicesService {
     });
   }
 
-  downloadInvoiceDirectly(invoiceId: string, invoiceNumber: string): void {
+  getInvoiceDownloadUrl(invoiceId: string): string {
     const token =
       localStorage.getItem('rice_mill_token') ||
       sessionStorage.getItem('rice_mill_token') ||
       '';
-    const filename = `Invoice_${invoiceNumber}.pdf`;
-    const directDownloadUrl = `${this.apiUrl}/${invoiceId}/pdf${token ? `?token=${encodeURIComponent(token)}` : ''}`;
+    return `${this.apiUrl}/${invoiceId}/pdf${token ? `?token=${encodeURIComponent(token)}` : ''}`;
+  }
+
+  downloadInvoiceDirectly(invoiceId: string, invoiceNumber: string): Observable<boolean> {
+    const cleanNum = (invoiceNumber || 'Invoice').replace(/[^a-zA-Z0-9_-]/g, '_');
+    const filename = `Invoice_${cleanNum}.pdf`;
+    const directDownloadUrl = this.getInvoiceDownloadUrl(invoiceId);
 
     const a = document.createElement('a');
-    a.href = directDownloadUrl;
-    a.download = filename;
     a.style.display = 'none';
+    a.href = directDownloadUrl;
+    a.setAttribute('download', filename);
     document.body.appendChild(a);
     a.click();
+
     setTimeout(() => {
       if (document.body.contains(a)) {
         document.body.removeChild(a);
       }
-    }, 1000);
+    }, 1500);
+
+    return of(true);
   }
 
   private normalizeInvoice(i: any): IInvoice {
@@ -132,15 +142,17 @@ export class InvoicesService {
     };
     const totalAmount = Number(i.totalAmount ?? 0);
     const paidAmount = Number(i.paidAmount ?? 0);
+    const settlementDiscount = Number(i.settlementDiscount ?? 0);
     const balanceAmount = (i.balanceAmount !== undefined && i.balanceAmount !== null)
       ? Number(i.balanceAmount)
-      : Math.max(0, Number((totalAmount - paidAmount).toFixed(2)));
+      : Math.max(0, Number((totalAmount - (paidAmount + settlementDiscount)).toFixed(2)));
 
     return {
       ...i,
       id: i.id || i._id,
       totalAmount,
       paidAmount,
+      settlementDiscount,
       balanceAmount,
       customerSnapshot: {
         customerCode: i.customerSnapshot?.customerCode || '',

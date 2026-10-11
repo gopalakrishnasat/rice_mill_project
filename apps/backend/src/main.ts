@@ -16,6 +16,7 @@ async function bootstrap() {
     origin: ['http://localhost:4200', 'http://127.0.0.1:4200', 'http://localhost:3000'],
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
+    exposedHeaders: ['Content-Disposition'],
   });
 
   // Global validation pipe with transformation

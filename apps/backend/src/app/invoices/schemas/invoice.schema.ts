@@ -122,6 +122,9 @@ export class Invoice {
   @Prop({ type: Number, required: true, default: 0 })
   balanceAmount!: number;
 
+  @Prop({ type: Number, required: true, default: 0 })
+  settlementDiscount!: number;
+
   @Prop({
     type: String,
     enum: Object.values(InvoiceStatus),

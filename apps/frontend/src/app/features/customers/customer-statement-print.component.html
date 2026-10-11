@@ -66,21 +66,20 @@
     </div>
 
     <div class="control-actions">
-      <button
-        type="button"
+      <a
+        [href]="downloadUrl()"
+        [download]="downloadFilename()"
         class="btn-download-pdf"
-        (click)="downloadPdf()"
-        [disabled]="isGeneratingPdf()"
         id="btn-download-pdf"
+        (click)="onDownloadClick($event)"
       >
-        <span class="spinner-sm" *ngIf="isGeneratingPdf()"></span>
-        <svg *ngIf="!isGeneratingPdf()" viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+        <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
           <polyline points="7 10 12 15 17 10"></polyline>
           <line x1="12" y1="15" x2="12" y2="3"></line>
         </svg>
         <span>Download PDF</span>
-      </button>
+      </a>
 
       <button type="button" class="btn-print-action" (click)="triggerPrint()" id="btn-print-action">
         <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">

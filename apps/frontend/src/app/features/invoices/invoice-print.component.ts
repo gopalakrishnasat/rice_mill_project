@@ -1,4 +1,4 @@
-import { Component, OnInit, signal, inject, ElementRef, ViewChild } from '@angular/core';
+import { Component, OnInit, signal, computed, inject, ElementRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, ActivatedRoute, Router } from '@angular/router';
 import { InvoicesService } from '../../core/services/invoices.service';
@@ -30,6 +30,19 @@ export class InvoicePrintComponent implements OnInit {
   readonly isLoading = signal<boolean>(true);
   readonly isGeneratingPdf = signal<boolean>(false);
 
+  readonly downloadUrl = computed(() => {
+    const inv = this.invoice();
+    if (!inv) return '';
+    return this.invoicesService.getInvoiceDownloadUrl(inv.id);
+  });
+
+  readonly downloadFilename = computed(() => {
+    const inv = this.invoice();
+    if (!inv) return 'Invoice.pdf';
+    const cleanNum = (inv.invoiceNumber || 'Invoice').replace(/[^a-zA-Z0-9_-]/g, '_');
+    return `Invoice_${cleanNum}.pdf`;
+  });
+
   ngOnInit(): void {
     this.companyService.getCompanyDetails().subscribe();
     this.route.paramMap.subscribe((params) => {
@@ -57,17 +70,28 @@ export class InvoicePrintComponent implements OnInit {
     window.print();
   }
 
+  onDownloadClick(event: MouseEvent): void {
+    const inv = this.invoice();
+    if (!inv) {
+      event.preventDefault();
+      return;
+    }
+    this.snackbar.success(`Tax Invoice PDF downloaded successfully: Invoice_${inv.invoiceNumber}.pdf`);
+  }
+
   downloadPdf(): void {
     const inv = this.invoice();
     if (!inv) return;
 
-    this.isGeneratingPdf.set(true);
-    this.invoicesService.downloadInvoiceDirectly(inv.id, inv.invoiceNumber);
-
-    setTimeout(() => {
-      this.isGeneratingPdf.set(false);
-      this.snackbar.success(`Tax Invoice PDF downloaded successfully: Invoice_${inv.invoiceNumber}.pdf`);
-    }, 800);
+    this.invoicesService.downloadInvoiceDirectly(inv.id, inv.invoiceNumber).subscribe({
+      next: () => {
+        this.snackbar.success(`Tax Invoice PDF downloaded successfully: Invoice_${inv.invoiceNumber}.pdf`);
+      },
+      error: (err) => {
+        console.error('Invoice PDF download failed:', err);
+        this.snackbar.error('Failed to download invoice PDF. Please try again.');
+      },
+    });
   }
 
   goBack(): void {

@@ -130,6 +130,28 @@ export class CustomerStatementPrintComponent implements OnInit {
     return convertNumberToIndianWords(bal);
   });
 
+  readonly downloadUrl = computed(() => {
+    const cust = this.customer();
+    if (!cust) return '';
+    const token =
+      localStorage.getItem('rice_mill_token') ||
+      sessionStorage.getItem('rice_mill_token') ||
+      '';
+    const params = new URLSearchParams();
+    if (this.startDate()) params.set('startDate', this.startDate());
+    if (this.endDate()) params.set('endDate', this.endDate());
+    if (token) params.set('token', token);
+    return `/api/invoices/customer/${cust.id}/statement/pdf?${params.toString()}`;
+  });
+
+  readonly downloadFilename = computed(() => {
+    const cust = this.customer();
+    if (!cust) return 'Statement.pdf';
+    const fromStr = (this.startDate() || '').replace(/-/g, '');
+    const toStr = (this.endDate() || '').replace(/-/g, '');
+    return `Statement_${cust.customerCode || 'Customer'}_${fromStr}_to_${toStr}.pdf`;
+  });
+
   ngOnInit(): void {
     this.companyService.getCompanyDetails().subscribe();
     this.initDefaultDates();
@@ -280,40 +302,34 @@ export class CustomerStatementPrintComponent implements OnInit {
     window.print();
   }
 
+  onDownloadClick(event: MouseEvent): void {
+    const cust = this.customer();
+    if (!cust) {
+      event.preventDefault();
+      return;
+    }
+    this.snackbar.success('Official Account Statement PDF downloaded successfully.');
+  }
+
   downloadPdf(): void {
     const cust = this.customer();
     if (!cust) return;
 
-    this.isGeneratingPdf.set(true);
-    const fromStr = this.startDate().replace(/-/g, '');
-    const toStr = this.endDate().replace(/-/g, '');
-    const filename = `Statement_${cust.customerCode || 'Customer'}_${fromStr}_to_${toStr}.pdf`;
-
-    const token =
-      localStorage.getItem('rice_mill_token') ||
-      sessionStorage.getItem('rice_mill_token') ||
-      '';
-
-    const params = new URLSearchParams();
-    if (this.startDate()) params.set('startDate', this.startDate());
-    if (this.endDate()) params.set('endDate', this.endDate());
-    if (token) params.set('token', token);
-
-    const directDownloadUrl = `/api/invoices/customer/${cust.id}/statement/pdf?${params.toString()}`;
-
-    // Direct HTTP download link with Content-Disposition header from server:
-    // This instructs Chrome to use the authentic filename and extension instead of an internal blob UUID.
-    const downloadLink = document.createElement('a');
-    downloadLink.href = directDownloadUrl;
-    downloadLink.setAttribute('download', filename);
-    document.body.appendChild(downloadLink);
-    downloadLink.click();
-    document.body.removeChild(downloadLink);
+    const url = this.downloadUrl();
+    const filename = this.downloadFilename();
+    const link = document.createElement('a');
+    link.style.display = 'none';
+    link.href = url;
+    link.setAttribute('download', filename);
+    document.body.appendChild(link);
+    link.click();
 
     setTimeout(() => {
-      this.isGeneratingPdf.set(false);
+      if (document.body.contains(link)) {
+        document.body.removeChild(link);
+      }
       this.snackbar.success('Official Account Statement PDF downloaded successfully.');
-    }, 600);
+    }, 1000);
   }
 
   goBack(): void {

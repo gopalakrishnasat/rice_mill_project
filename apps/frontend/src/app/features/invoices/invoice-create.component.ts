@@ -216,6 +216,7 @@ export class InvoiceCreateComponent implements OnInit, OnDestroy {
   readonly liveReference = computed(() => this.formValue()?.reference || '—');
   readonly liveVehicleNumber = computed(() => this.formValue()?.vehicleNumber || '—');
   readonly liveTransportDetails = computed(() => this.formValue()?.transportDetails || '—');
+  readonly liveNotes = computed(() => this.formValue()?.notes || '');
 
   ngOnInit(): void {
     this.companyService.getCompanyDetails().subscribe();
@@ -566,7 +567,7 @@ export class InvoiceCreateComponent implements OnInit, OnDestroy {
         hamaliCharges: Number(val.hamaliCharges) || 0,
         discount: Number(val.discount) || 0,
         isInterState: val.isInterState,
-        notes: val.notes || undefined,
+        notes: val.notes !== undefined && val.notes !== null ? val.notes.trim() : undefined,
       };
 
       this.invoicesService.updateInvoice(this.editingInvoiceId()!, updateDto).subscribe({
@@ -600,7 +601,7 @@ export class InvoiceCreateComponent implements OnInit, OnDestroy {
         discount: Number(val.discount) || 0,
         isInterState: val.isInterState,
         status: InvoiceStatus.ISSUED,
-        notes: val.notes || undefined,
+        notes: val.notes?.trim() || undefined,
       };
 
       this.invoicesService.createInvoice(createDto).subscribe({

@@ -21,6 +21,9 @@ export class PaymentReceipt {
   @Prop({ type: Number, required: true })
   amount!: number;
 
+  @Prop({ type: Number, required: true, default: 0 })
+  discountGiven!: number;
+
   @Prop({ type: Date, required: true, default: Date.now })
   paymentDate!: Date;
 

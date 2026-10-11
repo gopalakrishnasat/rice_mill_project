@@ -8,6 +8,7 @@ import {
   SimpleChanges,
   HostListener,
   signal,
+  computed,
   inject,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -47,6 +48,33 @@ export class RecordPaymentModalComponent implements OnInit, OnChanges {
 
   readonly isSubmitting = signal<boolean>(false);
   readonly pendingDueAmount = signal<number>(0);
+  readonly enteredAmount = signal<number>(0);
+  readonly enteredDiscount = signal<number>(0);
+
+  readonly effectiveSettlement = computed(() =>
+    Number((this.enteredAmount() + this.enteredDiscount()).toFixed(2))
+  );
+
+  readonly resultingBalance = computed(() =>
+    Math.max(
+      0,
+      Number((this.pendingDueAmount() - this.effectiveSettlement()).toFixed(2))
+    )
+  );
+
+  readonly willBeFullyPaid = computed(
+    () => this.resultingBalance() === 0 && this.effectiveSettlement() > 0
+  );
+
+  readonly isDiscountOverDue = computed(
+    () => this.enteredDiscount() > this.pendingDueAmount()
+  );
+
+  readonly isOverSettled = computed(
+    () =>
+      this.isDiscountOverDue() ||
+      this.effectiveSettlement() > this.pendingDueAmount()
+  );
 
   paymentForm!: FormGroup;
 
@@ -101,16 +129,22 @@ export class RecordPaymentModalComponent implements OnInit, OnChanges {
             Number(
               (
                 (this.invoice.totalAmount || 0) - (this.invoice.paidAmount || 0)
-              ).toFixed(2),
-            ),
+              ).toFixed(2)
+            )
           );
 
     this.pendingDueAmount.set(pendingDue);
+    this.enteredAmount.set(pendingDue);
+    this.enteredDiscount.set(0);
 
     this.paymentForm = this.fb.group({
       amount: [
         pendingDue,
-        [Validators.required, Validators.min(1), Validators.max(pendingDue)],
+        [Validators.required, Validators.min(0)],
+      ],
+      discount: [
+        0,
+        [Validators.min(0)],
       ],
       paymentDate: [
         new Date().toISOString().split('T')[0],
@@ -120,17 +154,46 @@ export class RecordPaymentModalComponent implements OnInit, OnChanges {
       transactionReference: [''],
       notes: [`Payment for ${this.invoice.invoiceNumber}`],
     });
+
+    this.paymentForm.get('amount')?.valueChanges.subscribe((v) => {
+      this.enteredAmount.set(Number(v) || 0);
+    });
+
+    this.paymentForm.get('discount')?.valueChanges.subscribe((v) => {
+      const disc = Math.max(0, Number(v) || 0);
+      this.enteredDiscount.set(disc);
+
+      if (disc <= this.pendingDueAmount()) {
+        const adjustedAmount = Math.max(
+          0,
+          Number((this.pendingDueAmount() - disc).toFixed(2))
+        );
+        this.paymentForm
+          .get('amount')
+          ?.setValue(adjustedAmount, { emitEvent: false });
+        this.enteredAmount.set(adjustedAmount);
+      } else {
+        this.paymentForm.get('amount')?.setValue(0, { emitEvent: false });
+        this.enteredAmount.set(0);
+      }
+    });
   }
 
   onSubmit(): void {
-    if (this.paymentForm.invalid || !this.invoice) {
+    if (
+      this.paymentForm.invalid ||
+      !this.invoice ||
+      this.isOverSettled() ||
+      this.effectiveSettlement() <= 0
+    ) {
       this.paymentForm.markAllAsTouched();
       return;
     }
 
     const val = this.paymentForm.value;
     const dto: RecordPaymentDto = {
-      amount: Number(val.amount),
+      amount: Number(val.amount) || 0,
+      discount: Number(val.discount) || 0,
       paymentDate: val.paymentDate,
       paymentMode: val.paymentMode,
       transactionReference: val.transactionReference?.trim() || undefined,
@@ -148,10 +211,12 @@ export class RecordPaymentModalComponent implements OnInit, OnChanges {
           maximumFractionDigits: 2,
         }).format(dto.amount);
 
-        this.snackbarService.show(
-          `Payment of ₹${formattedAmount} successfully recorded for invoice ${targetInvoice.invoiceNumber}!`,
-          'success',
-        );
+        let msg = `Payment of ₹${formattedAmount} recorded for invoice ${targetInvoice.invoiceNumber}!`;
+        if (dto.discount && dto.discount > 0) {
+          msg += ` (Discount given: ₹${dto.discount.toFixed(2)})`;
+        }
+
+        this.snackbarService.show(msg, 'success');
 
         this.paymentRecorded.emit({
           invoice: res.invoice || targetInvoice,

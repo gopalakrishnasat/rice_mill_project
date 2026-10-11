@@ -194,6 +194,7 @@ export class CustomersService {
     customerId: string,
     deltaBilled: number,
     deltaPaid: number,
+    deltaDiscount = 0,
   ): Promise<CustomerDocument | null> {
     return this.customerModel
       .findByIdAndUpdate(
@@ -202,7 +203,7 @@ export class CustomersService {
           $inc: {
             totalBilled: deltaBilled,
             totalPaid: deltaPaid,
-            currentBalance: deltaBilled - deltaPaid,
+            currentBalance: deltaBilled - (deltaPaid + deltaDiscount),
           },
         },
         { new: true },

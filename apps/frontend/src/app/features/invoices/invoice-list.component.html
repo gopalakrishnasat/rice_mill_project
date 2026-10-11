@@ -321,6 +321,7 @@
               <th>Vehicle Number</th>
               <th>Type</th>
               <th class="text-right">Bill Total (₹)</th>
+              <th class="text-right">Discount (₹)</th>
               <th class="text-right">Pending Due (₹)</th>
               <th>Payment Status</th>
               <th class="text-right actions-col">Actions</th>
@@ -365,6 +366,12 @@
                     Paid: ₹{{ inv.paidAmount | number:'1.2-2' }}
                   </span>
                 </div>
+              </td>
+              <td class="text-right">
+                <span class="discount-pill" *ngIf="(inv.settlementDiscount || 0) > 0">
+                  ₹{{ inv.settlementDiscount | number:'1.2-2' }}
+                </span>
+                <span class="text-muted text-sm" *ngIf="!inv.settlementDiscount || inv.settlementDiscount <= 0">—</span>
               </td>
               <td class="text-right">
                 <div class="pending-cell" *ngIf="inv.balanceAmount > 0">

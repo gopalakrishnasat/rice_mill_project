@@ -19,6 +19,11 @@
         <span class="summary-label">Paid So Far</span>
         <span class="summary-val paid">₹{{ (invoice.paidAmount || 0) | number:'1.2-2' }}</span>
       </div>
+      <div class="summary-divider" *ngIf="(invoice.settlementDiscount || 0) > 0"></div>
+      <div class="summary-item" *ngIf="(invoice.settlementDiscount || 0) > 0">
+        <span class="summary-label">Prior Discount</span>
+        <span class="summary-val text-amber">₹{{ (invoice.settlementDiscount || 0) | number:'1.2-2' }}</span>
+      </div>
       <div class="summary-divider"></div>
       <div class="summary-item">
         <span class="summary-label">Pending Due</span>
@@ -27,62 +32,82 @@
     </div>
 
     <form [formGroup]="paymentForm" (ngSubmit)="onSubmit()" class="modal-form" novalidate *ngIf="paymentForm">
-      <div
-        class="form-group"
-        [class.has-error]="paymentForm.get('amount')?.invalid && (paymentForm.get('amount')?.touched || paymentForm.get('amount')?.dirty)"
-      >
-        <label for="input-payment-amount">Payment Amount (₹) *</label>
-        <input
-          type="number"
-          id="input-payment-amount"
-          formControlName="amount"
-          placeholder="0.00"
-          min="1"
-          [max]="pendingDueAmount()"
-          step="0.01"
-        />
+      <!-- Amount and Discount Row -->
+      <div class="form-row">
         <div
-          class="field-error-msg"
-          *ngIf="paymentForm.get('amount')?.hasError('max') && (paymentForm.get('amount')?.dirty || paymentForm.get('amount')?.touched)"
+          class="form-group flex-1"
+          [class.has-error]="(!isDiscountOverDue() && isOverSettled()) || (paymentForm.get('amount')?.invalid && (paymentForm.get('amount')?.touched || paymentForm.get('amount')?.dirty))"
         >
-          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="10"></circle>
-            <line x1="12" y1="8" x2="12" y2="12"></line>
-            <line x1="12" y1="16" x2="12.01" y2="16"></line>
-          </svg>
-          <span>Amount cannot exceed pending balance of ₹{{ (invoice.balanceAmount || 0) | number:'1.2-2' }}.</span>
+          <div class="label-row">
+            <label for="input-payment-amount">Payment Amount (₹) *</label>
+          </div>
+          <input
+            type="number"
+            id="input-payment-amount"
+            formControlName="amount"
+            placeholder="0.00"
+            min="0"
+            step="0.01"
+          />
         </div>
+
         <div
-          class="field-error-msg"
-          *ngIf="paymentForm.get('amount')?.hasError('min') && (paymentForm.get('amount')?.dirty || paymentForm.get('amount')?.touched)"
+          class="form-group flex-1"
+          [class.has-error]="isDiscountOverDue() || (paymentForm.get('discount')?.invalid && (paymentForm.get('discount')?.touched || paymentForm.get('discount')?.dirty))"
         >
-          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="10"></circle>
-            <line x1="12" y1="8" x2="12" y2="12"></line>
-            <line x1="12" y1="16" x2="12.01" y2="16"></line>
-          </svg>
-          <span>Payment amount must be at least ₹1.</span>
+          <div class="label-row">
+            <label for="input-settlement-discount">Discount / Waiver (₹)</label>
+            <span class="hint-badge" title="Deducts from pending balance without modifying legal invoice total">Settlement</span>
+          </div>
+          <input
+            type="number"
+            id="input-settlement-discount"
+            formControlName="discount"
+            placeholder="0.00"
+            min="0"
+            step="0.01"
+          />
         </div>
-        <div
-          class="field-error-msg"
-          *ngIf="paymentForm.get('amount')?.hasError('required') && paymentForm.get('amount')?.touched"
-        >
-          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="10"></circle>
-            <line x1="12" y1="8" x2="12" y2="12"></line>
-            <line x1="12" y1="16" x2="12.01" y2="16"></line>
-          </svg>
-          <span>Payment amount is required.</span>
+      </div>
+
+      <!-- Over-settlement Validation Alert -->
+      <div class="field-error-msg banner-error" *ngIf="isOverSettled()">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="12"></line>
+          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        </svg>
+        <span *ngIf="isDiscountOverDue()">
+          Discount (₹{{ enteredDiscount() | number:'1.2-2' }}) cannot exceed pending due of ₹{{ pendingDueAmount() | number:'1.2-2' }}.
+        </span>
+        <span *ngIf="!isDiscountOverDue()">
+          Combined settlement (₹{{ effectiveSettlement() | number:'1.2-2' }}) exceeds pending due of ₹{{ pendingDueAmount() | number:'1.2-2' }}.
+        </span>
+      </div>
+
+      <!-- Live Settlement Reconciliation Preview Banner -->
+      <div class="settlement-preview-bar" *ngIf="effectiveSettlement() > 0 && !isOverSettled()">
+        <div class="preview-breakdown">
+          <span>Pay: <strong>₹{{ enteredAmount() | number:'1.2-2' }}</strong></span>
+          <span class="plus" *ngIf="enteredDiscount() > 0">+ Disc: <strong>₹{{ enteredDiscount() | number:'1.2-2' }}</strong></span>
+          <span class="equals">= Settles: <strong>₹{{ effectiveSettlement() | number:'1.2-2' }}</strong></span>
+        </div>
+        <div class="preview-status-tag" [class.tag-paid]="willBeFullyPaid()" [class.tag-partial]="!willBeFullyPaid()">
+          {{ willBeFullyPaid() ? '🎉 Bill Settled (PAID)' : ('Remaining Due: ₹' + (resultingBalance() | number:'1.2-2')) }}
         </div>
       </div>
 
       <div class="form-row">
         <div class="form-group flex-1">
-          <label for="input-payment-date">Payment Date *</label>
+          <div class="label-row">
+            <label for="input-payment-date">Payment Date *</label>
+          </div>
           <input id="input-payment-date" type="date" formControlName="paymentDate" />
         </div>
         <div class="form-group flex-1">
-          <label for="select-payment-mode">Payment Mode *</label>
+          <div class="label-row">
+            <label for="select-payment-mode">Payment Mode *</label>
+          </div>
           <select id="select-payment-mode" formControlName="paymentMode" class="form-select">
             <option *ngFor="let mode of paymentModes" [value]="mode.value">
               {{ mode.label }}
@@ -115,7 +140,11 @@
         <button type="button" class="btn-cancel" (click)="close()" [disabled]="isSubmitting()">
           Cancel
         </button>
-        <button type="submit" class="btn-submit" [disabled]="isSubmitting() || paymentForm.invalid">
+        <button
+          type="submit"
+          class="btn-submit"
+          [disabled]="isSubmitting() || paymentForm.invalid || isOverSettled() || effectiveSettlement() <= 0"
+        >
           <span class="spinner" *ngIf="isSubmitting()"></span>
           <span>{{ isSubmitting() ? 'Recording...' : 'Record Payment' }}</span>
         </button>

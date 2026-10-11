@@ -406,6 +406,31 @@ export class InvoicesService {
       throw new NotFoundException('Invoice not found.');
     }
 
+    const paymentAmount = Number(dto.amount.toFixed(2));
+    const discountGiven = Number((dto.discount || 0).toFixed(2));
+
+    if (paymentAmount + discountGiven <= 0) {
+      throw new BadRequestException(
+        'Payment amount or settlement discount must be greater than zero.',
+      );
+    }
+
+    const currentBalance = Math.max(
+      0,
+      Number(
+        (
+          invoice.totalAmount -
+          (invoice.paidAmount + (invoice.settlementDiscount || 0))
+        ).toFixed(2),
+      ),
+    );
+
+    if (paymentAmount + discountGiven > currentBalance + 0.05) {
+      throw new BadRequestException(
+        `Total settlement amount (₹${(paymentAmount + discountGiven).toFixed(2)}) exceeds current pending balance of ₹${currentBalance.toFixed(2)}.`,
+      );
+    }
+
     const count = await this.paymentReceiptModel.countDocuments().exec();
     const receiptNumber = `REC-${String(count + 1).padStart(4, '0')}`;
 
@@ -413,7 +438,8 @@ export class InvoicesService {
       receiptNumber,
       customerId: invoice.customerId,
       invoiceId: invoice._id.toString(),
-      amount: dto.amount,
+      amount: paymentAmount,
+      discountGiven,
       paymentDate: new Date(dto.paymentDate),
       paymentMode: dto.paymentMode,
       transactionReference: dto.transactionReference?.trim(),
@@ -423,23 +449,37 @@ export class InvoicesService {
 
     const savedReceipt = await receipt.save();
 
-    // Update invoice payment status
-    invoice.paidAmount = Number((invoice.paidAmount + dto.amount).toFixed(2));
-    invoice.balanceAmount = Math.max(0, Number((invoice.totalAmount - invoice.paidAmount).toFixed(2)));
+    // Update invoice payment amounts and status
+    invoice.paidAmount = Number((invoice.paidAmount + paymentAmount).toFixed(2));
+    invoice.settlementDiscount = Number(
+      ((invoice.settlementDiscount || 0) + discountGiven).toFixed(2)
+    );
+    invoice.balanceAmount = Math.max(
+      0,
+      Number(
+        (
+          invoice.totalAmount -
+          (invoice.paidAmount + invoice.settlementDiscount)
+        ).toFixed(2)
+      )
+    );
 
     if (invoice.balanceAmount === 0) {
       invoice.paymentStatus = PaymentStatus.PAID;
-    } else {
+    } else if (invoice.paidAmount + invoice.settlementDiscount > 0) {
       invoice.paymentStatus = PaymentStatus.PARTIAL;
+    } else {
+      invoice.paymentStatus = PaymentStatus.UNPAID;
     }
 
     const updatedInvoice = await invoice.save();
 
-    // Update customer balance (deltaPaid)
+    // Update customer balance (deltaPaid + deltaDiscount)
     await this.customersService.updateBalance(
       invoice.customerId,
       0,
-      dto.amount,
+      paymentAmount,
+      discountGiven,
     );
 
     if (actorUser) {
@@ -451,7 +491,9 @@ export class InvoicesService {
         metadata: {
           invoiceId: invoice._id.toString(),
           receiptNumber: savedReceipt.receiptNumber,
-          paidAmount: dto.amount,
+          paidAmount: paymentAmount,
+          discountGiven,
+          remainingBalance: invoice.balanceAmount,
         },
       });
     }
@@ -469,10 +511,12 @@ export class InvoicesService {
       invoiceId: string;
       invoiceNumber: string;
       allocatedAmount: number;
+      discountAmount?: number;
       previousBalance: number;
       newBalance: number;
       status: PaymentStatus;
     }>;
+    totalDiscountsApplied: number;
     unallocatedAdvance: number;
     customer: CustomerDocument;
   }> {
@@ -494,46 +538,108 @@ export class InvoicesService {
       .sort({ invoiceDate: 1, createdAt: 1 })
       .exec();
 
+    // Build map of per-invoice discounts if passed
+    const discountsMap = new Map<string, number>();
+    if (Array.isArray(dto.discounts)) {
+      for (const d of dto.discounts) {
+        if (d && d.invoiceId && d.discount > 0) {
+          const inv = pendingInvoices.find(
+            (i) => i._id.toString() === d.invoiceId,
+          );
+          if (
+            inv &&
+            Number(d.discount.toFixed(2)) >
+              Number(inv.balanceAmount.toFixed(2)) + 0.05
+          ) {
+            throw new BadRequestException(
+              `Discount for invoice ${inv.invoiceNumber} (₹${d.discount.toFixed(2)}) exceeds current pending balance of ₹${inv.balanceAmount.toFixed(2)}.`,
+            );
+          }
+          discountsMap.set(d.invoiceId, Number(d.discount.toFixed(2)));
+        }
+      }
+    }
+
     let remainingPayment = Number(dto.amount.toFixed(2));
+    if (remainingPayment <= 0 && discountsMap.size === 0) {
+      throw new BadRequestException(
+        'Payment amount or settlement discount must be greater than zero.',
+      );
+    }
+
+    let totalDiscountsApplied = 0;
     const allocations: Array<{
       invoiceId: string;
       invoiceNumber: string;
       allocatedAmount: number;
+      discountAmount?: number;
       previousBalance: number;
       newBalance: number;
       status: PaymentStatus;
     }> = [];
 
     for (const inv of pendingInvoices) {
-      if (remainingPayment <= 0) break;
-
+      const invId = inv._id.toString();
       const prevBal = Number(inv.balanceAmount.toFixed(2));
       if (prevBal <= 0) continue;
 
-      const allocated = Number(Math.min(prevBal, remainingPayment).toFixed(2));
-      inv.paidAmount = Number((inv.paidAmount + allocated).toFixed(2));
+      // Apply discount first if any
+      const discountForInv = Number(
+        Math.min(prevBal, discountsMap.get(invId) || 0).toFixed(2)
+      );
+      if (discountForInv > 0) {
+        inv.settlementDiscount = Number(
+          ((inv.settlementDiscount || 0) + discountForInv).toFixed(2)
+        );
+        totalDiscountsApplied = Number(
+          (totalDiscountsApplied + discountForInv).toFixed(2)
+        );
+      }
+
+      // Remaining due after discount for this bill
+      const balanceAfterDiscount = Number(
+        Math.max(0, prevBal - discountForInv).toFixed(2)
+      );
+
+      // Allocate from remaining lump-sum payment
+      const allocated =
+        remainingPayment > 0
+          ? Number(Math.min(balanceAfterDiscount, remainingPayment).toFixed(2))
+          : 0;
+
+      if (allocated > 0) {
+        inv.paidAmount = Number((inv.paidAmount + allocated).toFixed(2));
+        remainingPayment = Number((remainingPayment - allocated).toFixed(2));
+      }
+
       inv.balanceAmount = Number(
-        Math.max(0, inv.totalAmount - inv.paidAmount).toFixed(2)
+        Math.max(
+          0,
+          inv.totalAmount - (inv.paidAmount + (inv.settlementDiscount || 0))
+        ).toFixed(2)
       );
 
       if (inv.balanceAmount === 0) {
         inv.paymentStatus = PaymentStatus.PAID;
-      } else {
+      } else if (inv.paidAmount + (inv.settlementDiscount || 0) > 0) {
         inv.paymentStatus = PaymentStatus.PARTIAL;
+      } else {
+        inv.paymentStatus = PaymentStatus.UNPAID;
       }
 
       await inv.save();
 
-      allocations.push({
-        invoiceId: inv._id.toString(),
-        invoiceNumber: inv.invoiceNumber,
-        allocatedAmount: allocated,
-        previousBalance: prevBal,
-        newBalance: inv.balanceAmount,
-        status: inv.paymentStatus,
-      });
-
-      remainingPayment = Number((remainingPayment - allocated).toFixed(2));
+      if (allocated > 0 || discountForInv > 0) {
+        allocations.push({
+          invoiceId: invId,
+          invoiceNumber: inv.invoiceNumber,
+          allocatedAmount: allocated,
+          discountAmount: discountForInv > 0 ? discountForInv : undefined,
+          previousBalance: prevBal,
+          newBalance: inv.balanceAmount,
+          status: inv.paymentStatus,
+        });
+      }
     }
 
     const count = await this.paymentReceiptModel.countDocuments().exec();
@@ -543,7 +649,13 @@ export class InvoicesService {
       allocations.length > 0
         ? `Allocated across ${allocations.length} bill(s): ` +
           allocations
-            .map((a) => `${a.invoiceNumber} (₹${a.allocatedAmount.toFixed(2)})`)
+            .map((a) => {
+              let text = `${a.invoiceNumber} (₹${a.allocatedAmount.toFixed(2)})`;
+              if (a.discountAmount && a.discountAmount > 0) {
+                text += ` [Disc: ₹${a.discountAmount.toFixed(2)}]`;
+              }
+              return text;
+            })
             .join(', ')
         : 'Advance deposit on account';
 
@@ -555,6 +667,7 @@ export class InvoicesService {
       receiptNumber,
       customerId: customer._id,
       amount: dto.amount,
+      discountGiven: totalDiscountsApplied,
       paymentDate: new Date(dto.paymentDate),
       paymentMode: dto.paymentMode,
       transactionReference: dto.transactionReference?.trim(),
@@ -564,10 +677,12 @@ export class InvoicesService {
 
     const savedReceipt = await receipt.save();
 
+    // Customer balance credited with total paid AND total discounts applied
     const updatedCustomer = await this.customersService.updateBalance(
       customer._id.toString(),
       0,
       dto.amount,
+      totalDiscountsApplied,
     );
 
     if (actorUser) {
@@ -580,6 +695,7 @@ export class InvoicesService {
           customerId: customer._id.toString(),
           receiptNumber: savedReceipt.receiptNumber,
           totalAmount: dto.amount,
+          totalDiscountsApplied,
           billsAllocatedCount: allocations.length,
           allocations,
           unallocatedAdvance: Math.max(0, remainingPayment),
@@ -590,6 +706,7 @@ export class InvoicesService {
     return {
       receipt: savedReceipt,
       allocations,
+      totalDiscountsApplied,
       unallocatedAdvance: Math.max(0, remainingPayment),
       customer: updatedCustomer || customer,
     };
@@ -646,16 +763,31 @@ export class InvoicesService {
     }
 
     for (const rec of receipts) {
-      entries.push({
-        id: rec._id.toString(),
-        date: rec.paymentDate,
-        type: 'PAYMENT',
-        referenceNo: rec.receiptNumber,
-        description: `Payment Received (${rec.paymentMode} ${rec.transactionReference ? '- ' + rec.transactionReference : ''})`,
-        debit: 0,
-        credit: rec.amount,
-        runningBalance: 0,
-      });
+      if (rec.amount > 0) {
+        entries.push({
+          id: rec._id.toString(),
+          date: rec.paymentDate,
+          type: 'PAYMENT',
+          referenceNo: rec.receiptNumber,
+          description: `Payment Received (${rec.paymentMode}${rec.transactionReference ? ' - ' + rec.transactionReference : ''})`,
+          debit: 0,
+          credit: rec.amount,
+          runningBalance: 0,
+        });
+      }
+
+      if (rec.discountGiven && rec.discountGiven > 0) {
+        entries.push({
+          id: `${rec._id.toString()}_disc`,
+          date: rec.paymentDate,
+          type: 'PAYMENT',
+          referenceNo: `${rec.receiptNumber}-DISC`,
+          description: `Settlement Discount / Waiver (${rec.receiptNumber})`,
+          debit: 0,
+          credit: rec.discountGiven,
+          runningBalance: 0,
+        });
+      }
     }
 
     // Sort by date ascending

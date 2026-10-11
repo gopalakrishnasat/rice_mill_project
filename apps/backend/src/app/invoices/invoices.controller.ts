@@ -50,12 +50,19 @@ export class InvoicesController {
     @Res() res: Response,
   ) {
     const invoice = await this.invoicesService.findById(id);
+    if (!invoice) {
+      return res.status(404).json({ success: false, message: 'Invoice not found.' });
+    }
+
     const pdfBuffer = await this.pdfGeneratorService.generateInvoicePdf(invoice as any);
+    const cleanNumber = (invoice.invoiceNumber || 'INV').replace(/[^a-zA-Z0-9_-]/g, '_');
+    const filename = `Invoice_${cleanNumber}.pdf`;
 
     res.set({
       'Content-Type': 'application/pdf',
-      'Content-Disposition': `attachment; filename="Invoice_${invoice.invoiceNumber}.pdf"`,
+      'Content-Disposition': `attachment; filename="${filename}"; filename*=UTF-8''${encodeURIComponent(filename)}`,
       'Content-Length': pdfBuffer.length.toString(),
+      'Access-Control-Expose-Headers': 'Content-Disposition',
     });
 
     res.end(pdfBuffer);
@@ -115,8 +122,9 @@ export class InvoicesController {
 
     res.set({
       'Content-Type': 'application/pdf',
-      'Content-Disposition': `attachment; filename="${filename}"`,
-      'Content-Length': pdfBuffer.length,
+      'Content-Disposition': `attachment; filename="${filename}"; filename*=UTF-8''${encodeURIComponent(filename)}`,
+      'Content-Length': pdfBuffer.length.toString(),
+      'Access-Control-Expose-Headers': 'Content-Disposition',
     });
 
     res.end(pdfBuffer);

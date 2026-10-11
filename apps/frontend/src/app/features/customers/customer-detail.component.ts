@@ -82,11 +82,12 @@ export class CustomerDetailComponent implements OnInit {
   readonly showPaymentModal = signal<boolean>(false);
   readonly selectedInvoiceForPayment = signal<IInvoice | null>(null);
 
-  // Lump-Sum Account Payment Modal State & Form (FIFO Auto-Knock-off)
+  // Lump-Sum Account Payment Modal State & Form (FIFO Auto-Knock-off with Per-Bill Discounts)
   readonly showLumpSumPaymentModal = signal<boolean>(false);
   readonly showLumpSumConfirmModal = signal<boolean>(false);
   readonly isSubmittingLumpSum = signal<boolean>(false);
   readonly lumpSumEnteredAmount = signal<number>(0);
+  readonly lumpSumDiscounts = signal<Record<string, string>>({});
   lumpSumPaymentForm!: FormGroup;
 
   // Pending bills available for FIFO allocation
@@ -104,19 +105,38 @@ export class CustomerDetailComponent implements OnInit {
       );
   });
 
-  // Reactive Live FIFO Allocation Preview
+  // Reactive Live FIFO Allocation Preview with per-invoice discounts
   readonly lumpSumPreview = computed(() => {
     const totalPayment = this.lumpSumEnteredAmount() || 0;
     let remaining = totalPayment;
     const bills = this.lumpSumPendingInvoices();
+    const discountsMap = this.lumpSumDiscounts();
+
+    let totalDiscountsGiven = 0;
 
     const items = bills.map((bill) => {
       const balance = Number((bill.balanceAmount || 0).toFixed(2));
-      const allocated = remaining > 0 ? Number(Math.min(balance, remaining).toFixed(2)) : 0;
-      const remainingBalance = Number(Math.max(0, balance - allocated).toFixed(2));
+      const rawDisc = discountsMap[bill.id];
+      const requestedDiscount =
+        rawDisc !== undefined && rawDisc !== ''
+          ? Math.max(0, Number(Number(rawDisc).toFixed(2)) || 0)
+          : 0;
+      const discount = Math.min(balance, requestedDiscount);
+      totalDiscountsGiven = Number((totalDiscountsGiven + discount).toFixed(2));
+
+      const balanceAfterDiscount = Number(
+        Math.max(0, balance - discount).toFixed(2)
+      );
+      const allocated =
+        remaining > 0
+          ? Number(Math.min(balanceAfterDiscount, remaining).toFixed(2))
+          : 0;
+      const remainingBalance = Number(
+        Math.max(0, balanceAfterDiscount - allocated).toFixed(2)
+      );
       let newStatus: 'PAID' | 'PARTIAL' | 'UNPAID' = bill.paymentStatus as any;
 
-      if (allocated > 0) {
+      if (allocated > 0 || discount > 0) {
         newStatus = remainingBalance === 0 ? 'PAID' : 'PARTIAL';
       }
 
@@ -130,25 +150,75 @@ export class CustomerDetailComponent implements OnInit {
         invoiceDate: bill.invoiceDate,
         totalAmount: bill.totalAmount,
         previousBalance: balance,
+        discountAmount: discount,
         allocatedAmount: allocated,
         newBalance: remainingBalance,
         newStatus,
+        isDiscountExceeded: requestedDiscount > balance,
       };
     });
 
     const totalAllocated = Number((totalPayment - remaining).toFixed(2));
     const advanceCredit = Number(remaining.toFixed(2));
+    const totalSettled = Number((totalAllocated + totalDiscountsGiven).toFixed(2));
+
+    const coveredItems = items.filter(
+      (x) => x.allocatedAmount > 0 || x.discountAmount > 0
+    );
 
     return {
-      items,
+      items: coveredItems,
+      allItems: items,
       totalPayment,
+      totalDiscountsGiven,
       totalAllocated,
+      totalSettled,
       advanceCredit,
       fullyPaidCount: items.filter((x) => x.newStatus === 'PAID').length,
       partiallyPaidCount: items.filter((x) => x.newStatus === 'PARTIAL').length,
-      affectedCount: items.filter((x) => x.allocatedAmount > 0).length,
+      affectedCount: coveredItems.length,
     };
   });
+
+  // Check if any bill discount exceeds its pending balance
+  readonly invalidDiscountInfo = computed(() => {
+    const discountsMap = this.lumpSumDiscounts();
+    const bills = this.lumpSumPendingInvoices();
+    const errorBillIds = new Set<string>();
+    let firstMessage = '';
+
+    for (const bill of bills) {
+      const rawDisc = discountsMap[bill.id];
+      if (rawDisc !== undefined && rawDisc !== '') {
+        const enteredDisc = Number(Number(rawDisc).toFixed(2)) || 0;
+        const due = Number((bill.balanceAmount || 0).toFixed(2));
+        if (enteredDisc > due) {
+          errorBillIds.add(bill.id);
+          if (!firstMessage) {
+            firstMessage = `Discount for ${bill.invoiceNumber} (₹${enteredDisc.toFixed(2)}) cannot exceed current pending due of ₹${due.toFixed(2)}.`;
+          }
+        }
+      }
+    }
+
+    return {
+      hasError: errorBillIds.size > 0,
+      message: firstMessage,
+      errorBillIds,
+    };
+  });
+
+  readonly hasInvalidLumpSumDiscount = computed(
+    () => this.invalidDiscountInfo().hasError
+  );
+
+  readonly invalidDiscountErrorMessage = computed(
+    () => this.invalidDiscountInfo().message
+  );
+
+  isBillDiscountExceeded(billId: string): boolean {
+    return this.invalidDiscountInfo().errorBillIds.has(billId);
+  }
 
   // Computed Financial Analytics - Strictly calculated for THIS specific customer
   readonly totalBilled = computed(() => {
@@ -602,7 +672,15 @@ export class CustomerDetailComponent implements OnInit {
 
   // Download PDF directly
   downloadInvoicePdf(invoice: IInvoice): void {
-    this.invoicesService.downloadInvoiceDirectly(invoice.id, invoice.invoiceNumber);
+    this.invoicesService.downloadInvoiceDirectly(invoice.id, invoice.invoiceNumber).subscribe({
+      next: () => {
+        this.snackbarService.success(`Tax Invoice PDF downloaded: Invoice_${invoice.invoiceNumber}.pdf`);
+      },
+      error: (err) => {
+        console.error('Invoice download failed:', err);
+        this.snackbarService.error('Failed to download invoice PDF.');
+      },
+    });
   }
 
   // Print Invoice
@@ -644,11 +722,13 @@ export class CustomerDetailComponent implements OnInit {
       notes: '',
     });
     this.lumpSumEnteredAmount.set(0);
+    this.lumpSumDiscounts.set({});
     this.showLumpSumConfirmModal.set(false);
     this.showLumpSumPaymentModal.set(true);
   }
 
   closeLumpSumPaymentModal(): void {
+    this.lumpSumDiscounts.set({});
     this.showLumpSumConfirmModal.set(false);
     this.showLumpSumPaymentModal.set(false);
   }
@@ -662,10 +742,23 @@ export class CustomerDetailComponent implements OnInit {
     this.lumpSumEnteredAmount.set(val);
   }
 
+  setLumpSumBillDiscount(billId: string, val: string | number): void {
+    const rawVal = val !== undefined && val !== null ? String(val) : '';
+    this.lumpSumDiscounts.update((prev) => ({
+      ...prev,
+      [billId]: rawVal,
+    }));
+  }
+
   // Triggers confirmation popup before final execution
   onLumpSumSubmit(): void {
     if (this.lumpSumPaymentForm.invalid || this.lumpSumEnteredAmount() <= 0) {
       this.lumpSumPaymentForm.markAllAsTouched();
+      return;
+    }
+
+    if (this.hasInvalidLumpSumDiscount()) {
+      this.showAlert('error', this.invalidDiscountErrorMessage());
       return;
     }
 
@@ -674,19 +767,32 @@ export class CustomerDetailComponent implements OnInit {
 
   // Executes confirmed FIFO allocation
   proceedLumpSumSubmit(): void {
-    if (this.lumpSumPaymentForm.invalid || this.lumpSumEnteredAmount() <= 0) {
+    if (
+      this.lumpSumPaymentForm.invalid ||
+      this.lumpSumEnteredAmount() <= 0 ||
+      this.hasInvalidLumpSumDiscount()
+    ) {
       this.lumpSumPaymentForm.markAllAsTouched();
       this.showLumpSumConfirmModal.set(false);
       return;
     }
 
     const formVal = this.lumpSumPaymentForm.value;
+    const discountsMap = this.lumpSumDiscounts();
+    const discountsPayload = Object.entries(discountsMap)
+      .map(([invoiceId, disc]) => ({
+        invoiceId,
+        discount: Math.max(0, Number(Number(disc).toFixed(2)) || 0),
+      }))
+      .filter((d) => d.discount > 0);
+
     const dto: RecordPaymentDto = {
       amount: Number(formVal.amount),
       paymentDate: formVal.paymentDate,
       paymentMode: formVal.paymentMode,
       transactionReference: formVal.transactionReference || undefined,
       notes: formVal.notes || undefined,
+      discounts: discountsPayload.length > 0 ? discountsPayload : undefined,
     };
 
     this.isSubmittingLumpSum.set(true);
@@ -701,6 +807,9 @@ export class CustomerDetailComponent implements OnInit {
           let msg = `Payment of ₹${dto.amount.toFixed(2)} recorded (${res.receipt?.receiptNumber})! `;
           if (count > 0) {
             msg += `Auto-allocated across ${count} bill(s).`;
+          }
+          if (res.totalDiscountsApplied && res.totalDiscountsApplied > 0) {
+            msg += ` Total discounts given: ₹${res.totalDiscountsApplied.toFixed(2)}.`;
           }
           if (res.unallocatedAdvance > 0) {
             msg += ` Remaining ₹${res.unallocatedAdvance.toFixed(2)} kept as account advance credit.`;
@@ -742,6 +851,10 @@ export class CustomerDetailComponent implements OnInit {
     }).catch(() => {
       this.showAlert('error', 'Failed to copy to clipboard.');
     });
+  }
+
+  trackByBillId(_index: number, item: { id: string }): string {
+    return item.id;
   }
 
   private showAlert(type: 'success' | 'error', text: string): void {

@@ -139,10 +139,13 @@
       font-size: 0.82rem;
       font-weight: 700;
       cursor: pointer;
+      text-decoration: none;
       transition: all 0.15s;
 
       &:hover:not(:disabled) {
         background: #f1f5f9;
+        color: #0f172a;
+        text-decoration: none;
         transform: translateY(-1px);
       }
 

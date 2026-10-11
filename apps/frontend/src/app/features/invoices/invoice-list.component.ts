@@ -531,7 +531,15 @@ export class InvoiceListComponent implements OnInit, OnDestroy {
   }
 
   downloadInvoiceDirectly(invoice: IInvoice): void {
-    this.invoicesService.downloadInvoiceDirectly(invoice.id, invoice.invoiceNumber);
+    this.invoicesService.downloadInvoiceDirectly(invoice.id, invoice.invoiceNumber).subscribe({
+      next: () => {
+        this.snackbarService.show(`Invoice_${invoice.invoiceNumber}.pdf downloaded successfully.`, 'success');
+      },
+      error: (err) => {
+        console.error('Invoice download failed:', err);
+        this.snackbarService.show('Failed to download invoice PDF.', 'error');
+      },
+    });
   }
 
   printInvoice(invoice: IInvoice): void {

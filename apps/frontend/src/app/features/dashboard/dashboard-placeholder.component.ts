@@ -113,7 +113,7 @@ export class DashboardPlaceholderComponent implements OnInit, OnDestroy {
     }
   }
 
-  loadDashboardData(showLoadingIndicator: boolean = true): void {
+  loadDashboardData(showLoadingIndicator = true): void {
     if (showLoadingIndicator) {
       this.isLoading.set(true);
     }

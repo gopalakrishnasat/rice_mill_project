@@ -27,12 +27,19 @@ export class PdfExportService {
       onclone: (clonedDoc) => {
         // Strip box-shadows or screen-only artifacts on cloned elements
         const clonedSheet = clonedDoc.querySelector(
-          '.statement-sheet, .invoice-sheet'
+          '.statement-sheet, .invoice-sheet, .printable-sheet, .mill-bill-sheet'
         ) as HTMLElement | null;
         if (clonedSheet) {
           clonedSheet.style.boxShadow = 'none';
           clonedSheet.style.margin = '0 auto';
         }
+
+        // Strictly omit digital-only elements and notes from exported PDF
+        clonedDoc
+          .querySelectorAll('.no-print, .digital-notes-card, .digital-note')
+          .forEach((el) => {
+            (el as HTMLElement).style.display = 'none';
+          });
       },
     });
 

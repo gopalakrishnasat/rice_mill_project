@@ -5,13 +5,14 @@ import {
   IsDateString,
   IsOptional,
   IsString,
+  IsArray,
   Min,
 } from 'class-validator';
 import { PaymentMode } from '@rice-mill-project/shared-types';
 
 export class RecordPaymentDto {
   @IsNumber()
-  @Min(1)
+  @Min(0)
   @IsNotEmpty()
   amount!: number;
 
@@ -30,4 +31,13 @@ export class RecordPaymentDto {
   @IsString()
   @IsOptional()
   notes?: string;
+
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  discount?: number;
+
+  @IsArray()
+  @IsOptional()
+  discounts?: Array<{ invoiceId: string; discount: number }>;
 }
