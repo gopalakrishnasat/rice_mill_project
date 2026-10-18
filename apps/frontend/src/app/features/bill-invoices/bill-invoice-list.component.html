@@ -1,0 +1,334 @@
+<div class="bill-invoices-page">
+  <!-- Top Header Section -->
+  <header class="page-header">
+    <div class="header-left">
+      <div class="title-row">
+        <h1 class="page-title">Bill Invoices</h1>
+        <span class="badge-tag">Non-GST / Internal Bills</span>
+      </div>
+      <p class="page-subtitle">
+        Simplified customer bills with independent sequential numbering. Strictly isolated from official tax books & ledger.
+      </p>
+    </div>
+    <div class="header-right">
+      <a
+        routerLink="/bill-invoices/create"
+        class="btn-primary-cta"
+        id="btn-create-bill-invoice"
+      >
+        <span class="btn-icon">＋</span>
+        <span>Create Bill Invoice</span>
+      </a>
+    </div>
+  </header>
+
+  <!-- Metrics Summary Strip -->
+  <div class="metrics-grid">
+    <div class="metric-card">
+      <div class="metric-icon-box count-icon">
+        <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" stroke-width="2" fill="none">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+          <polyline points="14 2 14 8 20 8"></polyline>
+          <line x1="16" y1="13" x2="8" y2="13"></line>
+          <line x1="16" y1="17" x2="8" y2="17"></line>
+        </svg>
+      </div>
+      <div class="metric-data">
+        <span class="metric-label">Total Bills</span>
+        <strong class="metric-value">{{ totalBillsCount() }}</strong>
+      </div>
+    </div>
+
+    <div class="metric-card">
+      <div class="metric-icon-box amount-icon">
+        <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" stroke-width="2" fill="none">
+          <line x1="12" y1="1" x2="12" y2="23"></line>
+          <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+        </svg>
+      </div>
+      <div class="metric-data">
+        <span class="metric-label">Total Bill Amount</span>
+        <strong class="metric-value">₹{{ totalBilledAmount() | number:'1.2-2' }}</strong>
+      </div>
+    </div>
+
+    <div class="metric-card info-card">
+      <div class="metric-icon-box isolation-icon">
+        <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" stroke-width="2" fill="none">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+          <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+        </svg>
+      </div>
+      <div class="metric-data">
+        <span class="metric-label">Accounting Status</span>
+        <strong class="metric-value isolation-text">100% Isolated</strong>
+        <span class="metric-sub">Zero ledger debit / Zero tax impact</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filters & Search Toolbar -->
+  <div class="filter-toolbar">
+    <div class="search-box">
+      <span class="search-icon">🔍</span>
+      <input
+        type="text"
+        placeholder="Search by Bill No, Buyer name, Vehicle..."
+        [(ngModel)]="searchQuery"
+        (ngModelChange)="onSearch()"
+        id="search-bill-invoices"
+      />
+    </div>
+
+    <!-- Searchable Customer Filter Dropdown -->
+    <div class="customer-filter-dropdown-wrapper">
+      <!-- Trigger Box -->
+      <div
+        class="customer-filter-trigger"
+        [class.has-selection]="!!selectedCustomerId()"
+        [class.is-open]="isCustomerFilterOpen()"
+        (click)="toggleCustomerFilter($event)"
+        id="filter-bill-customer-trigger"
+        title="Filter by buyer / customer"
+      >
+        <div class="filter-trigger-content" *ngIf="selectedCustomerObj() as cust; else noCustomerFilter">
+          <span class="filter-badge">{{ cust.customerCode }}</span>
+          <span class="filter-name">{{ cust.companyName }}</span>
+        </div>
+        <ng-template #noCustomerFilter>
+          <div class="filter-trigger-placeholder">
+            <span class="filter-icon">👥</span>
+            <span>All Buyers / Customers</span>
+          </div>
+        </ng-template>
+
+        <div class="filter-trigger-actions">
+          <button
+            type="button"
+            class="btn-clear-filter"
+            *ngIf="selectedCustomerId()"
+            (click)="clearCustomerFilter($event)"
+            title="Reset customer filter"
+          >
+            ✕
+          </button>
+          <span class="filter-chevron" [class.rotated]="isCustomerFilterOpen()">▾</span>
+        </div>
+      </div>
+
+      <!-- Floating Filter Dropdown Panel with Search -->
+      <div class="customer-filter-panel" *ngIf="isCustomerFilterOpen()">
+        <div class="dropdown-search-box" (click)="$event.stopPropagation()">
+          <span class="search-icon">🔍</span>
+          <input
+            #customerFilterInput
+            type="text"
+            class="search-input"
+            placeholder="Type to filter buyers by name, code, phone, city..."
+            [ngModel]="customerFilterSearch()"
+            (ngModelChange)="customerFilterSearch.set($event)"
+            (click)="$event.stopPropagation()"
+          />
+          <button
+            type="button"
+            class="btn-clear-search"
+            *ngIf="customerFilterSearch()"
+            (click)="customerFilterSearch.set('')"
+          >
+            ✕
+          </button>
+        </div>
+
+        <div class="dropdown-count-header">
+          <span>{{ filteredCustomersForFilter().length }} customer{{ filteredCustomersForFilter().length === 1 ? '' : 's' }}</span>
+          <span *ngIf="customerFilterSearch()" class="filter-hint">matching "{{ customerFilterSearch() }}"</span>
+        </div>
+
+        <div class="dropdown-list-scrollable">
+          <!-- Reset / All Option -->
+          <div
+            class="customer-filter-item reset-option"
+            [class.selected]="!selectedCustomerId()"
+            (click)="selectCustomerFilter('')"
+          >
+            <div class="item-left">
+              <span class="all-buyers-icon">👥</span>
+              <strong>All Buyers / Customers (Reset filter)</strong>
+            </div>
+            <div class="item-right">
+              <span class="item-check" *ngIf="!selectedCustomerId()">✓</span>
+            </div>
+          </div>
+
+          <!-- Customer Options -->
+          <div
+            *ngFor="let c of filteredCustomersForFilter()"
+            class="customer-filter-item"
+            [class.selected]="c.id === selectedCustomerId()"
+            (click)="selectCustomerFilter(c.id)"
+          >
+            <div class="item-left">
+              <div class="item-primary-line">
+                <span class="item-code-badge">{{ c.customerCode }}</span>
+                <strong class="item-name">{{ c.companyName }}</strong>
+              </div>
+              <div class="item-secondary-line">
+                <span *ngIf="c.billingAddress?.city">📍 {{ c.billingAddress.city }}</span>
+                <span *ngIf="c.mobile">📞 {{ c.mobile }}</span>
+              </div>
+            </div>
+            <div class="item-right">
+              <span class="item-check" *ngIf="c.id === selectedCustomerId()">✓</span>
+            </div>
+          </div>
+
+          <div *ngIf="filteredCustomersForFilter().length === 0" class="no-results-msg">
+            No customers found matching "{{ customerFilterSearch() }}"
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="date-filters">
+      <div class="date-input-group">
+        <label>From:</label>
+        <input
+          type="date"
+          [(ngModel)]="startDate"
+          (change)="onSearch()"
+          id="filter-bill-start-date"
+        />
+      </div>
+      <div class="date-input-group">
+        <label>To:</label>
+        <input
+          type="date"
+          [(ngModel)]="endDate"
+          (change)="onSearch()"
+          id="filter-bill-end-date"
+        />
+      </div>
+      <button
+        *ngIf="searchQuery() || selectedCustomerId() || startDate() || endDate()"
+        type="button"
+        class="btn-clear-filters"
+        (click)="clearFilters()"
+      >
+        Clear Filters
+      </button>
+    </div>
+  </div>
+
+  <!-- Data Table Card -->
+  <div class="table-card">
+    <div *ngIf="isLoading()" class="loading-state">
+      <div class="spinner"></div>
+      <p>Loading bill invoices...</p>
+    </div>
+
+    <div *ngIf="!isLoading() && bills().length === 0" class="empty-state">
+      <div class="empty-icon">📄</div>
+      <h3>No Bill Invoices Found</h3>
+      <p>
+        {{ searchQuery() || startDate() || endDate() ? 'No bill invoices match your filter criteria.' : 'No simple bill invoices created yet. Click below to create your first bill.' }}
+      </p>
+      <a
+        routerLink="/bill-invoices/create"
+        class="btn-create-first"
+        *ngIf="!searchQuery() && !startDate() && !endDate()"
+      >
+        ＋ Create First Bill Invoice
+      </a>
+    </div>
+
+    <div *ngIf="!isLoading() && bills().length > 0" class="table-responsive">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Bill Number</th>
+            <th>Date</th>
+            <th>Buyer / Customer</th>
+            <th>Vehicle No</th>
+            <th>Items</th>
+            <th class="text-right">Total Amount</th>
+            <th class="text-center">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let bill of bills()">
+            <td class="bill-number-cell">
+              <a [routerLink]="['/bill-invoices', bill.id, 'print']" class="bill-num-link">
+                {{ bill.billNumber }}
+              </a>
+            </td>
+            <td class="date-cell">
+              {{ bill.date | date:'dd MMM yyyy' }}
+            </td>
+            <td class="buyer-cell">
+              <strong>{{ bill.customerSnapshot?.companyName || 'Cash Customer' }}</strong>
+              <small *ngIf="bill.customerSnapshot?.mobile" class="buyer-sub">
+                📞 {{ bill.customerSnapshot.mobile }}
+              </small>
+            </td>
+            <td class="vehicle-cell">
+              <span *ngIf="bill.vehicleNumber" class="vehicle-tag">{{ bill.vehicleNumber }}</span>
+              <span *ngIf="!bill.vehicleNumber" class="text-muted">—</span>
+            </td>
+            <td class="items-cell">
+              <span class="items-badge">{{ bill.items.length }} {{ bill.items.length === 1 ? 'item' : 'items' }}</span>
+              <small class="items-preview" *ngIf="bill.items[0]">
+                {{ bill.items[0].description }}
+                <ng-container *ngIf="bill.items.length > 1"> +{{ bill.items.length - 1 }} more</ng-container>
+              </small>
+            </td>
+            <td class="amount-cell text-right">
+              <strong>₹{{ bill.totalAmount | number:'1.2-2' }}</strong>
+            </td>
+            <td class="actions-cell text-center">
+              <div class="action-buttons-group">
+                <!-- View / Print -->
+                <a
+                  [routerLink]="['/bill-invoices', bill.id, 'print']"
+                  class="action-btn view-btn"
+                  title="View & Print Bill"
+                >
+                  👁️
+                </a>
+
+                <!-- Native Download PDF -->
+                <a
+                  [href]="getDownloadUrl(bill.id)"
+                  [download]="getDownloadFilename(bill.billNumber)"
+                  class="action-btn download-btn"
+                  title="Download PDF"
+                  (click)="onDownloadClick(bill)"
+                >
+                  ⬇️
+                </a>
+
+                <!-- Edit -->
+                <a
+                  [routerLink]="['/bill-invoices', bill.id, 'edit']"
+                  class="action-btn edit-btn"
+                  title="Edit Bill"
+                >
+                  ✏️
+                </a>
+
+                <!-- Delete -->
+                <button
+                  type="button"
+                  class="action-btn delete-btn"
+                  (click)="deleteBill(bill)"
+                  title="Delete Bill"
+                >
+                  🗑️
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

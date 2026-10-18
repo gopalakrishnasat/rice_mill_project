@@ -10,6 +10,7 @@ import { CustomersModule } from './customers/customers.module';
 import { ProductsModule } from './products/products.module';
 import { InvoicesModule } from './invoices/invoices.module';
 import { CompanyModule } from './company/company.module';
+import { BillInvoicesModule } from './bill-invoices/bill-invoices.module';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { CompanyModule } from './company/company.module';
     ProductsModule,
     InvoicesModule,
     CompanyModule,
+    BillInvoicesModule,
   ],
   controllers: [],
   providers: [],

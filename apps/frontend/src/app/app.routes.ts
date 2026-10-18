@@ -10,6 +10,9 @@ import { InvoiceCreateComponent } from './features/invoices/invoice-create.compo
 import { InvoicePrintComponent } from './features/invoices/invoice-print.component';
 import { ProductsComponent } from './features/products/products.component';
 import { CompanyDetailsComponent } from './features/company/company-details.component';
+import { BillInvoiceListComponent } from './features/bill-invoices/bill-invoice-list.component';
+import { BillInvoiceCreateComponent } from './features/bill-invoices/bill-invoice-create.component';
+import { BillInvoicePrintComponent } from './features/bill-invoices/bill-invoice-print.component';
 import { authGuard } from './core/guards/auth.guard';
 import { guestGuard } from './core/guards/guest.guard';
 import { superAdminGuard } from './core/guards/super-admin.guard';
@@ -73,6 +76,26 @@ export const appRoutes: Route[] = [
   {
     path: 'invoices/:id/print',
     component: InvoicePrintComponent,
+    canActivate: [authGuard],
+  },
+  {
+    path: 'bill-invoices',
+    component: BillInvoiceListComponent,
+    canActivate: [authGuard],
+  },
+  {
+    path: 'bill-invoices/create',
+    component: BillInvoiceCreateComponent,
+    canActivate: [authGuard],
+  },
+  {
+    path: 'bill-invoices/:id/edit',
+    component: BillInvoiceCreateComponent,
+    canActivate: [authGuard],
+  },
+  {
+    path: 'bill-invoices/:id/print',
+    component: BillInvoicePrintComponent,
     canActivate: [authGuard],
   },
   {

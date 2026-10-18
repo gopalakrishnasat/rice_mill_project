@@ -469,3 +469,59 @@ export interface ApiResponse<T = unknown> {
   path?: string;
 }
 
+// ==========================================
+// Non-GST Bill Invoices (Dummy / Simple Bills)
+// Isolated from official accounting & tax ledger
+// ==========================================
+
+export interface IBillInvoiceItem {
+  description: string; // e.g. "Murmura - 9kg Bag"
+  quantity: number;    // e.g. 1.00
+  unit: string;        // e.g. "Bag", "Kg", "Qtl", "Pcs"
+  rate: number;        // e.g. 490.00
+  amount: number;      // quantity * rate = 490.00
+}
+
+export interface IBillInvoiceCustomerSnapshot {
+  companyName: string;
+  billingAddress: string;
+  mobile?: string;
+}
+
+export interface IBillInvoice {
+  id: string;
+  billNumber: string; // e.g. "BILL-2627-0001"
+  date: string | Date;
+  vehicleNumber?: string;
+  customerId?: string;
+  customerSnapshot: IBillInvoiceCustomerSnapshot;
+  items: IBillInvoiceItem[];
+  subTotal: number;
+  totalAmount: number;
+  notes?: string;
+  createdBy?: string;
+  createdAt?: string | Date;
+  updatedAt?: string | Date;
+}
+
+export interface CreateBillInvoiceDto {
+  billNumber?: string;
+  date: string | Date;
+  vehicleNumber?: string;
+  customerId?: string;
+  customerSnapshot?: IBillInvoiceCustomerSnapshot;
+  items: IBillInvoiceItem[];
+  notes?: string;
+}
+
+export interface UpdateBillInvoiceDto {
+  billNumber?: string;
+  date?: string | Date;
+  vehicleNumber?: string;
+  customerId?: string;
+  customerSnapshot?: IBillInvoiceCustomerSnapshot;
+  items?: IBillInvoiceItem[];
+  notes?: string;
+}
+
+

@@ -1,0 +1,498 @@
+<div class="bill-create-page">
+  <!-- Top Action Bar -->
+  <div class="top-action-bar">
+    <div class="bar-left">
+      <button type="button" class="btn-back" (click)="cancel()">
+        ← Back to List
+      </button>
+      <div class="title-group">
+        <h1 class="page-title">
+          {{ isEditMode() ? 'Edit Bill Invoice' : 'Create Bill Invoice' }}
+        </h1>
+        <span class="badge-tag">Non-GST / Isolated Bill</span>
+        <span class="top-bill-number-badge" *ngIf="billNumber()">
+          <span class="num-lock-icon">🔒</span>
+          <span class="num-label">Bill No:</span>
+          <strong class="num-val font-mono">{{ billNumber() }}</strong>
+        </span>
+      </div>
+    </div>
+    <div class="bar-right">
+      <button type="button" class="btn-cancel" (click)="cancel()">Cancel</button>
+      <button
+        type="button"
+        class="btn-save"
+        (click)="saveBill()"
+        [disabled]="isSaving() || isLoading()"
+        id="btn-save-bill"
+      >
+        <span *ngIf="isSaving()">Saving...</span>
+        <span *ngIf="!isSaving()">{{ isEditMode() ? 'Update & View' : 'Save & View Bill' }}</span>
+      </button>
+    </div>
+  </div>
+
+  <div *ngIf="isLoading()" class="loading-container">
+    <div class="spinner"></div>
+    <p>Loading bill details...</p>
+  </div>
+
+  <div *ngIf="!isLoading()" class="workspace-grid">
+    <!-- LEFT: Form Column -->
+    <div class="form-column">
+      <!-- Card 1: Customer & Bill Metadata -->
+      <section class="form-card">
+        <div class="card-header-row">
+          <h2 class="card-section-title">
+            <span class="step-num">1</span> Customer & Bill Details
+          </h2>
+          <div class="header-bill-no-pill" *ngIf="billNumber()">
+            <span class="pill-label">Bill No:</span>
+            <strong class="pill-value font-mono">{{ billNumber() }}</strong>
+            <span class="pill-tag">Auto-generated</span>
+          </div>
+        </div>
+
+        <!-- Searchable Customer Dropdown -->
+        <div class="form-row">
+          <div class="form-group col-12 customer-search-dropdown-wrapper">
+            <label>Select Existing Customer (with instant search filter)</label>
+
+            <!-- Trigger Box -->
+            <div
+              class="customer-select-trigger"
+              [class.has-selection]="!!selectedCustomerObj()"
+              [class.is-open]="isCustomerDropdownOpen()"
+              (click)="toggleCustomerDropdown($event)"
+              id="customer-search-trigger"
+            >
+              <div class="trigger-content" *ngIf="selectedCustomerObj() as cust; else noCustomerSelected">
+                <span class="cust-code-badge">{{ cust.customerCode }}</span>
+                <span class="cust-name-text">{{ cust.companyName }}</span>
+                <span class="cust-meta-text" *ngIf="cust.billingAddress?.city">
+                  📍 {{ cust.billingAddress.city }}
+                </span>
+                <span class="cust-meta-text" *ngIf="cust.mobile">
+                  📞 {{ cust.mobile }}
+                </span>
+              </div>
+
+              <ng-template #noCustomerSelected>
+                <div class="trigger-placeholder">
+                  <span class="search-icon">🔍</span>
+                  <span>Click to search & select customer by name, code, phone, city...</span>
+                </div>
+              </ng-template>
+
+              <div class="trigger-actions">
+                <button
+                  type="button"
+                  class="btn-clear-selection"
+                  *ngIf="selectedCustomerObj()"
+                  (click)="clearCustomerSelection($event)"
+                  title="Clear selected customer"
+                >
+                  ✕
+                </button>
+                <span class="trigger-arrow" [class.rotated]="isCustomerDropdownOpen()">▾</span>
+              </div>
+            </div>
+
+            <!-- Floating Searchable Customer Dropdown Panel -->
+            <div class="customer-dropdown-panel" *ngIf="isCustomerDropdownOpen()">
+              <!-- Sticky Search Input -->
+              <div class="dropdown-search-box" (click)="$event.stopPropagation()">
+                <span class="search-icon">🔍</span>
+                <input
+                  #customerSearchInput
+                  type="text"
+                  class="search-input"
+                  placeholder="Type to filter buyers by name, code, phone, city..."
+                  [ngModel]="customerSearchQuery()"
+                  (ngModelChange)="customerSearchQuery.set($event)"
+                  (click)="$event.stopPropagation()"
+                />
+                <button
+                  type="button"
+                  class="btn-clear-search"
+                  *ngIf="customerSearchQuery()"
+                  (click)="customerSearchQuery.set('')"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <!-- Status Info Header -->
+              <div class="dropdown-count-header">
+                <span>{{ filteredCustomers().length }} customer{{ filteredCustomers().length === 1 ? '' : 's' }} available</span>
+                <span *ngIf="customerSearchQuery()" class="filter-hint">matching "{{ customerSearchQuery() }}"</span>
+              </div>
+
+              <!-- Customer List -->
+              <div class="dropdown-list-scrollable">
+                <div
+                  *ngFor="let c of filteredCustomers()"
+                  class="customer-list-item"
+                  [class.selected]="c.id === selectedCustomerId()"
+                  (click)="selectCustomer(c)"
+                >
+                  <div class="item-left">
+                    <div class="item-primary-line">
+                      <span class="item-code-badge">{{ c.customerCode }}</span>
+                      <strong class="item-name">{{ c.companyName }}</strong>
+                    </div>
+                    <div class="item-secondary-line">
+                      <span *ngIf="c.billingAddress?.city">📍 {{ c.billingAddress.city }}</span>
+                      <span *ngIf="c.mobile">📞 {{ c.mobile }}</span>
+                    </div>
+                  </div>
+                  <div class="item-right">
+                    <span class="item-check" *ngIf="c.id === selectedCustomerId()">✓</span>
+                  </div>
+                </div>
+
+                <div *ngIf="filteredCustomers().length === 0" class="no-results-msg">
+                  No customers found matching "{{ customerSearchQuery() }}"
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group col-12">
+            <label for="buyer-name">Buyer Company / Customer Name <span class="required">*</span></label>
+            <input
+              type="text"
+              id="buyer-name"
+              class="form-control"
+              placeholder="e.g. Lunkad Foods Private Limited"
+              [(ngModel)]="buyerCompanyName"
+            />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group col-8">
+            <label for="buyer-address">Billing Address</label>
+            <textarea
+              id="buyer-address"
+              class="form-control"
+              rows="3"
+              placeholder="S. No. 24/6, Jai Ganesh Colony,&#10;Chinchwade Nagar, Walhekarwadi Road,&#10;Chinchwad, Pune - 411033"
+              [(ngModel)]="buyerBillingAddress"
+            ></textarea>
+          </div>
+          <div class="form-group col-4">
+            <label for="buyer-mobile">Contact / Mobile</label>
+            <input
+              type="text"
+              id="buyer-mobile"
+              class="form-control"
+              placeholder="e.g. 9876543210"
+              [(ngModel)]="buyerMobile"
+            />
+          </div>
+        </div>
+
+        <div class="divider-line"></div>
+
+        <div class="form-row">
+          <div class="form-group col-6">
+            <label for="bill-date">Bill Date <span class="required">*</span></label>
+            <input
+              type="date"
+              id="bill-date"
+              class="form-control"
+              [(ngModel)]="billDate"
+            />
+          </div>
+
+          <div class="form-group col-6">
+            <label for="vehicle-number">Vehicle Number</label>
+            <input
+              type="text"
+              id="vehicle-number"
+              class="form-control font-mono uppercase"
+              placeholder="e.g. MH14LB3947"
+              [(ngModel)]="vehicleNumber"
+            />
+          </div>
+        </div>
+      </section>
+
+      <!-- Card 2: Items Table with Searchable Product Picker -->
+      <section class="form-card">
+        <div class="card-header-row">
+          <h2 class="card-section-title">
+            <span class="step-num">2</span> Items & Rates
+          </h2>
+          <button type="button" class="btn-add-item" (click)="addItemRow()">
+            ＋ Add Item Row
+          </button>
+        </div>
+
+        <div class="items-table-wrapper">
+          <table class="items-edit-table">
+            <thead>
+              <tr>
+                <th style="width: 46%;">Description & Product Picker</th>
+                <th style="width: 15%;">Qty</th>
+                <th style="width: 14%;">Unit</th>
+                <th style="width: 15%;">Rate (₹)</th>
+                <th style="width: 10%;"></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let item of items; let idx = index">
+                <td>
+                  <div class="item-desc-cell-layout product-picker-dropdown-wrapper">
+                    <div class="desc-input-with-picker-btn">
+                      <input
+                        type="text"
+                        class="form-control desc-input"
+                        placeholder="Item description (e.g. Murmura)"
+                        [(ngModel)]="item.description"
+                      />
+                      <button
+                        type="button"
+                        class="btn-open-prod-picker"
+                        (click)="toggleProductPicker(idx, $event)"
+                        title="Search & select product from DB"
+                      >
+                        📦 DB Catalog ▾
+                      </button>
+                    </div>
+
+                    <!-- Searchable Product Picker Dropdown -->
+                    <div
+                      class="product-picker-dropdown-panel"
+                      *ngIf="activeProductPickerIndex() === idx"
+                    >
+                      <div class="picker-search-bar" (click)="$event.stopPropagation()">
+                        <span class="search-icon">🔍</span>
+                        <input
+                          #productSearchInput
+                          type="text"
+                          class="picker-search-input"
+                          placeholder="Filter products by name, code, rate..."
+                          [ngModel]="productSearchQuery()"
+                          (ngModelChange)="productSearchQuery.set($event)"
+                        />
+                        <button
+                          type="button"
+                          class="btn-clear-search"
+                          *ngIf="productSearchQuery()"
+                          (click)="productSearchQuery.set('')"
+                        >
+                          ✕
+                        </button>
+                      </div>
+
+                      <div class="picker-count-bar">
+                        <span>{{ filteredProducts().length }} product{{ filteredProducts().length === 1 ? '' : 's' }} in DB</span>
+                      </div>
+
+                      <div class="picker-list-scrollable">
+                        <div
+                          *ngFor="let p of filteredProducts()"
+                          class="picker-product-item"
+                          (click)="selectProductForItem(idx, p)"
+                        >
+                          <div class="prod-item-info">
+                            <span class="prod-code-tag">{{ p.productCode }}</span>
+                            <strong class="prod-title">{{ p.name }}</strong>
+                          </div>
+                          <div class="prod-item-rate">
+                            <span class="rate-badge">₹{{ p.defaultRate }}/{{ p.unit }}</span>
+                          </div>
+                        </div>
+
+                        <div *ngIf="filteredProducts().length === 0" class="no-results-msg">
+                          No products found matching "{{ productSearchQuery() }}"
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <input
+                    type="number"
+                    min="1"
+                    step="1"
+                    class="form-control text-right"
+                    placeholder="0"
+                    [(ngModel)]="item.quantity"
+                    (ngModelChange)="recalculateItem(idx)"
+                  />
+                </td>
+                <td>
+                  <select class="form-control" [(ngModel)]="item.unit">
+                    <option value="Bag">Bag</option>
+                    <option value="Kg">Kg</option>
+                    <option value="Qtl">Qtl</option>
+                    <option value="Pcs">Pcs</option>
+                    <option value="Box">Box</option>
+                  </select>
+                </td>
+                <td>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    class="form-control text-right"
+                    [(ngModel)]="item.rate"
+                    (ngModelChange)="recalculateItem(idx)"
+                  />
+                </td>
+                <td class="text-center">
+                  <button
+                    type="button"
+                    class="btn-remove-row"
+                    (click)="removeItemRow(idx)"
+                    [disabled]="items.length <= 1"
+                    title="Remove item"
+                  >
+                    ✕
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="totals-summary-bar">
+          <span class="totals-label">Sub Total & Final Amount:</span>
+          <strong class="totals-val">₹{{ totalAmount() | number:'1.2-2' }}</strong>
+        </div>
+      </section>
+
+      <!-- Card 3: Optional Notes -->
+      <section class="form-card">
+        <h2 class="card-section-title">
+          <span class="step-num">3</span> Internal Notes (Optional)
+        </h2>
+        <textarea
+          class="form-control"
+          rows="2"
+          placeholder="Internal reference notes (omitted from the printable bill)..."
+          [(ngModel)]="notes"
+        ></textarea>
+      </section>
+    </div>
+
+    <!-- RIGHT: Live Sample Layout Preview Card -->
+    <div class="preview-column">
+      <div class="preview-sticky-wrapper">
+        <div class="preview-header-bar">
+          <span class="preview-title">👁️ Live Bill Preview</span>
+          <span class="preview-tag">Sample Bill Replica</span>
+        </div>
+
+        <!-- Sample Bill Replica View -->
+        <div class="sample-bill-preview-sheet">
+          <!-- Centered Title -->
+          <div class="sample-bill-header">
+            <h3>BILL INVOICE</h3>
+            <div class="sample-hr"></div>
+          </div>
+
+          <!-- Outlined Two-Column Box -->
+          <div class="sample-two-col-box">
+            <div class="col-left">
+              <strong class="box-header-title">Bill To:</strong>
+              <div class="buyer-preview-name">
+                {{ buyerCompanyName || 'Buyer / Customer Name' }}
+              </div>
+              <div class="buyer-preview-addr">
+                {{ buyerBillingAddress || 'Address will appear here...' }}
+              </div>
+              <div class="buyer-preview-mobile" *ngIf="buyerMobile">
+                <strong>Mobile:</strong> {{ buyerMobile }}
+              </div>
+            </div>
+
+            <div class="col-divider"></div>
+
+            <div class="col-right">
+              <strong class="box-header-title">Invoice Details:</strong>
+              <div class="detail-row">
+                <span class="lbl">Invoice No:</span>
+                <strong class="val">{{ billNumber() || 'BILL-2627-XXXX' }}</strong>
+              </div>
+              <div class="detail-row">
+                <span class="lbl">Date:</span>
+                <strong class="val">{{ billDate ? (billDate | date:'dd MMM yyyy') : '—' }}</strong>
+              </div>
+              <div class="detail-row" *ngIf="vehicleNumber">
+                <span class="lbl">Vehicle No:</span>
+                <strong class="val">{{ vehicleNumber }}</strong>
+              </div>
+            </div>
+          </div>
+
+          <!-- Table -->
+          <div class="sample-table-container">
+            <table class="sample-table">
+              <thead>
+                <tr>
+                  <th style="width: 50%;">Description</th>
+                  <th style="width: 18%;" class="text-left">Qty</th>
+                  <th style="width: 16%;" class="text-right">Rate</th>
+                  <th style="width: 16%;" class="text-right">Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let item of items">
+                  <td>{{ item.description || '—' }}</td>
+                  <td class="text-left">{{ item.quantity | number:'1.2-2' }} {{ item.unit || 'Bag' }}</td>
+                  <td class="text-right">{{ item.rate | number:'1.2-2' }}</td>
+                  <td class="text-right">{{ item.amount | number:'1.2-2' }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Totals Box on Right -->
+          <div class="sample-totals-box-container">
+            <div class="sample-totals-box">
+              <div class="tot-row">
+                <span class="tot-lbl">Sub Total</span>
+                <span class="tot-val">{{ subTotal() | number:'1.2-2' }}</span>
+              </div>
+              <div class="tot-divider"></div>
+              <div class="tot-row total-highlight">
+                <span class="tot-lbl">Total</span>
+                <strong class="tot-val">₹{{ totalAmount() | number:'1.2-2' }}</strong>
+              </div>
+            </div>
+          </div>
+
+          <!-- Authorized Signature on Right -->
+          <div class="sample-signature-container">
+            <div class="sig-line"></div>
+            <span class="sig-text">Authorized Signature</span>
+          </div>
+        </div>
+
+        <!-- Digital Notes Card (Digital Screen Preview Only, Excluded from Print & PDF) -->
+        <div class="digital-notes-card no-print" *ngIf="notes?.trim()">
+          <div class="digital-notes-header">
+            <span class="notes-tag">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="16" y1="13" x2="8" y2="13"></line>
+                <line x1="16" y1="17" x2="8" y2="17"></line>
+                <polyline points="10 9 9 9 8 9"></polyline>
+              </svg>
+              Digital Note
+            </span>
+            <span class="notes-pill">Digital Version Only • Excluded from Print & Download</span>
+          </div>
+          <p class="digital-notes-body">{{ notes }}</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
