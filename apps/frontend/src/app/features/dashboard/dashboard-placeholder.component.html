@@ -3,7 +3,7 @@
   <header class="dash-header">
     <div class="header-left">
       <div class="title-row">
-        <h2>Operations & Financial Meta Analysis</h2>
+        <h1 class="dash-title">Operations & Financial Meta Analysis</h1>
         <span class="user-greeting">
           Welcome back, <strong>{{ user()?.name }}</strong>
           <span class="role-tag" [class.role-super]="isSuperAdmin()">
@@ -438,7 +438,7 @@
               <span class="inv-code">{{ inv.invoiceNumber }}</span>
               <span class="inv-date">{{ inv.invoiceDate | date:'mediumDate' }}</span>
             </div>
-            <span class="inv-buyer-name">{{ inv.customerSnapshot?.companyName || 'Buyer' }}</span>
+            <span class="inv-buyer-name">{{ inv.customerSnapshot.companyName || 'Buyer' }}</span>
             <span class="inv-city" *ngIf="getInvoiceCity(inv)">📍 {{ getInvoiceCity(inv) }}</span>
           </div>
 

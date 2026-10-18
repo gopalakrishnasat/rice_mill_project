@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, ConflictException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Product, ProductDocument } from './schemas/product.schema';
@@ -38,7 +38,14 @@ export class ProductsService {
       isActive: true,
     });
 
-    return newProd.save();
+    try {
+      return await newProd.save();
+    } catch (err: any) {
+      if (err.code === 11000) {
+        throw new ConflictException(`Product code "${productCode}" already exists.`);
+      }
+      throw err;
+    }
   }
 
   async update(id: string, dto: UpdateProductDto): Promise<ProductDocument> {

@@ -166,7 +166,6 @@ export class ProductsComponent implements OnInit {
   openCreateModal(): void {
     this.editingProductId.set(null);
     this.modalError.set(null);
-    this.productForm.get('productCode')?.enable();
     this.productForm.reset({
       productCode: this.nextProductCode(),
       name: '',
@@ -195,7 +194,6 @@ export class ProductsComponent implements OnInit {
       taxRatePercent: product.taxRatePercent ?? 5,
       isActive: product.isActive ?? true,
     });
-    this.productForm.get('productCode')?.disable();
     this.isModalOpen.set(true);
   }
 
@@ -203,7 +201,6 @@ export class ProductsComponent implements OnInit {
     this.isModalOpen.set(false);
     this.editingProductId.set(null);
     this.modalError.set(null);
-    this.productForm.get('productCode')?.enable();
     this.productForm.reset();
   }
 
@@ -246,7 +243,7 @@ export class ProductsComponent implements OnInit {
     const formVal = this.productForm.getRawValue();
 
     const payload: CreateProductDto = {
-      productCode: formVal.productCode?.trim().toUpperCase(),
+      productCode: (formVal.productCode || this.nextProductCode())?.trim().toUpperCase(),
       name: formVal.name?.trim(),
       category: formVal.category,
       hsnCode: formVal.hsnCode?.trim(),

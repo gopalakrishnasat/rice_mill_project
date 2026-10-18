@@ -5,7 +5,7 @@
     <div class="workspace-top-bar">
       <div class="top-titles">
         <a routerLink="/invoices" class="back-link">← Back to Invoices</a>
-        <h2>{{ isEditMode() ? 'Edit Invoice' : 'New Sales Bill / Tax Invoice' }} — <span class="text-gold">{{ autoInvoiceNumber() }}</span></h2>
+        <h1 class="page-title">{{ isEditMode() ? 'Edit Invoice' : 'New Sales Bill / Tax Invoice' }} — <span class="text-gold">{{ autoInvoiceNumber() }}</span></h1>
       </div>
 
       <div class="workspace-actions">
@@ -68,8 +68,8 @@
                   <div class="trigger-content" *ngIf="selectedCustomerObj() as cust; else noSelection">
                     <span class="trigger-code-badge">{{ cust.customerCode }}</span>
                     <span class="trigger-name">{{ cust.companyName }}</span>
-                    <span class="trigger-meta" *ngIf="cust.billingAddress?.city">
-                      📍 {{ cust.billingAddress?.city }}
+                    <span class="trigger-meta" *ngIf="cust.billingAddress.city">
+                      📍 {{ cust.billingAddress.city }}
                     </span>
                     <span class="trigger-balance" *ngIf="cust.currentBalance > 0">
                       (Due: ₹{{ cust.currentBalance | number:'1.2-2' }})
@@ -160,7 +160,7 @@
                           <span class="selected-check" *ngIf="c.id === invoiceForm.get('customerId')?.value">✓ Selected</span>
                         </div>
                         <div class="buyer-sub-row">
-                          <span class="sub-item" *ngIf="c.billingAddress?.city">📍 {{ c.billingAddress?.city }}</span>
+                          <span class="sub-item" *ngIf="c.billingAddress.city">📍 {{ c.billingAddress.city }}</span>
                           <span class="sub-item" *ngIf="c.mobile">📞 {{ c.mobile }}</span>
                           <span class="sub-item gstin-sub" *ngIf="c.gstin">GST: {{ c.gstin }}</span>
                         </div>
@@ -438,13 +438,6 @@
                 <span><strong>Email:</strong> {{ company()?.email || 'slricemill@gmail.com' }}</span>
               </div>
             </div>
-
-            <!-- Copy indicators -->
-            <div class="copy-box">
-              <label><input type="checkbox" checked disabled /> Original for Recipient</label>
-              <label><input type="checkbox" disabled /> Duplicate for transporter</label>
-              <label><input type="checkbox" disabled /> Triplicate for suppliers</label>
-            </div>
           </div>
 
           <!-- Maroon Banner -->
@@ -457,13 +450,21 @@
             <div class="bill-to-box">
               <span class="meta-label">Bill To:</span>
               <strong class="buyer-company">{{ selectedCustomerObj()?.companyName || 'Select a Buyer...' }}</strong>
-              <p class="buyer-address-text">
-                {{ selectedCustomerObj()?.billingAddress?.line1 }}<br />
-                <span *ngIf="selectedCustomerObj()?.billingAddress?.line2">{{ selectedCustomerObj()?.billingAddress?.line2 }}<br /></span>
-                {{ selectedCustomerObj()?.billingAddress?.city || 'Pune' }} - {{ selectedCustomerObj()?.billingAddress?.pincode || '411033' }}
+              <p class="buyer-address-text" *ngIf="selectedCustomerObj() as cust">
+                <span *ngIf="cust.billingAddress?.line1">{{ cust.billingAddress.line1 }}<br /></span>
+                <span *ngIf="cust.billingAddress?.line2">{{ cust.billingAddress.line2 }}<br /></span>
+                <span *ngIf="cust.billingAddress?.city || cust.billingAddress?.pincode">
+                  {{ cust.billingAddress.city }}<ng-container *ngIf="cust.billingAddress.city && cust.billingAddress.pincode"> - </ng-container>{{ cust.billingAddress.pincode }}
+                </span>
+              </p>
+              <p class="buyer-address-text text-muted" *ngIf="!selectedCustomerObj()">
+                Buyer billing address and tax compliance details will appear here once selected.
               </p>
               <p class="buyer-gst" *ngIf="selectedCustomerObj()?.gstin">
                 <strong>GSTIN:</strong> {{ selectedCustomerObj()?.gstin }}
+              </p>
+              <p class="buyer-gst" *ngIf="selectedCustomerObj()?.mobile">
+                <strong>Mobile:</strong> {{ selectedCustomerObj()?.mobile }}
               </p>
             </div>
 

@@ -3,7 +3,7 @@
     <!-- Header Row -->
     <div class="page-header-row">
       <div class="header-titles">
-        <h2>Products & Variety Catalog</h2>
+        <h1 class="page-title">Products & Variety Catalog</h1>
         <p>Manage standard rice varieties, by-products (bran, kani, husk), packaging weights, HSN codes, and default rates</p>
       </div>
 
@@ -290,13 +290,13 @@
           <!-- Product Code -->
           <div class="form-group">
             <label class="label-with-pricing-hint">
-              <span>Product Code *</span>
-              <span class="locked-badge" *ngIf="isEditMode()">
+              <span>Product Code</span>
+              <span class="locked-badge" [class.auto-badge]="!isEditMode()">
                 <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.2">
                   <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
                   <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
                 </svg>
-                Non-Editable
+                {{ isEditMode() ? 'Non-Editable' : '⚡ Auto-Generated Sequential' }}
               </span>
             </label>
             <input
@@ -304,10 +304,10 @@
               formControlName="productCode"
               placeholder="e.g. PROD-007"
               autocomplete="off"
-              [readonly]="isEditMode()"
-              [class.input-disabled]="isEditMode()"
+              readonly
+              class="input-disabled font-mono"
             />
-            <span class="field-hint">{{ isEditMode() ? 'Product code cannot be changed once created' : 'Unique product identifier' }}</span>
+            <span class="field-hint">{{ isEditMode() ? 'Product code cannot be changed once created' : 'Sequential code automatically assigned by the system' }}</span>
           </div>
 
           <!-- Category -->

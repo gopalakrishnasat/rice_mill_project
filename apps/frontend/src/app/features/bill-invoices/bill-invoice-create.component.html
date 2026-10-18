@@ -69,7 +69,7 @@
               <div class="trigger-content" *ngIf="selectedCustomerObj() as cust; else noCustomerSelected">
                 <span class="cust-code-badge">{{ cust.customerCode }}</span>
                 <span class="cust-name-text">{{ cust.companyName }}</span>
-                <span class="cust-meta-text" *ngIf="cust.billingAddress?.city">
+                <span class="cust-meta-text" *ngIf="cust.billingAddress.city">
                   📍 {{ cust.billingAddress.city }}
                 </span>
                 <span class="cust-meta-text" *ngIf="cust.mobile">
@@ -142,7 +142,7 @@
                       <strong class="item-name">{{ c.companyName }}</strong>
                     </div>
                     <div class="item-secondary-line">
-                      <span *ngIf="c.billingAddress?.city">📍 {{ c.billingAddress.city }}</span>
+                      <span *ngIf="c.billingAddress.city">📍 {{ c.billingAddress.city }}</span>
                       <span *ngIf="c.mobile">📞 {{ c.mobile }}</span>
                     </div>
                   </div>
@@ -476,7 +476,7 @@
         </div>
 
         <!-- Digital Notes Card (Digital Screen Preview Only, Excluded from Print & PDF) -->
-        <div class="digital-notes-card no-print" *ngIf="notes?.trim()">
+        <div class="digital-notes-card no-print" *ngIf="notes.trim()">
           <div class="digital-notes-header">
             <span class="notes-tag">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">

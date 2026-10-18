@@ -434,3 +434,80 @@
     transform: scale(1);
   }
 }
+
+/* ==========================================================================
+   RESPONSIVE DESIGN (TABLET & MOBILE)
+   ========================================================================== */
+
+@media (max-width: 900px) {
+  .topbar {
+    padding: 0 1rem;
+  }
+
+  .mill-profile-btn {
+    padding: 0.35rem;
+    .mill-profile-text {
+      display: none;
+    }
+  }
+
+  .user-badge-container {
+    .user-info {
+      display: none;
+    }
+  }
+}
+
+@media (max-width: 640px) {
+  .topbar {
+    padding: 0 0.75rem;
+  }
+
+  .brand-left {
+    gap: 0.5rem;
+
+    .logo-circle {
+      width: 36px;
+      height: 36px;
+      min-width: 36px;
+      svg {
+        width: 22px;
+        height: 22px;
+      }
+    }
+
+    .brand-title {
+      h3 {
+        font-size: 0.85rem;
+        max-width: 140px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      span {
+        display: none;
+      }
+    }
+  }
+
+  .topbar-right {
+    gap: 0.4rem;
+  }
+
+  .logout-btn {
+    padding: 0.45rem 0.6rem;
+    span {
+      display: none;
+    }
+  }
+}
+
+@media (max-width: 360px) {
+  .brand-left .brand-title h3 {
+    max-width: 105px;
+    font-size: 0.75rem;
+  }
+  .mill-profile-btn {
+    display: none;
+  }
+}

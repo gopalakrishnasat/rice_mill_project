@@ -50,12 +50,6 @@
           <span><strong>Email:</strong> {{ company()?.email || 'slricemill@gmail.com' }}</span>
         </div>
       </div>
-
-      <div class="copy-box">
-        <label><input type="checkbox" checked disabled /> Original for Recipient</label>
-        <label><input type="checkbox" disabled /> Duplicate for transporter</label>
-        <label><input type="checkbox" disabled /> Triplicate for suppliers</label>
-      </div>
     </div>
 
     <!-- Maroon Banner -->
@@ -69,9 +63,11 @@
         <span class="meta-label">Bill To:</span>
         <strong class="buyer-company">{{ invoice()?.customerSnapshot?.companyName }}</strong>
         <p class="buyer-address-text">
-          {{ invoice()?.customerSnapshot?.billingAddress?.line1 }}<br />
+          <span *ngIf="invoice()?.customerSnapshot?.billingAddress?.line1">{{ invoice()?.customerSnapshot?.billingAddress?.line1 }}<br /></span>
           <span *ngIf="invoice()?.customerSnapshot?.billingAddress?.line2">{{ invoice()?.customerSnapshot?.billingAddress?.line2 }}<br /></span>
-          {{ invoice()?.customerSnapshot?.billingAddress?.city }} - {{ invoice()?.customerSnapshot?.billingAddress?.pincode }}
+          <span *ngIf="invoice()?.customerSnapshot?.billingAddress?.city || invoice()?.customerSnapshot?.billingAddress?.pincode">
+            {{ invoice()?.customerSnapshot?.billingAddress?.city }}<ng-container *ngIf="invoice()?.customerSnapshot?.billingAddress?.city && invoice()?.customerSnapshot?.billingAddress?.pincode"> - </ng-container>{{ invoice()?.customerSnapshot?.billingAddress?.pincode }}
+          </span>
         </p>
         <p class="buyer-gst" *ngIf="invoice()?.customerSnapshot?.gstin">
           <strong>GSTIN:</strong> {{ invoice()?.customerSnapshot?.gstin }}

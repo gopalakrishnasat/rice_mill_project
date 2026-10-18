@@ -143,22 +143,6 @@
   color: #222;
 }
 
-.copy-box {
-  border: 1px solid #000;
-  padding: 0.5rem;
-  font-size: 0.7rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  white-space: nowrap;
-
-  label {
-    display: flex;
-    align-items: center;
-    gap: 0.3rem;
-  }
-}
-
 .tax-invoice-banner {
   background: #800000;
   color: #fff;

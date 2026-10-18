@@ -4,7 +4,7 @@
     <!-- Header Row -->
     <div class="page-header-row">
       <div class="header-titles">
-        <h2>Sales Invoices & Billing</h2>
+        <h1 class="page-title">Sales Invoices & Billing</h1>
         <p>Generate, edit, and print GST tax invoices, delivery challans, and record payments against mill dispatches
         </p>
       </div>
@@ -346,7 +346,7 @@
                     <span class="buyer-code-tag" *ngIf="inv.customerSnapshot.customerCode">
                       {{ inv.customerSnapshot.customerCode }}
                     </span>
-                    <span class="buyer-sub">{{ inv.customerSnapshot.billingAddress.city || 'Pune' }}</span>
+                    <span class="buyer-sub" *ngIf="inv.customerSnapshot.billingAddress.city">{{ inv.customerSnapshot.billingAddress.city }}</span>
                   </div>
                 </div>
               </td>

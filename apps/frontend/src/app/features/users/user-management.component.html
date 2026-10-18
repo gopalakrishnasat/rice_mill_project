@@ -4,7 +4,7 @@
     <!-- Header Row -->
     <div class="page-header-row">
       <div class="header-titles">
-        <h2>Personnel & User Management</h2>
+        <h1 class="page-title">Personnel & User Management</h1>
         <p>Executive Super Admin employee provisioning, role assignment, and sequential ID governance</p>
       </div>
 
@@ -256,7 +256,7 @@
         <!-- Modal Actions -->
         <div class="modal-actions">
           <button type="button" class="btn-cancel" (click)="closeCreateModal()">Cancel</button>
-          <button type="submit" class="btn-submit" [disabled]="isSubmitting() || createUserForm.invalid">
+          <button type="submit" class="btn-submit" [disabled]="isSubmitting()">
             <span class="spinner" *ngIf="isSubmitting()"></span>
             <span>{{ isSubmitting() ? 'Creating Employee...' : 'Create Employee Account' }}</span>
           </button>

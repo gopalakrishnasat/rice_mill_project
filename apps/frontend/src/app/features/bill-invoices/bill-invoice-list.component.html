@@ -173,7 +173,7 @@
                 <strong class="item-name">{{ c.companyName }}</strong>
               </div>
               <div class="item-secondary-line">
-                <span *ngIf="c.billingAddress?.city">📍 {{ c.billingAddress.city }}</span>
+                <span *ngIf="c.billingAddress.city">📍 {{ c.billingAddress.city }}</span>
                 <span *ngIf="c.mobile">📞 {{ c.mobile }}</span>
               </div>
             </div>
@@ -265,8 +265,8 @@
               {{ bill.date | date:'dd MMM yyyy' }}
             </td>
             <td class="buyer-cell">
-              <strong>{{ bill.customerSnapshot?.companyName || 'Cash Customer' }}</strong>
-              <small *ngIf="bill.customerSnapshot?.mobile" class="buyer-sub">
+              <strong>{{ bill.customerSnapshot.companyName || 'Cash Customer' }}</strong>
+              <small *ngIf="bill.customerSnapshot.mobile" class="buyer-sub">
                 📞 {{ bill.customerSnapshot.mobile }}
               </small>
             </td>

@@ -225,7 +225,7 @@
           <button
             type="submit"
             class="submit-btn"
-            [disabled]="isLoading() || loginForm.invalid"
+            [disabled]="isLoading()"
             id="login-submit-btn"
           >
             <ng-container *ngIf="!isLoading()">

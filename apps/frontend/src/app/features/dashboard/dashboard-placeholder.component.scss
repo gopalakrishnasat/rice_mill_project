@@ -12,6 +12,14 @@
   font-family: var(--font-body);
   color: var(--text-primary);
   animation: fadeIn 0.3s ease-out;
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
+
+  @media (max-width: 768px) {
+    padding: 1rem 0.75rem 2rem;
+    gap: 1rem;
+  }
 }
 
 @keyframes fadeIn {
@@ -40,6 +48,13 @@
   border: 1px solid var(--border-light);
   border-radius: var(--radius-xl);
   box-shadow: 0 4px 16px rgba(12, 37, 24, 0.04);
+  min-width: 0;
+  box-sizing: border-box;
+
+  @media (max-width: 768px) {
+    padding: 1rem;
+    gap: 1rem;
+  }
 }
 
 .header-left {
@@ -77,13 +92,22 @@
     flex-direction: column;
     gap: 0.25rem;
 
-    h2 {
+    h1, h2 {
       font-family: var(--font-heading);
       font-size: 1.65rem;
       font-weight: 700;
       color: var(--primary-950);
       margin: 0;
       letter-spacing: -0.02em;
+      word-break: break-word;
+
+      @media (max-width: 768px) {
+        font-size: 1.25rem;
+      }
+
+      @media (max-width: 480px) {
+        font-size: 1.05rem;
+      }
     }
 
     .user-greeting {
@@ -456,6 +480,8 @@
   display: grid;
   grid-template-columns: 1.25fr 1fr;
   gap: 1.5rem;
+  min-width: 0;
+  width: 100%;
 
   @media (max-width: 1080px) {
     grid-template-columns: 1fr;
@@ -468,6 +494,10 @@
       grid-template-columns: 1fr;
     }
   }
+
+  > * {
+    min-width: 0;
+  }
 }
 
 .analytics-card {
@@ -479,6 +509,14 @@
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  box-sizing: border-box;
+
+  @media (max-width: 768px) {
+    padding: 1rem;
+  }
 
   .card-title-bar {
     display: flex;
@@ -564,6 +602,15 @@
     align-items: center;
     font-size: 0.82rem;
     font-weight: 700;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+
+    @media (max-width: 360px) {
+      font-size: 0.72rem;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.35rem;
+    }
 
     .gauge-col {
       display: flex;
@@ -1239,4 +1286,10 @@
 .font-bold { font-weight: 700; }
 .font-semibold { font-weight: 600; }
 .text-right { text-align: right; }
-.table-responsive { width: 100%; overflow-x: auto; }
+.table-responsive {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  display: block;
+}

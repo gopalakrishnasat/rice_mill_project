@@ -93,40 +93,8 @@ export class PdfGeneratorService {
         .font('Helvetica')
         .text(company.email || 'slricemill@gmail.com');
 
-      // Copy Box (Right side)
-      const copyBoxX = 415;
-      const copyBoxY = millY;
-      const copyBoxW = 150;
-      const copyBoxH = 50;
-      doc.rect(copyBoxX, copyBoxY, copyBoxW, copyBoxH).lineWidth(1).stroke(BLACK);
-
-      // Checkbox 1 (Original - checked with green/black checkmark)
-      const cb1Y = copyBoxY + 6;
-      doc.rect(copyBoxX + 8, cb1Y, 9, 9).lineWidth(1).stroke(BLACK);
-      // Checkmark ✓
-      doc
-        .save()
-        .lineWidth(1.2)
-        .strokeColor(BLACK)
-        .moveTo(copyBoxX + 9.5, cb1Y + 4.5)
-        .lineTo(copyBoxX + 12, cb1Y + 7.5)
-        .lineTo(copyBoxX + 16, cb1Y + 2)
-        .stroke()
-        .restore();
-      doc.fontSize(7).font('Helvetica-Bold').fillColor(BLACK).text('Original for Recipient', copyBoxX + 22, cb1Y + 1);
-
-      // Checkbox 2 (Duplicate)
-      const cb2Y = copyBoxY + 20;
-      doc.rect(copyBoxX + 8, cb2Y, 9, 9).lineWidth(0.8).stroke('#666666');
-      doc.fontSize(7).font('Helvetica').fillColor(GRAY_TEXT).text('Duplicate for transporter', copyBoxX + 22, cb2Y + 1);
-
-      // Checkbox 3 (Triplicate)
-      const cb3Y = copyBoxY + 34;
-      doc.rect(copyBoxX + 8, cb3Y, 9, 9).lineWidth(0.8).stroke('#666666');
-      doc.fontSize(7).font('Helvetica').fillColor(GRAY_TEXT).text('Triplicate for suppliers', copyBoxX + 22, cb3Y + 1);
-
       // 2px Maroon separator line under Mill Header
-      const sepY = copyBoxY + copyBoxH + 6;
+      const sepY = millY + 56;
       doc.rect(30, sepY, 535, 2).fill(MAROON);
 
       // 3. Tax Invoice Banner
@@ -152,8 +120,15 @@ export class PdfGeneratorService {
       const addrLines: string[] = [];
       if (invoice.customerSnapshot?.billingAddress?.line1) addrLines.push(invoice.customerSnapshot.billingAddress.line1);
       if (invoice.customerSnapshot?.billingAddress?.line2) addrLines.push(invoice.customerSnapshot.billingAddress.line2);
-      const cityPin = `${invoice.customerSnapshot?.billingAddress?.city || 'Pune'} - ${invoice.customerSnapshot?.billingAddress?.pincode || '411033'}`;
-      addrLines.push(cityPin);
+      const bCity = invoice.customerSnapshot?.billingAddress?.city;
+      const bPin = invoice.customerSnapshot?.billingAddress?.pincode;
+      if (bCity && bPin) {
+        addrLines.push(`${bCity} - ${bPin}`);
+      } else if (bCity) {
+        addrLines.push(bCity);
+      } else if (bPin) {
+        addrLines.push(bPin);
+      }
 
       // Calculate meta height based on content
       doc.fontSize(7.5).font('Helvetica');
