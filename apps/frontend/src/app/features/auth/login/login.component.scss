@@ -313,59 +313,7 @@
   }
 }
 
-/* Demo Role Badges */
-.demo-roles-container {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-  background-color: var(--primary-50);
-  border: 1px dashed var(--primary-200);
-  padding: 0.65rem 0.85rem;
-  border-radius: var(--radius-md);
 
-  .demo-label {
-    font-size: 0.725rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--primary-700);
-  }
-
-  .demo-badges {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.35rem;
-
-    .demo-btn {
-      background: #ffffff;
-      border: 1px solid var(--primary-200);
-      padding: 0.25rem 0.6rem;
-      border-radius: var(--radius-sm);
-      font-size: 0.775rem;
-      font-weight: 600;
-      color: var(--primary-800);
-      transition: all var(--transition-fast);
-
-      &:hover {
-        background: var(--primary-700);
-        color: #ffffff;
-        border-color: var(--primary-700);
-        transform: translateY(-1px);
-      }
-
-      &.demo-super {
-        background: var(--gold-100);
-        border-color: var(--gold-400);
-        color: var(--gold-700);
-
-        &:hover {
-          background: var(--gold-500);
-          color: #ffffff;
-        }
-      }
-    }
-  }
-}
 
 .forgot-back-row {
   display: flex;

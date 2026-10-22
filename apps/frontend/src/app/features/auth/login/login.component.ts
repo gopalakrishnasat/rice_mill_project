@@ -54,22 +54,6 @@ export class LoginComponent {
     this.showPassword.update((val) => !val);
   }
 
-  setDemoUser(role: 'super_admin' | 'admin' | 'view_only_admin'): void {
-    const credentials = {
-      super_admin: { email: 'superadmin@ricemill.com', password: 'SuperAdmin@123' },
-      admin: { email: 'admin@ricemill.com', password: 'Admin@123' },
-      view_only_admin: { email: 'viewer@ricemill.com', password: 'Viewer@123' },
-    };
-
-    const user = credentials[role];
-    this.loginForm.patchValue({
-      email: user.email,
-      password: user.password,
-    });
-    this.errorMessage.set(null);
-    this.successMessage.set(null);
-  }
-
   openForgotPassword(): void {
     this.showForgotDialog.set(true);
     this.errorMessage.set(null);

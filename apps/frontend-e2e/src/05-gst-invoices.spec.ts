@@ -174,4 +174,43 @@ test.describe('05: GST Sales Invoices & Billing', () => {
     // PDF Magic bytes %PDF
     expect(body.subarray(0, 4).toString()).toBe('%PDF');
   });
+
+  test('TC-INV-06: Record Payment Receipt triggers confirmation popup before submission', async ({ page }) => {
+    await page.goto('/invoices');
+    await page.waitForSelector('table.data-table tbody tr');
+
+    // Find a row with a '+₹ Pay' button
+    const payBtn = page.locator('button.btn-action-pay').first();
+    await expect(payBtn).toBeVisible();
+    await payBtn.click();
+
+    // Verify modal appears
+    const modalCard = page.locator('app-record-payment-modal .modal-card');
+    await expect(modalCard).toBeVisible();
+    await expect(modalCard.locator('h3')).toContainText(/Record Payment Receipt/i);
+
+    // Click Record Payment in the modal
+    const submitBtn = modalCard.locator('#btn-modal-record-payment');
+    await expect(submitBtn).toBeVisible();
+    await submitBtn.click();
+
+    // Verify confirm dialog appears on top
+    const confirmDialog = page.locator('app-confirm-dialog .confirm-card');
+    await expect(confirmDialog).toBeVisible();
+    await expect(confirmDialog.locator('.confirm-title')).toContainText(/Confirm Payment Receipt/i);
+    await expect(confirmDialog.locator('.confirm-message')).toContainText(/Are you sure you want to record a payment of/i);
+
+    // Click Cancel in confirm dialog
+    const cancelBtn = confirmDialog.locator('.btn-dialog-cancel');
+    await expect(cancelBtn).toBeVisible();
+    await cancelBtn.click();
+
+    // Verify confirm dialog closes, but payment modal remains open
+    await expect(confirmDialog).not.toBeVisible();
+    await expect(modalCard).toBeVisible();
+
+    // Close payment modal
+    await modalCard.locator('.modal-close-btn').click();
+    await expect(modalCard).not.toBeVisible();
+  });
 });

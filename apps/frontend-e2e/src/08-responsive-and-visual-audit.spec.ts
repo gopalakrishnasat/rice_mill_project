@@ -17,7 +17,7 @@ test.describe('08: Multi-Viewport Responsive & Visual Audit', () => {
       await page.setViewportSize({ width: vp.width, height: vp.height });
       await loginAs(page, TEST_USERS.superAdmin);
       await page.goto('/dashboard');
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       const hasHorizontalOverflow = await page.evaluate(() => {
         return document.documentElement.scrollWidth > window.innerWidth;

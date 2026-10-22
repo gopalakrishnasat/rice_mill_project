@@ -143,6 +143,7 @@
         <button
           type="submit"
           class="btn-submit"
+          id="btn-modal-record-payment"
           [disabled]="isSubmitting() || paymentForm.invalid || isOverSettled() || effectiveSettlement() <= 0"
         >
           <span class="spinner" *ngIf="isSubmitting()"></span>

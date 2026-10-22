@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="goldRing" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f5c563" />
+      <stop offset="100%" stop-color="#b8860b" />
+    </linearGradient>
+    <linearGradient id="riceGreen" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#236647" />
+      <stop offset="100%" stop-color="#143b29" />
+    </linearGradient>
+    <linearGradient id="innerKernel" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffe28a" />
+      <stop offset="100%" stop-color="#d49b28" />
+    </linearGradient>
+  </defs>
+  <!-- Clean badge background so icon is visible on both dark & light browser tabs -->
+  <circle cx="32" cy="32" r="30" fill="#ffffff" />
+  <circle cx="32" cy="32" r="28" stroke="url(#goldRing)" stroke-width="2.5" stroke-dasharray="4 2.5" fill="#fdfbf7" />
+  <!-- Rice grain outer silhouette -->
+  <path d="M32 9C20 17 18 35 32 55C46 35 44 17 32 9Z" fill="url(#riceGreen)" />
+  <!-- Rice grain golden kernel core -->
+  <path d="M32 17C28 22 28 30 32 35C36 30 36 22 32 17Z" fill="url(#innerKernel)" />
+</svg>

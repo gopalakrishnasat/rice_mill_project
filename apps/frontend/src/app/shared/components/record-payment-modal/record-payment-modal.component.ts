@@ -25,6 +25,7 @@ import {
 } from '@rice-mill-project/shared-types';
 import { InvoicesService } from '../../../core/services/invoices.service';
 import { SnackbarService } from '../../../core/services/snackbar.service';
+import { ConfirmDialogService } from '../../../core/services/confirm-dialog.service';
 
 @Component({
   selector: 'app-record-payment-modal',
@@ -37,6 +38,7 @@ export class RecordPaymentModalComponent implements OnInit, OnChanges {
   private readonly fb = inject(FormBuilder);
   private readonly invoicesService = inject(InvoicesService);
   private readonly snackbarService = inject(SnackbarService);
+  private readonly confirmDialogService = inject(ConfirmDialogService);
 
   @Input({ required: true }) invoice!: IInvoice;
   @Output() closed = new EventEmitter<void>();
@@ -97,7 +99,7 @@ export class RecordPaymentModalComponent implements OnInit, OnChanges {
 
   @HostListener('document:keydown.escape')
   onEscape(): void {
-    if (!this.isSubmitting()) {
+    if (!this.isSubmitting() && !this.confirmDialogService.state().isOpen) {
       this.close();
     }
   }
@@ -105,7 +107,8 @@ export class RecordPaymentModalComponent implements OnInit, OnChanges {
   onBackdropClick(event: MouseEvent): void {
     if (
       (event.target as HTMLElement).classList.contains('modal-backdrop') &&
-      !this.isSubmitting()
+      !this.isSubmitting() &&
+      !this.confirmDialogService.state().isOpen
     ) {
       this.close();
     }
@@ -179,7 +182,7 @@ export class RecordPaymentModalComponent implements OnInit, OnChanges {
     });
   }
 
-  onSubmit(): void {
+  async onSubmit(): Promise<void> {
     if (
       this.paymentForm.invalid ||
       !this.invoice ||
@@ -200,18 +203,51 @@ export class RecordPaymentModalComponent implements OnInit, OnChanges {
       notes: val.notes?.trim() || undefined,
     };
 
+    const formattedAmount = new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      maximumFractionDigits: 2,
+    }).format(dto.amount);
+
+    const modeLabel =
+      this.paymentModes.find((m) => m.value === dto.paymentMode)?.label ||
+      dto.paymentMode;
+
+    let confirmationMsg = `Are you sure you want to record a payment of ${formattedAmount} via ${modeLabel} for invoice ${this.invoice.invoiceNumber}?`;
+    if (dto.discount && dto.discount > 0) {
+      const formattedDiscount = new Intl.NumberFormat('en-IN', {
+        style: 'currency',
+        currency: 'INR',
+        maximumFractionDigits: 2,
+      }).format(dto.discount);
+      confirmationMsg += ` (Includes a settlement discount of ${formattedDiscount})`;
+    }
+    confirmationMsg += ' This will permanently update the invoice balance and khata ledger.';
+
+    const confirmed = await this.confirmDialogService.confirm({
+      title: 'Confirm Payment Receipt',
+      message: confirmationMsg,
+      confirmText: 'Record Payment',
+      cancelText: 'Cancel',
+      type: 'success',
+    });
+
+    if (!confirmed) {
+      return;
+    }
+
     const targetInvoice = this.invoice;
     this.isSubmitting.set(true);
 
     this.invoicesService.recordPayment(targetInvoice.id, dto).subscribe({
       next: (res) => {
         this.isSubmitting.set(false);
-        const formattedAmount = new Intl.NumberFormat('en-IN', {
+        const successFormattedAmount = new Intl.NumberFormat('en-IN', {
           minimumFractionDigits: 2,
           maximumFractionDigits: 2,
         }).format(dto.amount);
 
-        let msg = `Payment of ₹${formattedAmount} recorded for invoice ${targetInvoice.invoiceNumber}!`;
+        let msg = `Payment of ₹${successFormattedAmount} recorded for invoice ${targetInvoice.invoiceNumber}!`;
         if (dto.discount && dto.discount > 0) {
           msg += ` (Discount given: ₹${dto.discount.toFixed(2)})`;
         }

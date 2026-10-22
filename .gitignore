@@ -53,7 +53,5 @@ __screenshots__/
 .env.*
 !.env.example
 
-# Internal, troubleshooting & feature plan notes
-/troubleshooting-notes/
-/feature-plans/
-
+# Internal documentation, troubleshooting & feature plan notes
+/internal-docs/

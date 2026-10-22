@@ -25,6 +25,10 @@ test.describe('01: Authentication, Authorization & Route Guards', () => {
     await expect(passwordInput).toBeVisible();
     await expect(submitBtn).toBeVisible();
     await expect(submitBtn).toContainText(/Sign In|Login/i);
+
+    // Verify Quick Demo Role Access buttons are removed for production
+    await expect(page.locator('.demo-roles-container')).not.toBeVisible();
+    await expect(page.locator('body')).not.toContainText('Quick Demo Role Access');
   });
 
   test('TC-AUTH-02: Form validation triggers on empty submissions, invalid formats, and length', async ({ page }) => {
