@@ -14,9 +14,11 @@
           class="btn-secondary"
           (click)="saveInvoice(false)"
           [disabled]="isSubmitting()"
+          [class.btn-view-only-locked]="!canManageInvoices()"
+          [title]="!canManageInvoices() ? 'Access Denied: View-Only accounts cannot modify invoices' : ''"
         >
           <span class="spinner" *ngIf="isSubmitting()"></span>
-          <span>💾 Save Changes to DB</span>
+          <span>{{ !canManageInvoices() ? '🔒 Access Denied' : '💾 Save Changes to DB' }}</span>
         </button>
 
         <button
@@ -24,11 +26,25 @@
           class="btn-primary"
           (click)="saveInvoice(true)"
           [disabled]="isSubmitting()"
+          [class.btn-view-only-locked]="!canManageInvoices()"
+          [title]="!canManageInvoices() ? 'Access Denied: View-Only accounts cannot modify invoices' : ''"
         >
           <span class="spinner" *ngIf="isSubmitting()"></span>
-          <span>🖨️ Save & Print Bill</span>
+          <span>{{ !canManageInvoices() ? '🔒 Access Denied' : '🖨️ Save & Print Bill' }}</span>
         </button>
       </div>
+    </div>
+
+    <!-- View-Only Notice Banner -->
+    <div class="view-only-access-banner" *ngIf="!canManageInvoices()">
+      <div class="banner-icon-box">👁️</div>
+      <div class="banner-content">
+        <div class="banner-title">View-Only Auditor Mode</div>
+        <div class="banner-desc">
+          You are signed in as a View-Only Admin. You can inspect invoice items and details, but creating or modifying invoices is restricted to Super Admin and Operations Admin roles.
+        </div>
+      </div>
+      <span class="banner-chip">Access Restricted</span>
     </div>
 
     <!-- Two-Pane Layout -->
@@ -47,7 +63,7 @@
             <div class="form-group buyer-select-group" [class.has-error]="invoiceForm.get('customerId')?.invalid && invoiceForm.get('customerId')?.touched">
               <div class="label-row">
                 <label>Select Buyer / Customer *</label>
-                <button type="button" class="btn-register-buyer" (click)="openRegisterBuyerModal()">
+                <button type="button" class="btn-register-buyer" *ngIf="canManageInvoices()" (click)="openRegisterBuyerModal()">
                   + Register New Buyer
                 </button>
               </div>
@@ -176,6 +192,7 @@
                     <div class="empty-icon">🔍</div>
                     <div class="empty-text">No registered buyers matching "<strong>{{ buyerFilterSearch() }}</strong>"</div>
                     <button
+                      *ngIf="canManageInvoices()"
                       type="button"
                       class="btn-register-from-search"
                       (click)="openRegisterBuyerFromSearch(buyerFilterSearch())"
@@ -186,7 +203,7 @@
 
                   <!-- Dropdown Footer -->
                   <div class="dropdown-footer" (click)="$event.stopPropagation()">
-                    <button type="button" class="btn-footer-add-buyer" (click)="openRegisterBuyerModal()">
+                    <button *ngIf="canManageInvoices()" type="button" class="btn-footer-add-buyer" (click)="openRegisterBuyerModal()">
                       + Register New Buyer
                     </button>
                     <span class="footer-help">Click any buyer to select</span>
@@ -307,7 +324,7 @@
                   <!-- Qty -->
                   <div class="form-group grid-qty">
                     <label>Quantity *</label>
-                    <input type="number" formControlName="qty" placeholder="Qty" min="0.1" />
+                    <input type="number" formControlName="qty" placeholder="Qty" min="1" step="1" />
                   </div>
 
                   <!-- Rate -->
@@ -367,11 +384,80 @@
               </div>
             </div>
 
+            <!-- GST Tax Rate Configuration (Tax Invoice Only) -->
+            <div class="gst-rate-control-box" *ngIf="liveIsTaxInvoice()">
+              <div class="gst-rate-header-row">
+                <label for="invoice-gst-rate-input" class="gst-rate-label">
+                  GST Tax Rate (%) *
+                </label>
+                <span class="gst-split-badge" *ngIf="!liveIsInterState()">
+                  CGST: {{ liveCgstPercent() }}% + SGST: {{ liveSgstPercent() }}%
+                </span>
+                <span class="gst-split-badge badge-igst" *ngIf="liveIsInterState()">
+                  IGST: {{ liveIgstPercent() }}% (Inter-State)
+                </span>
+              </div>
+
+              <div class="gst-rate-inputs-row">
+                <div class="gst-input-wrapper">
+                  <input
+                    type="number"
+                    id="invoice-gst-rate-input"
+                    formControlName="gstRate"
+                    placeholder="5"
+                    min="0"
+                    max="100"
+                    step="1"
+                  />
+                  <span class="input-suffix">%</span>
+                </div>
+
+                <div class="gst-preset-pills">
+                  <button
+                    type="button"
+                    class="preset-pill"
+                    [class.active]="liveGstRate() === 0"
+                    (click)="setGstRate(0)"
+                    id="btn-gst-preset-0"
+                  >
+                    0% (Exempt)
+                  </button>
+                  <button
+                    type="button"
+                    class="preset-pill"
+                    [class.active]="liveGstRate() === 5"
+                    (click)="setGstRate(5)"
+                    id="btn-gst-preset-5"
+                  >
+                    5% (Standard)
+                  </button>
+                  <button
+                    type="button"
+                    class="preset-pill"
+                    [class.active]="liveGstRate() === 12"
+                    (click)="setGstRate(12)"
+                    id="btn-gst-preset-12"
+                  >
+                    12%
+                  </button>
+                  <button
+                    type="button"
+                    class="preset-pill"
+                    [class.active]="liveGstRate() === 18"
+                    (click)="setGstRate(18)"
+                    id="btn-gst-preset-18"
+                  >
+                    18%
+                  </button>
+                </div>
+              </div>
+            </div>
+
             <!-- Inter-State IGST Checkbox -->
             <div class="checkbox-row" *ngIf="liveIsTaxInvoice()">
               <label class="check-label">
-                <input type="checkbox" formControlName="isInterState" />
-                <span>Inter-State Supply (Apply IGST 5.0% instead of CGST 2.5% + SGST 2.5%)</span>
+                <input type="checkbox" formControlName="isInterState" id="input-interstate-checkbox" />
+                <span>Inter-State Supply (Apply IGST {{ liveIgstPercent() }}% instead of CGST {{ liveCgstPercent() }}% + SGST {{ liveSgstPercent() }}%)</span>
               </label>
             </div>
           </div>
@@ -553,15 +639,15 @@
                   <td>-₹{{ liveDiscount() | number:'1.2-2' }}</td>
                 </tr>
                 <tr *ngIf="liveIsTaxInvoice() && !liveIsInterState()">
-                  <th>SGST (2.5%)</th>
+                  <th>SGST ({{ liveSgstPercent() }}%)</th>
                   <td>₹{{ liveSgstAmount() | number:'1.2-2' }}</td>
                 </tr>
                 <tr *ngIf="liveIsTaxInvoice() && !liveIsInterState()">
-                  <th>CGST (2.5%)</th>
+                  <th>CGST ({{ liveCgstPercent() }}%)</th>
                   <td>₹{{ liveCgstAmount() | number:'1.2-2' }}</td>
                 </tr>
                 <tr *ngIf="liveIsTaxInvoice() && liveIsInterState()">
-                  <th>IGST (5.0%)</th>
+                  <th>IGST ({{ liveIgstPercent() }}%)</th>
                   <td>₹{{ liveIgstAmount() | number:'1.2-2' }}</td>
                 </tr>
                 <tr class="grand-total-row">

@@ -80,6 +80,9 @@ export class Invoice {
   @Prop({ type: Boolean, required: true, default: false })
   isInterState!: boolean;
 
+  @Prop({ type: Number, required: true, default: 5.0 })
+  gstRate!: number;
+
   @Prop({ type: Number, required: true, default: 2.5 })
   cgstPercent!: number;
 

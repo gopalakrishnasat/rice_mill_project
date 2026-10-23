@@ -7,7 +7,7 @@
         <p>Manage standard rice varieties, by-products (bran, kani, husk), packaging weights, HSN codes, and default rates</p>
       </div>
 
-      <div class="header-actions">
+      <div class="header-actions" *ngIf="canManageProducts()">
         <a routerLink="/invoices/new" class="btn-new-bill" id="btn-create-bill-from-products">
           <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none">
             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
@@ -177,7 +177,7 @@
               *ngFor="let p of filteredProducts()"
               [class.is-inactive]="!p.isActive"
               (click)="canManageProducts() ? openEditModal(p) : null"
-              class="clickable-row"
+              [class.clickable-row]="canManageProducts()"
             >
               <!-- Code -->
               <td class="col-code">
@@ -234,7 +234,8 @@
                   class="status-pill"
                   [class.status-active]="p.isActive"
                   [class.status-inactive]="!p.isActive"
-                  (click)="toggleProductStatus(p, $event)"
+                  [class.clickable]="canManageProducts()"
+                  (click)="canManageProducts() ? toggleProductStatus(p, $event) : null"
                   [title]="canManageProducts() ? 'Click to toggle status' : ''"
                 >
                   {{ p.isActive ? 'Active' : 'Inactive' }}

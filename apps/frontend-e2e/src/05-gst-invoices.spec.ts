@@ -94,13 +94,46 @@ test.describe('05: GST Sales Invoices & Billing', () => {
     const productPreset = page.locator('.form-select-sm').first();
     await productPreset.selectOption({ index: 1 });
 
-    // Enter Quantity
+    // Enter Quantity and verify step is 1 and up/down increments by 1
     const qtyInput = page.locator('input[formcontrolname="qty"]').first();
+    await expect(qtyInput).toHaveAttribute('step', '1');
+    await expect(qtyInput).toHaveAttribute('min', '1');
     await qtyInput.fill('50');
+    await qtyInput.press('ArrowUp');
+    await expect(qtyInput).toHaveValue('51');
+    await qtyInput.press('ArrowDown');
+    await expect(qtyInput).toHaveValue('50');
 
-    // Verify live sheet preview on the right shows customer name and item, and no copy indicator checkboxes
+    // Verify GST tax rate input and preset buttons
+    const gstRateInput = page.locator('#invoice-gst-rate-input');
+    await expect(gstRateInput).toBeVisible();
+    await expect(gstRateInput).toHaveAttribute('step', '1');
+    await expect(gstRateInput).toHaveValue('5');
+
+    // Test stepper increment by 1
+    await gstRateInput.press('ArrowUp');
+    await expect(gstRateInput).toHaveValue('6');
+    await gstRateInput.press('ArrowDown');
+    await expect(gstRateInput).toHaveValue('5');
+
+    // Test clicking 12% preset pill
+    const preset12Btn = page.locator('#btn-gst-preset-12');
+    await preset12Btn.click();
+    await expect(gstRateInput).toHaveValue('12');
+
+    // Live preview table should reflect 6% CGST and 6% SGST
     const liveSheet = page.locator('.mill-bill-sheet');
     await expect(liveSheet).toBeVisible();
+    await expect(liveSheet).toContainText('SGST (6%)');
+    await expect(liveSheet).toContainText('CGST (6%)');
+
+    // Switch back to 5% standard preset
+    await page.locator('#btn-gst-preset-5').click();
+    await expect(gstRateInput).toHaveValue('5');
+    await expect(liveSheet).toContainText('SGST (2.5%)');
+    await expect(liveSheet).toContainText('CGST (2.5%)');
+
+    // Verify live sheet preview on the right shows customer name and item, and no copy indicator checkboxes
     await expect(liveSheet).toContainText(selectedCustomerName);
     await expect(liveSheet).not.toContainText('Original for Recipient');
     await expect(liveSheet).not.toContainText('Duplicate for transporter');
@@ -189,9 +222,15 @@ test.describe('05: GST Sales Invoices & Billing', () => {
     await expect(modalCard).toBeVisible();
     await expect(modalCard.locator('h3')).toContainText(/Record Payment Receipt/i);
 
-    // Click Record Payment in the modal
+    // Verify payment amount is NOT prefilled and submit button is initially disabled
+    const amountInput = modalCard.locator('#input-payment-amount');
+    await expect(amountInput).toHaveValue('');
     const submitBtn = modalCard.locator('#btn-modal-record-payment');
-    await expect(submitBtn).toBeVisible();
+    await expect(submitBtn).toBeDisabled();
+
+    // Fill in payment amount
+    await amountInput.fill('5000');
+    await expect(submitBtn).toBeEnabled();
     await submitBtn.click();
 
     // Verify confirm dialog appears on top
@@ -213,4 +252,49 @@ test.describe('05: GST Sales Invoices & Billing', () => {
     await modalCard.locator('.modal-close-btn').click();
     await expect(modalCard).not.toBeVisible();
   });
+
+  test('TC-INV-07: View-Only Admin is restricted from editing invoices, recording payments, and creating bills', async ({ page }) => {
+    await page.evaluate(() => {
+      localStorage.clear();
+      sessionStorage.clear();
+    });
+    await loginAs(page, TEST_USERS.viewer);
+    await page.goto('/invoices');
+    await page.waitForLoadState('domcontentloaded');
+
+    // Create button should not be visible for view-only users
+    await expect(page.locator('#btn-new-tax-invoice')).not.toBeVisible();
+
+    // In the invoice list table, Edit button and Pay button must not be visible
+    await page.waitForSelector('table.data-table tbody tr');
+    await expect(page.locator('button.btn-edit')).not.toBeVisible();
+    await expect(page.locator('button.btn-action-pay')).not.toBeVisible();
+
+    // Print & Download buttons should still remain accessible for auditing
+    await expect(page.locator('button.btn-print').first()).toBeVisible();
+    await expect(page.locator('button.btn-pdf').first()).toBeVisible();
+  });
+
+  test('TC-INV-08: View-Only Admin cannot see Register New Buyer triggers on invoice form', async ({ page }) => {
+    await page.evaluate(() => {
+      localStorage.clear();
+      sessionStorage.clear();
+    });
+    await loginAs(page, TEST_USERS.viewer);
+    await page.goto('/invoices/new');
+    await page.waitForLoadState('domcontentloaded');
+
+    // "+ Register New Buyer" button next to customer dropdown label must NOT be visible
+    await expect(page.locator('.btn-register-buyer')).not.toBeVisible();
+
+    // Open customer dropdown
+    const customerTrigger = page.locator('#select-customer-trigger');
+    if (await customerTrigger.isVisible()) {
+      await customerTrigger.click();
+      // Dropdown footer "+ Register New Buyer" button must NOT be visible
+      await expect(page.locator('.btn-footer-add-buyer')).not.toBeVisible();
+    }
+  });
 });
+
+

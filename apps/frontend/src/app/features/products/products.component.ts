@@ -164,6 +164,10 @@ export class ProductsComponent implements OnInit {
   }
 
   openCreateModal(): void {
+    if (!this.canManageProducts()) {
+      this.snackbar.error('Access denied: You do not have permission to add products.');
+      return;
+    }
     this.editingProductId.set(null);
     this.modalError.set(null);
     this.productForm.reset({
@@ -181,6 +185,10 @@ export class ProductsComponent implements OnInit {
   }
 
   openEditModal(product: IProduct): void {
+    if (!this.canManageProducts()) {
+      this.snackbar.error('Access denied: You do not have permission to edit products.');
+      return;
+    }
     this.editingProductId.set(product.id);
     this.modalError.set(null);
     this.productForm.patchValue({
@@ -232,6 +240,11 @@ export class ProductsComponent implements OnInit {
   }
 
   saveProduct(): void {
+    if (!this.canManageProducts()) {
+      this.snackbar.error('Access denied: You do not have permission to create or edit products.');
+      return;
+    }
+
     if (this.productForm.invalid) {
       this.productForm.markAllAsTouched();
       this.modalError.set('Please fill in all required fields marked with *');

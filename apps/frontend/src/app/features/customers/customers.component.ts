@@ -20,6 +20,7 @@ import { SnackbarService } from '../../core/services/snackbar.service';
 import {
   ICustomer,
   CreateCustomerDto,
+  UserRole,
 } from '@rice-mill-project/shared-types';
 
 @Component({
@@ -38,6 +39,10 @@ export class CustomersComponent implements OnInit {
 
   readonly currentUser = this.authService.currentUser;
   readonly isSuperAdmin = this.authService.isSuperAdmin;
+  readonly canManageCustomers = computed(() => {
+    const role = this.currentUser()?.role;
+    return role === UserRole.SUPER_ADMIN || role === UserRole.ADMIN;
+  });
 
   // Signals
   readonly customers = signal<ICustomer[]>([]);
@@ -138,6 +143,10 @@ export class CustomersComponent implements OnInit {
   }
 
   openCreateModal(): void {
+    if (!this.canManageCustomers()) {
+      this.showAlert('error', 'Access denied: You do not have permission to register new buyers.');
+      return;
+    }
     this.createCustomerForm.reset({
       state: 'Maharashtra',
       stateCode: '27',
@@ -155,6 +164,11 @@ export class CustomersComponent implements OnInit {
   }
 
   onCreateSubmit(): void {
+    if (!this.canManageCustomers()) {
+      this.showAlert('error', 'Access denied: You do not have permission to register new buyers.');
+      return;
+    }
+
     if (this.createCustomerForm.invalid) {
       this.createCustomerForm.markAllAsTouched();
       return;
@@ -195,7 +209,11 @@ export class CustomersComponent implements OnInit {
       },
       error: (err) => {
         this.isSubmitting.set(false);
-        this.showAlert('error', err.error?.message || 'Failed to register customer.');
+        const msg =
+          err.status === 403
+            ? (err.error?.message || 'Access denied: You do not have permission to register new buyers.')
+            : (err.error?.message || 'Failed to register customer.');
+        this.showAlert('error', msg);
       },
     });
   }
@@ -209,6 +227,10 @@ export class CustomersComponent implements OnInit {
   }
 
   createInvoiceForCustomer(customer: ICustomer): void {
+    if (!this.canManageCustomers()) {
+      this.showAlert('error', 'Access denied: You do not have permission to create invoices.');
+      return;
+    }
     this.router.navigate(['/invoices/new'], {
       queryParams: { customerId: customer.id },
     });

@@ -119,4 +119,17 @@ test.describe('02: Dashboard & Navigation Layout', () => {
     const invoicesLink = page.locator('a:has-text("View All →"), a[href="/invoices"]');
     await expect(invoicesLink.first()).toBeVisible();
   });
+
+  test('TC-DASH-08: View-Only Admin cannot see Quick Action "New Invoice" button on Dashboard', async ({ page }) => {
+    await page.evaluate(() => {
+      localStorage.clear();
+      sessionStorage.clear();
+    });
+    await loginAs(page, TEST_USERS.viewer);
+    await page.goto('/dashboard');
+    await page.waitForLoadState('domcontentloaded');
+
+    await expect(page.locator('#dash-btn-new-invoice')).not.toBeVisible();
+  });
 });
+

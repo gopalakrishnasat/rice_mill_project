@@ -161,15 +161,15 @@
             <td>-₹{{ invoice()?.discount | number:'1.2-2' }}</td>
           </tr>
           <tr *ngIf="invoice()?.invoiceType === 'TAX_INVOICE' && !invoice()?.isInterState">
-            <th>SGST (2.5%)</th>
+            <th>SGST ({{ invoice()?.sgstPercent ?? 2.5 }}%)</th>
             <td>₹{{ invoice()?.sgstAmount | number:'1.2-2' }}</td>
           </tr>
           <tr *ngIf="invoice()?.invoiceType === 'TAX_INVOICE' && !invoice()?.isInterState">
-            <th>CGST (2.5%)</th>
+            <th>CGST ({{ invoice()?.cgstPercent ?? 2.5 }}%)</th>
             <td>₹{{ invoice()?.cgstAmount | number:'1.2-2' }}</td>
           </tr>
           <tr *ngIf="invoice()?.invoiceType === 'TAX_INVOICE' && invoice()?.isInterState">
-            <th>IGST (5.0%)</th>
+            <th>IGST ({{ invoice()?.igstPercent ?? 5.0 }}%)</th>
             <td>₹{{ invoice()?.igstAmount | number:'1.2-2' }}</td>
           </tr>
           <tr class="grand-total-row">

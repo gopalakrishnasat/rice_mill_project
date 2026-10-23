@@ -13,7 +13,7 @@
     <div class="control-actions">
       <!-- Edit button -->
       <a
-        *ngIf="bill()"
+        *ngIf="bill() && canManageBills()"
         [routerLink]="['/bill-invoices', bill()?.id, 'edit']"
         class="btn-edit-bill"
       >

@@ -41,6 +41,7 @@ import {
   CreateInvoiceDto,
   UpdateInvoiceDto,
   CreateCustomerDto,
+  UserRole,
 } from '@rice-mill-project/shared-types';
 import { convertNumberToIndianWords } from '../../core/utils/number-to-words.util';
 
@@ -64,6 +65,10 @@ export class InvoiceCreateComponent implements OnInit, OnDestroy {
 
   readonly currentUser = this.authService.currentUser;
   readonly isSuperAdmin = this.authService.isSuperAdmin;
+  readonly canManageInvoices = computed(() => {
+    const role = this.currentUser()?.role;
+    return role === UserRole.SUPER_ADMIN || role === UserRole.ADMIN;
+  });
   readonly company = this.companyService.currentCompany;
 
   // Edit Mode state
@@ -179,19 +184,34 @@ export class InvoiceCreateComponent implements OnInit, OnDestroy {
     () => !!this.formValue()?.isInterState,
   );
 
+  readonly liveGstRate = computed(() => {
+    const r = Number(this.formValue()?.gstRate);
+    return isNaN(r) || r < 0 ? 5.0 : r;
+  });
+
+  readonly liveCgstPercent = computed(() =>
+    Number((this.liveGstRate() / 2).toFixed(2))
+  );
+
+  readonly liveSgstPercent = computed(() =>
+    Number((this.liveGstRate() / 2).toFixed(2))
+  );
+
+  readonly liveIgstPercent = computed(() => this.liveGstRate());
+
   readonly liveCgstAmount = computed(() => {
     if (!this.liveIsTaxInvoice() || this.liveIsInterState()) return 0;
-    return Number(((this.liveTaxableAmount() * 2.5) / 100).toFixed(2));
+    return Number(((this.liveTaxableAmount() * this.liveCgstPercent()) / 100).toFixed(2));
   });
 
   readonly liveSgstAmount = computed(() => {
     if (!this.liveIsTaxInvoice() || this.liveIsInterState()) return 0;
-    return Number(((this.liveTaxableAmount() * 2.5) / 100).toFixed(2));
+    return Number(((this.liveTaxableAmount() * this.liveSgstPercent()) / 100).toFixed(2));
   });
 
   readonly liveIgstAmount = computed(() => {
     if (!this.liveIsTaxInvoice() || !this.liveIsInterState()) return 0;
-    return Number(((this.liveTaxableAmount() * 5.0) / 100).toFixed(2));
+    return Number(((this.liveTaxableAmount() * this.liveIgstPercent()) / 100).toFixed(2));
   });
 
   readonly liveTotalAmount = computed(() => {
@@ -264,6 +284,7 @@ export class InvoiceCreateComponent implements OnInit, OnDestroy {
       transportCharges: [0, [Validators.min(0)]],
       hamaliCharges: [0, [Validators.min(0)]],
       discount: [0, [Validators.min(0)]],
+      gstRate: [5, [Validators.required, Validators.min(0)]],
       isInterState: [false],
       notes: [''],
     });
@@ -324,7 +345,7 @@ export class InvoiceCreateComponent implements OnInit, OnDestroy {
       description: [cleanDesc, [Validators.required]],
       hsnCode: [item?.hsnCode ?? '', [Validators.required]],
       uom: [formUom],
-      qty: [item?.qty !== undefined && item?.qty !== '' ? item.qty : '', [Validators.required, Validators.min(0.1)]],
+      qty: [item?.qty !== undefined && item?.qty !== '' ? item.qty : '', [Validators.required, Validators.min(1)]],
       unit: [unitVal, [Validators.required]],
       rate: [item?.rate !== undefined && item?.rate !== '' ? item.rate : '', [Validators.required, Validators.min(0)]],
     });
@@ -337,6 +358,11 @@ export class InvoiceCreateComponent implements OnInit, OnDestroy {
       this.itemsFormArray.removeAt(index);
       this.formValue.set(this.invoiceForm.value);
     }
+  }
+
+  setGstRate(rate: number): void {
+    this.invoiceForm.get('gstRate')?.setValue(rate);
+    this.invoiceForm.get('gstRate')?.markAsDirty();
   }
 
   onProductSelect(index: number, event: Event): void {
@@ -418,6 +444,13 @@ export class InvoiceCreateComponent implements OnInit, OnDestroy {
           this.addItemRow(it);
         });
 
+        const editGstRate =
+          inv.gstRate !== undefined
+            ? inv.gstRate
+            : inv.isInterState
+            ? (inv.igstPercent ?? 5.0)
+            : (inv.cgstPercent !== undefined ? Number((inv.cgstPercent * 2).toFixed(2)) : 5.0);
+
         this.invoiceForm.patchValue({
           invoiceType: inv.invoiceType,
           invoiceDate: new Date(inv.invoiceDate).toISOString().split('T')[0],
@@ -429,6 +462,7 @@ export class InvoiceCreateComponent implements OnInit, OnDestroy {
           transportCharges: inv.transportCharges || 0,
           hamaliCharges: inv.hamaliCharges || 0,
           discount: inv.discount || 0,
+          gstRate: editGstRate,
           isInterState: inv.isInterState,
           notes: inv.notes || '',
         });
@@ -530,6 +564,11 @@ export class InvoiceCreateComponent implements OnInit, OnDestroy {
   }
 
   saveInvoice(andPrint = false): void {
+    if (!this.canManageInvoices()) {
+      this.showAlert('error', 'Access denied: You do not have permission to modify invoices.');
+      return;
+    }
+
     if (this.invoiceForm.invalid) {
       this.invoiceForm.markAllAsTouched();
       this.showAlert('error', 'Please complete all required fields (*).');
@@ -566,6 +605,7 @@ export class InvoiceCreateComponent implements OnInit, OnDestroy {
         transportCharges: Number(val.transportCharges) || 0,
         hamaliCharges: Number(val.hamaliCharges) || 0,
         discount: Number(val.discount) || 0,
+        gstRate: Number(val.gstRate) !== undefined && !isNaN(Number(val.gstRate)) ? Number(val.gstRate) : 5.0,
         isInterState: val.isInterState,
         notes: val.notes !== undefined && val.notes !== null ? val.notes.trim() : undefined,
       };
@@ -582,7 +622,11 @@ export class InvoiceCreateComponent implements OnInit, OnDestroy {
         },
         error: (err) => {
           this.isSubmitting.set(false);
-          this.showAlert('error', err.error?.message || 'Failed to update invoice.');
+          const msg =
+            err.status === 403
+              ? (err.error?.message || 'Access denied: You do not have permission to update invoices.')
+              : (err.error?.message || 'Failed to update invoice.');
+          this.showAlert('error', msg);
         },
       });
     } else {
@@ -599,6 +643,7 @@ export class InvoiceCreateComponent implements OnInit, OnDestroy {
         transportCharges: Number(val.transportCharges) || 0,
         hamaliCharges: Number(val.hamaliCharges) || 0,
         discount: Number(val.discount) || 0,
+        gstRate: Number(val.gstRate) !== undefined && !isNaN(Number(val.gstRate)) ? Number(val.gstRate) : 5.0,
         isInterState: val.isInterState,
         status: InvoiceStatus.ISSUED,
         notes: val.notes?.trim() || undefined,
@@ -616,7 +661,11 @@ export class InvoiceCreateComponent implements OnInit, OnDestroy {
         },
         error: (err) => {
           this.isSubmitting.set(false);
-          this.showAlert('error', err.error?.message || 'Failed to create invoice.');
+          const msg =
+            err.status === 403
+              ? (err.error?.message || 'Access denied: You do not have permission to create invoices.')
+              : (err.error?.message || 'Failed to create invoice.');
+          this.showAlert('error', msg);
         },
       });
     }

@@ -137,12 +137,12 @@ export class RecordPaymentModalComponent implements OnInit, OnChanges {
           );
 
     this.pendingDueAmount.set(pendingDue);
-    this.enteredAmount.set(pendingDue);
+    this.enteredAmount.set(0);
     this.enteredDiscount.set(0);
 
     this.paymentForm = this.fb.group({
       amount: [
-        pendingDue,
+        null,
         [Validators.required, Validators.min(0)],
       ],
       discount: [
@@ -159,26 +159,12 @@ export class RecordPaymentModalComponent implements OnInit, OnChanges {
     });
 
     this.paymentForm.get('amount')?.valueChanges.subscribe((v) => {
-      this.enteredAmount.set(Number(v) || 0);
+      this.enteredAmount.set(v === null || v === '' ? 0 : Number(v) || 0);
     });
 
     this.paymentForm.get('discount')?.valueChanges.subscribe((v) => {
       const disc = Math.max(0, Number(v) || 0);
       this.enteredDiscount.set(disc);
-
-      if (disc <= this.pendingDueAmount()) {
-        const adjustedAmount = Math.max(
-          0,
-          Number((this.pendingDueAmount() - disc).toFixed(2))
-        );
-        this.paymentForm
-          .get('amount')
-          ?.setValue(adjustedAmount, { emitEvent: false });
-        this.enteredAmount.set(adjustedAmount);
-      } else {
-        this.paymentForm.get('amount')?.setValue(0, { emitEvent: false });
-        this.enteredAmount.set(0);
-      }
     });
   }
 

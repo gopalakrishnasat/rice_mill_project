@@ -10,7 +10,7 @@
         Simplified customer bills with independent sequential numbering. Strictly isolated from official tax books & ledger.
       </p>
     </div>
-    <div class="header-right">
+    <div class="header-right" *ngIf="canManageBills()">
       <a
         routerLink="/bill-invoices/create"
         class="btn-primary-cta"
@@ -235,7 +235,7 @@
       <a
         routerLink="/bill-invoices/create"
         class="btn-create-first"
-        *ngIf="!searchQuery() && !startDate() && !endDate()"
+        *ngIf="canManageBills() && !searchQuery() && !startDate() && !endDate()"
       >
         ＋ Create First Bill Invoice
       </a>
@@ -308,6 +308,7 @@
 
                 <!-- Edit -->
                 <a
+                  *ngIf="canManageBills()"
                   [routerLink]="['/bill-invoices', bill.id, 'edit']"
                   class="action-btn edit-btn"
                   title="Edit Bill"
@@ -317,6 +318,7 @@
 
                 <!-- Delete -->
                 <button
+                  *ngIf="canManageBills()"
                   type="button"
                   class="action-btn delete-btn"
                   (click)="deleteBill(bill)"

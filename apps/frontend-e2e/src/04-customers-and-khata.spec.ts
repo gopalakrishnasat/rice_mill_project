@@ -155,4 +155,43 @@ test.describe('04: Customers & Khata Ledger Management', () => {
     await page.waitForURL(`**/customers/${customerId}`);
     expect(page.url()).toContain(`/customers/${customerId}`);
   });
+
+  test('TC-CUST-06: View-Only Admin cannot add a new buyer, edit profiles, or collect payments', async ({ page }) => {
+    await page.evaluate(() => {
+      localStorage.clear();
+      sessionStorage.clear();
+    });
+    await loginAs(page, TEST_USERS.viewer);
+    await page.goto('/customers');
+    await page.waitForLoadState('domcontentloaded');
+
+    // 1. Directory Page: Add New Buyer & Create New Bill buttons must not exist
+    await expect(page.locator('#btn-add-customer')).not.toBeVisible();
+    await expect(page.locator('#btn-create-invoice')).not.toBeVisible();
+
+    // 2. Directory Page: Row action "+ Bill" button must not exist
+    await page.waitForSelector('table.data-table tbody tr');
+    await expect(page.locator('.btn-action.btn-bill')).not.toBeVisible();
+
+    // But View Profile / Khata action must still be visible and functional
+    const firstFirm = page.locator('.clickable-firm, .firm-name-text').first();
+    await expect(firstFirm).toBeVisible();
+    await firstFirm.click();
+    await page.waitForURL(/\/customers\/[a-zA-Z0-9]+$/);
+
+    // 3. Customer Details Page: Top action buttons must not be visible
+    await expect(page.locator('#btn-collect-payment-top')).not.toBeVisible();
+    await expect(page.locator('#btn-create-bill-for-buyer')).not.toBeVisible();
+
+    // 4. Customer Details Page: Edit Buyer button must not be visible
+    await expect(page.locator('#btn-edit-buyer')).not.toBeVisible();
+
+    // 5. Customer Details Page: Status toggle button must not be an interactive button
+    await expect(page.locator('button.btn-status-toggle')).not.toBeVisible();
+    await expect(page.locator('span.btn-status-toggle.static-status')).toBeVisible();
+
+    // 6. Customer Details Page: Statement print button should still be available
+    await expect(page.locator('.btn-print-tab')).toBeVisible();
+  });
 });
+

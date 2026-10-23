@@ -3,7 +3,8 @@ import { CommonModule } from '@angular/common';
 import { RouterModule, ActivatedRoute, Router } from '@angular/router';
 import { BillInvoicesService } from '../../core/services/bill-invoices.service';
 import { SnackbarService } from '../../core/services/snackbar.service';
-import { IBillInvoice } from '@rice-mill-project/shared-types';
+import { AuthService } from '../../core/services/auth.service';
+import { IBillInvoice, UserRole } from '@rice-mill-project/shared-types';
 
 @Component({
   selector: 'app-bill-invoice-print',
@@ -16,7 +17,14 @@ export class BillInvoicePrintComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly billInvoicesService = inject(BillInvoicesService);
+  private readonly authService = inject(AuthService);
   private readonly snackbar = inject(SnackbarService);
+
+  readonly currentUser = this.authService.currentUser;
+  readonly canManageBills = computed(() => {
+    const role = this.currentUser()?.role;
+    return role === UserRole.SUPER_ADMIN || role === UserRole.ADMIN;
+  });
 
   readonly bill = signal<IBillInvoice | null>(null);
   readonly isLoading = signal<boolean>(true);

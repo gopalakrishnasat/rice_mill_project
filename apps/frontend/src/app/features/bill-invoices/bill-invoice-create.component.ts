@@ -15,6 +15,7 @@ import { BillInvoicesService } from '../../core/services/bill-invoices.service';
 import { CustomersService } from '../../core/services/customers.service';
 import { ProductsService } from '../../core/services/products.service';
 import { SnackbarService } from '../../core/services/snackbar.service';
+import { AuthService } from '../../core/services/auth.service';
 import {
   ICustomer,
   IProduct,
@@ -22,6 +23,7 @@ import {
   IBillInvoiceItem,
   CreateBillInvoiceDto,
   UpdateBillInvoiceDto,
+  UserRole,
 } from '@rice-mill-project/shared-types';
 
 export interface FormItemRow {
@@ -45,11 +47,18 @@ export class BillInvoiceCreateComponent implements OnInit {
   private readonly billInvoicesService = inject(BillInvoicesService);
   private readonly customersService = inject(CustomersService);
   private readonly productsService = inject(ProductsService);
+  private readonly authService = inject(AuthService);
   private readonly snackbar = inject(SnackbarService);
   private readonly elementRef = inject(ElementRef);
 
   @ViewChild('customerSearchInput') customerSearchInputRef?: ElementRef<HTMLInputElement>;
   @ViewChild('productSearchInput') productSearchInputRef?: ElementRef<HTMLInputElement>;
+
+  readonly currentUser = this.authService.currentUser;
+  readonly canManageBills = computed(() => {
+    const role = this.currentUser()?.role;
+    return role === UserRole.SUPER_ADMIN || role === UserRole.ADMIN;
+  });
 
   readonly isEditMode = signal<boolean>(false);
   readonly editingId = signal<string | null>(null);
@@ -324,6 +333,11 @@ export class BillInvoiceCreateComponent implements OnInit {
   }
 
   saveBill(): void {
+    if (!this.canManageBills()) {
+      this.snackbar.error('Access denied: You do not have permission to modify bill invoices.');
+      return;
+    }
+
     if (!this.buyerCompanyName.trim()) {
       this.snackbar.error('Please select or specify a Buyer / Company Name.');
       return;
@@ -386,7 +400,11 @@ export class BillInvoiceCreateComponent implements OnInit {
         },
         error: (err) => {
           console.error('Failed to update bill:', err);
-          this.snackbar.error('Failed to update bill invoice.');
+          const errorMsg =
+            err.status === 403
+              ? (err.error?.message || 'Access denied: You do not have permission to update bill invoices.')
+              : (err.error?.message || 'Failed to update bill invoice.');
+          this.snackbar.error(errorMsg);
           this.isSaving.set(false);
         },
       });
@@ -409,7 +427,11 @@ export class BillInvoiceCreateComponent implements OnInit {
         },
         error: (err) => {
           console.error('Failed to create bill:', err);
-          this.snackbar.error('Failed to create bill invoice.');
+          const errorMsg =
+            err.status === 403
+              ? (err.error?.message || 'Access denied: You do not have permission to create bill invoices.')
+              : (err.error?.message || 'Failed to create bill invoice.');
+          this.snackbar.error(errorMsg);
           this.isSaving.set(false);
         },
       });

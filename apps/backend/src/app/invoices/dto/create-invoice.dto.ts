@@ -8,6 +8,7 @@ import {
   IsArray,
   ValidateNested,
   IsBoolean,
+  Min,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import {
@@ -103,6 +104,11 @@ export class CreateInvoiceDto {
   @IsNumber()
   @IsOptional()
   discount?: number;
+
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  gstRate?: number;
 
   @IsBoolean()
   @IsOptional()

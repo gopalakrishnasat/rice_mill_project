@@ -156,4 +156,37 @@ test.describe('06: Bill Invoices (Non-GST / Internal Bills)', () => {
     // %PDF header
     expect(body.subarray(0, 4).toString()).toBe('%PDF');
   });
+
+  test('TC-BILL-06: View-Only Admin is restricted from creating/editing and shows Access Denied on save', async ({ page }) => {
+    await page.evaluate(() => {
+      localStorage.clear();
+      sessionStorage.clear();
+    });
+    await loginAs(page, TEST_USERS.viewer);
+    await page.goto('/bill-invoices');
+    await page.waitForLoadState('domcontentloaded');
+
+    // Create button should not be visible for view-only users
+    await expect(page.locator('#btn-create-bill-invoice')).not.toBeVisible();
+
+    // If navigating directly to a bill edit page
+    await page.waitForSelector('table.data-table tbody tr');
+    const firstBillLink = page.locator('table.data-table tbody tr a.bill-num-link').first();
+    const billHref = await firstBillLink.getAttribute('href');
+    const match = billHref?.match(/\/bill-invoices\/([a-zA-Z0-9]+)\/print/);
+    if (match) {
+      const billId = match[1];
+      await page.goto(`/bill-invoices/${billId}/edit`);
+      await page.waitForLoadState('domcontentloaded');
+
+      // Banner should be visible
+      await expect(page.locator('.view-only-access-banner')).toBeVisible();
+      await expect(page.locator('#btn-save-bill')).toContainText('Access Denied');
+
+      // Clicking save button triggers Access Denied snackbar
+      await page.locator('#btn-save-bill').click();
+      await expect(page.locator('body')).toContainText(/Access denied/i);
+    }
+  });
 });
+

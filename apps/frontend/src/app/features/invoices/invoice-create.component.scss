@@ -1001,6 +1001,107 @@
 
 .flex-1 { flex: 1; }
 
+.gst-rate-control-box {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 0.85rem 1rem;
+  margin-top: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+
+  .gst-rate-header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    .gst-rate-label {
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: #1e293b;
+    }
+
+    .gst-split-badge {
+      font-size: 0.75rem;
+      font-weight: 600;
+      background: #e0f2fe;
+      color: #0369a1;
+      padding: 0.2rem 0.55rem;
+      border-radius: 9999px;
+      border: 1px solid #bae6fd;
+
+      &.badge-igst {
+        background: #fef3c7;
+        color: #92400e;
+        border-color: #fde68a;
+      }
+    }
+  }
+
+  .gst-rate-inputs-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+
+    .gst-input-wrapper {
+      position: relative;
+      width: 110px;
+
+      input {
+        width: 100%;
+        padding-right: 1.75rem;
+        font-weight: 700;
+        color: #0f172a;
+      }
+
+      .input-suffix {
+        position: absolute;
+        right: 0.65rem;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: #64748b;
+        pointer-events: none;
+      }
+    }
+
+    .gst-preset-pills {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      flex-wrap: wrap;
+
+      .preset-pill {
+        background: #ffffff;
+        border: 1px solid #cbd5e1;
+        color: #475569;
+        font-size: 0.76rem;
+        font-weight: 600;
+        padding: 0.35rem 0.75rem;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.15s ease;
+
+        &:hover {
+          border-color: #0284c7;
+          color: #0284c7;
+          background: #f0f9ff;
+        }
+
+        &.active {
+          background: #0284c7;
+          border-color: #0284c7;
+          color: #ffffff;
+          box-shadow: 0 1px 2px rgba(2, 132, 199, 0.25);
+        }
+      }
+    }
+  }
+}
+
 .checkbox-row {
   margin-top: 0.5rem;
   .check-label {
@@ -1496,3 +1597,61 @@
   &:hover:not(:disabled) { background: #047857; }
   &:disabled { opacity: 0.6; cursor: not-allowed; }
 }
+
+/* View-Only Auditor Notice Banner */
+.view-only-access-banner {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-left: 4px solid #64748b;
+  padding: 0.85rem 1.25rem;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+
+  .banner-icon-box {
+    font-size: 1.35rem;
+    line-height: 1;
+  }
+
+  .banner-content {
+    flex: 1;
+
+    .banner-title {
+      font-weight: 700;
+      font-size: 0.92rem;
+      color: #334155;
+      margin-bottom: 0.15rem;
+    }
+
+    .banner-desc {
+      font-size: 0.84rem;
+      color: #64748b;
+      line-height: 1.4;
+    }
+  }
+
+  .banner-chip {
+    background: #e2e8f0;
+    color: #475569;
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 0.25rem 0.65rem;
+    border-radius: 9999px;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+  }
+}
+
+.btn-view-only-locked {
+  background: #dc2626 !important;
+  color: #fff !important;
+  border-color: #dc2626 !important;
+  cursor: pointer;
+
+  &:hover {
+    background: #b91c1c !important;
+  }
+}
+

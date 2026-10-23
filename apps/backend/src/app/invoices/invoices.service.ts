@@ -88,6 +88,7 @@ export class InvoicesService {
     discount = 0,
     isInterState = false,
     invoiceType: InvoiceType = InvoiceType.TAX_INVOICE,
+    gstRate?: number,
   ) {
     let subTotal = 0;
     const computedItems = items.map((item) => {
@@ -101,6 +102,7 @@ export class InvoicesService {
       Math.max(0, subTotal + transportCharges + hamaliCharges - discount).toFixed(2),
     );
 
+    let effectiveGstRate = 0;
     let cgstPercent = 0;
     let cgstAmount = 0;
     let sgstPercent = 0;
@@ -109,13 +111,17 @@ export class InvoicesService {
     let igstAmount = 0;
 
     if (invoiceType === InvoiceType.TAX_INVOICE) {
+      effectiveGstRate = typeof gstRate === 'number' && !isNaN(gstRate) && gstRate >= 0
+        ? gstRate
+        : 5.0;
+
       if (isInterState) {
-        igstPercent = 5.0;
+        igstPercent = effectiveGstRate;
         igstAmount = Number(((taxableAmount * igstPercent) / 100).toFixed(2));
       } else {
-        cgstPercent = 2.5;
+        cgstPercent = Number((effectiveGstRate / 2).toFixed(2));
         cgstAmount = Number(((taxableAmount * cgstPercent) / 100).toFixed(2));
-        sgstPercent = 2.5;
+        sgstPercent = Number((effectiveGstRate / 2).toFixed(2));
         sgstAmount = Number(((taxableAmount * sgstPercent) / 100).toFixed(2));
       }
     }
@@ -129,6 +135,7 @@ export class InvoicesService {
       items: computedItems,
       subTotal,
       taxableAmount,
+      gstRate: effectiveGstRate,
       cgstPercent,
       cgstAmount,
       sgstPercent,
@@ -206,6 +213,7 @@ export class InvoicesService {
       dto.discount ?? 0,
       isInterState,
       dto.invoiceType,
+      dto.gstRate,
     );
 
     const company = await this.companyService.getCompanyDetails();
@@ -246,6 +254,7 @@ export class InvoicesService {
       discount: dto.discount ?? 0,
       taxableAmount: totals.taxableAmount,
       isInterState,
+      gstRate: totals.gstRate,
       cgstPercent: totals.cgstPercent,
       cgstAmount: totals.cgstAmount,
       sgstPercent: totals.sgstPercent,
@@ -321,12 +330,15 @@ export class InvoicesService {
     if (dto.transportCharges !== undefined) invoice.transportCharges = dto.transportCharges;
     if (dto.hamaliCharges !== undefined) invoice.hamaliCharges = dto.hamaliCharges;
     if (dto.discount !== undefined) invoice.discount = dto.discount;
+    if (dto.gstRate !== undefined) invoice.gstRate = dto.gstRate;
     if (dto.status !== undefined) invoice.status = dto.status;
     if (dto.notes !== undefined) invoice.notes = dto.notes;
 
     const items = dto.items || invoice.items;
     const isInterState =
       dto.isInterState !== undefined ? dto.isInterState : invoice.isInterState;
+    const currentGstRate =
+      dto.gstRate !== undefined ? dto.gstRate : invoice.gstRate;
 
     const totals = this.calculateTotals(
       items,
@@ -335,6 +347,7 @@ export class InvoicesService {
       invoice.discount,
       isInterState,
       invoice.invoiceType,
+      currentGstRate,
     );
 
     if (totals.totalAmount < invoice.paidAmount) {
@@ -347,6 +360,7 @@ export class InvoicesService {
     invoice.subTotal = totals.subTotal;
     invoice.taxableAmount = totals.taxableAmount;
     invoice.isInterState = isInterState;
+    invoice.gstRate = totals.gstRate;
     invoice.cgstPercent = totals.cgstPercent;
     invoice.cgstAmount = totals.cgstAmount;
     invoice.sgstPercent = totals.sgstPercent;

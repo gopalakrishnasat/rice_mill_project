@@ -15,7 +15,8 @@ import { BillInvoicesService } from '../../core/services/bill-invoices.service';
 import { CustomersService } from '../../core/services/customers.service';
 import { ConfirmDialogService } from '../../core/services/confirm-dialog.service';
 import { SnackbarService } from '../../core/services/snackbar.service';
-import { IBillInvoice, ICustomer } from '@rice-mill-project/shared-types';
+import { AuthService } from '../../core/services/auth.service';
+import { IBillInvoice, ICustomer, UserRole } from '@rice-mill-project/shared-types';
 
 @Component({
   selector: 'app-bill-invoice-list',
@@ -28,9 +29,16 @@ export class BillInvoiceListComponent implements OnInit {
   private readonly billInvoicesService = inject(BillInvoicesService);
   private readonly customersService = inject(CustomersService);
   private readonly confirmDialog = inject(ConfirmDialogService);
+  private readonly authService = inject(AuthService);
   private readonly snackbar = inject(SnackbarService);
 
   @ViewChild('customerFilterInput') customerFilterInputRef?: ElementRef<HTMLInputElement>;
+
+  readonly currentUser = this.authService.currentUser;
+  readonly canManageBills = computed(() => {
+    const role = this.currentUser()?.role;
+    return role === UserRole.SUPER_ADMIN || role === UserRole.ADMIN;
+  });
 
   readonly bills = signal<IBillInvoice[]>([]);
   readonly customers = signal<ICustomer[]>([]);
@@ -163,6 +171,11 @@ export class BillInvoiceListComponent implements OnInit {
   }
 
   async deleteBill(bill: IBillInvoice): Promise<void> {
+    if (!this.canManageBills()) {
+      this.snackbar.error('Access denied: You do not have permission to delete bill invoices.');
+      return;
+    }
+
     const confirmed = await this.confirmDialog.confirm({
       title: 'Delete Bill Invoice',
       message: `Are you sure you want to delete bill "${bill.billNumber}" for ${bill.customerSnapshot?.companyName || 'Buyer'}? This action cannot be undone.`,
@@ -179,7 +192,11 @@ export class BillInvoiceListComponent implements OnInit {
       },
       error: (err) => {
         console.error('Failed to delete bill invoice:', err);
-        this.snackbar.error('Failed to delete bill invoice.');
+        const errorMsg =
+          err.status === 403
+            ? (err.error?.message || 'Access denied: You do not have permission to delete bill invoices.')
+            : (err.error?.message || 'Failed to delete bill invoice.');
+        this.snackbar.error(errorMsg);
       },
     });
   }

@@ -28,6 +28,7 @@ import {
   PaymentMode,
   PaymentStatus,
   InvoiceStatus,
+  UserRole,
 } from '@rice-mill-project/shared-types';
 import { RecordPaymentModalComponent } from '../../shared/components/record-payment-modal/record-payment-modal.component';
 
@@ -56,6 +57,10 @@ export class CustomerDetailComponent implements OnInit {
 
   readonly currentUser = this.authService.currentUser;
   readonly isSuperAdmin = this.authService.isSuperAdmin;
+  readonly canManageCustomers = computed(() => {
+    const role = this.currentUser()?.role;
+    return role === UserRole.SUPER_ADMIN || role === UserRole.ADMIN;
+  });
 
   // State Signals
   readonly customerId = signal<string>('');
@@ -558,6 +563,11 @@ export class CustomerDetailComponent implements OnInit {
 
   // Edit Modal Handling
   openEditModal(): void {
+    if (!this.canManageCustomers()) {
+      this.snackbarService.error('Access denied: You do not have permission to edit buyer profiles.');
+      return;
+    }
+
     const cust = this.customer();
     if (!cust) return;
 
@@ -585,6 +595,11 @@ export class CustomerDetailComponent implements OnInit {
   }
 
   onEditSubmit(): void {
+    if (!this.canManageCustomers()) {
+      this.snackbarService.error('Access denied: You do not have permission to edit buyer profiles.');
+      return;
+    }
+
     if (this.editCustomerForm.invalid) {
       this.editCustomerForm.markAllAsTouched();
       return;
@@ -619,13 +634,23 @@ export class CustomerDetailComponent implements OnInit {
       },
       error: (err) => {
         this.isSubmittingEdit.set(false);
-        this.showAlert('error', err.error?.message || 'Failed to update customer details.');
+        const errorMsg =
+          err.status === 403
+            ? (err.error?.message || 'Access denied: You do not have permission to edit buyer profiles.')
+            : (err.error?.message || 'Failed to update customer details.');
+        this.showAlert('error', errorMsg);
+        this.snackbarService.error(errorMsg);
       },
     });
   }
 
   // Toggle Active / Inactive Status
   async toggleStatus(): Promise<void> {
+    if (!this.canManageCustomers()) {
+      this.snackbarService.error('Access denied: You do not have permission to change buyer status.');
+      return;
+    }
+
     const cust = this.customer();
     if (!cust) return;
 
@@ -651,13 +676,22 @@ export class CustomerDetailComponent implements OnInit {
         );
       },
       error: (err) => {
-        this.showAlert('error', err.error?.message || 'Failed to change status.');
+        const errorMsg =
+          err.status === 403
+            ? (err.error?.message || 'Access denied: You do not have permission to change buyer status.')
+            : (err.error?.message || 'Failed to change status.');
+        this.showAlert('error', errorMsg);
+        this.snackbarService.error(errorMsg);
       },
     });
   }
 
   // Create Bill / Invoice for this customer
   createNewBill(): void {
+    if (!this.canManageCustomers()) {
+      this.snackbarService.error('Access denied: You do not have permission to create invoices.');
+      return;
+    }
     const cust = this.customer();
     if (!cust) return;
     this.router.navigate(['/invoices/new'], {
@@ -667,6 +701,10 @@ export class CustomerDetailComponent implements OnInit {
 
   // Navigate to edit invoice
   editInvoice(invoice: IInvoice): void {
+    if (!this.canManageCustomers()) {
+      this.snackbarService.error('Access denied: You do not have permission to edit invoices.');
+      return;
+    }
     this.router.navigate(['/invoices', invoice.id, 'edit']);
   }
 
@@ -698,6 +736,10 @@ export class CustomerDetailComponent implements OnInit {
 
   // Record Payment Modal (Single Invoice)
   openPaymentModal(invoice: IInvoice): void {
+    if (!this.canManageCustomers()) {
+      this.snackbarService.error('Access denied: You do not have permission to record payments.');
+      return;
+    }
     this.selectedInvoiceForPayment.set(invoice);
     this.showPaymentModal.set(true);
   }
@@ -714,6 +756,10 @@ export class CustomerDetailComponent implements OnInit {
 
   // Lump-Sum Account Payment Handlers (FIFO Auto-Knock-off)
   openLumpSumPaymentModal(): void {
+    if (!this.canManageCustomers()) {
+      this.snackbarService.error('Access denied: You do not have permission to record payments.');
+      return;
+    }
     this.lumpSumPaymentForm.reset({
       amount: null,
       paymentDate: '',

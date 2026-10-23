@@ -278,10 +278,13 @@ export class PdfGeneratorService {
       }
       if (invoice.invoiceType === 'TAX_INVOICE') {
         if (invoice.isInterState) {
-          totalsList.push({ label: 'IGST (5.0%)', value: `Rs. ${formatCurrency(invoice.igstAmount)}` });
+          const igstP = invoice.igstPercent !== undefined ? invoice.igstPercent : (invoice.gstRate ?? 5.0);
+          totalsList.push({ label: `IGST (${igstP}%)`, value: `Rs. ${formatCurrency(invoice.igstAmount)}` });
         } else {
-          totalsList.push({ label: 'SGST (2.5%)', value: `Rs. ${formatCurrency(invoice.sgstAmount)}` });
-          totalsList.push({ label: 'CGST (2.5%)', value: `Rs. ${formatCurrency(invoice.cgstAmount)}` });
+          const sgstP = invoice.sgstPercent !== undefined ? invoice.sgstPercent : 2.5;
+          const cgstP = invoice.cgstPercent !== undefined ? invoice.cgstPercent : 2.5;
+          totalsList.push({ label: `SGST (${sgstP}%)`, value: `Rs. ${formatCurrency(invoice.sgstAmount)}` });
+          totalsList.push({ label: `CGST (${cgstP}%)`, value: `Rs. ${formatCurrency(invoice.cgstAmount)}` });
         }
       }
 

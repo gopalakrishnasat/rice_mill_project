@@ -33,6 +33,7 @@ import {
   ICustomer,
   PaymentMode,
   RecordPaymentDto,
+  UserRole,
 } from '@rice-mill-project/shared-types';
 import { RecordPaymentModalComponent } from '../../shared/components/record-payment-modal/record-payment-modal.component';
 
@@ -60,6 +61,10 @@ export class InvoiceListComponent implements OnInit, OnDestroy {
 
   readonly currentUser = this.authService.currentUser;
   readonly isSuperAdmin = this.authService.isSuperAdmin;
+  readonly canManageInvoices = computed(() => {
+    const role = this.currentUser()?.role;
+    return role === UserRole.SUPER_ADMIN || role === UserRole.ADMIN;
+  });
 
   readonly invoices = signal<IInvoice[]>([]);
   readonly customers = signal<ICustomer[]>([]);
@@ -518,6 +523,10 @@ export class InvoiceListComponent implements OnInit, OnDestroy {
   }
 
   openPaymentModal(invoice: IInvoice): void {
+    if (!this.canManageInvoices()) {
+      this.showAlert('error', 'Access denied: You do not have permission to record payments.');
+      return;
+    }
     this.selectedInvoiceForPayment.set(invoice);
   }
 
@@ -547,6 +556,10 @@ export class InvoiceListComponent implements OnInit, OnDestroy {
   }
 
   editInvoice(invoice: IInvoice): void {
+    if (!this.canManageInvoices()) {
+      this.showAlert('error', 'Access denied: You do not have permission to edit invoices.');
+      return;
+    }
     this.router.navigate(['/invoices', invoice.id, 'edit']);
   }
 

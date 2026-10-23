@@ -162,7 +162,17 @@ test.describe('03: Products Catalog Management', () => {
     const addBtn = page.locator('#btn-add-product');
     await expect(addBtn).not.toBeVisible();
 
+    // Create New Bill button in products header should also not be visible for View-Only Admin
+    await expect(page.locator('#btn-create-bill-from-products')).not.toBeVisible();
+
     const editBtns = page.locator('.btn-action-edit');
     expect(await editBtns.count()).toBe(0);
+
+    // Clicking product row must NOT open edit modal for View-Only Admin
+    const firstRow = page.locator('table.data-table tbody tr').first();
+    await expect(firstRow).toBeVisible();
+    await firstRow.click();
+    await expect(page.locator('.modal-backdrop')).not.toBeVisible();
   });
 });
+

@@ -24,12 +24,28 @@
         class="btn-save"
         (click)="saveBill()"
         [disabled]="isSaving() || isLoading()"
+        [class.btn-save-restricted]="!canManageBills()"
+        [title]="!canManageBills() ? 'Access Denied: View-Only accounts cannot modify bill invoices' : ''"
         id="btn-save-bill"
       >
         <span *ngIf="isSaving()">Saving...</span>
-        <span *ngIf="!isSaving()">{{ isEditMode() ? 'Update & View' : 'Save & View Bill' }}</span>
+        <span *ngIf="!isSaving()">
+          {{ !canManageBills() ? '🔒 Access Denied' : (isEditMode() ? 'Update & View' : 'Save & View Bill') }}
+        </span>
       </button>
     </div>
+  </div>
+
+  <!-- View-Only Notice Banner -->
+  <div class="view-only-access-banner" *ngIf="!canManageBills()">
+    <div class="banner-icon-box">👁️</div>
+    <div class="banner-content">
+      <div class="banner-title">View-Only Auditor Mode</div>
+      <div class="banner-desc">
+        You are signed in as a View-Only Admin. You can review bill details and items, but creating or updating bill invoices is restricted to Super Admin and Operations Admin roles.
+      </div>
+    </div>
+    <span class="banner-chip">Access Restricted</span>
   </div>
 
   <div *ngIf="isLoading()" class="loading-container">

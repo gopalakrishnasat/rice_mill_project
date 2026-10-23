@@ -9,7 +9,7 @@
         </p>
       </div>
 
-      <div class="header-actions">
+      <div class="header-actions" *ngIf="canManageInvoices()">
         <a routerLink="/invoices/new" class="create-btn" id="btn-new-tax-invoice">
           <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none">
             <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -420,13 +420,14 @@
                     </svg>
                   </button>
 
-                  <!-- Edit Invoice (Locked for fully paid bills) -->
+                  <!-- Edit Invoice (Locked for fully paid bills and view-only users) -->
                   <button
                     type="button"
                     class="btn-action-icon btn-edit"
-                    *ngIf="inv.paymentStatus !== 'PAID'"
+                    *ngIf="canManageInvoices() && inv.paymentStatus !== 'PAID'"
                     (click)="editInvoice(inv)"
                     title="Edit Invoice"
+                    id="btn-edit-invoice"
                   >
                     <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.2" fill="none">
                       <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
@@ -434,11 +435,11 @@
                     </svg>
                   </button>
 
-                  <!-- Record Payment (Only if balance pending) -->
+                  <!-- Record Payment (Only for admin roles if balance pending) -->
                   <button
                     type="button"
                     class="btn-action-pay"
-                    *ngIf="inv.paymentStatus !== 'PAID'"
+                    *ngIf="canManageInvoices() && inv.paymentStatus !== 'PAID'"
                     (click)="openPaymentModal(inv)"
                     title="Record Payment"
                   >

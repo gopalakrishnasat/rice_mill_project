@@ -7,6 +7,7 @@ import {
   IsArray,
   ValidateNested,
   IsBoolean,
+  Min,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { InvoiceType, InvoiceStatus } from '@rice-mill-project/shared-types';
@@ -58,6 +59,11 @@ export class UpdateInvoiceDto {
   @IsNumber()
   @IsOptional()
   discount?: number;
+
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  gstRate?: number;
 
   @IsBoolean()
   @IsOptional()

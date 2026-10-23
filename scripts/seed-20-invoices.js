@@ -328,6 +328,7 @@ async function seed() {
       discount,
       taxableAmount: totals.taxableAmount,
       isInterState,
+      gstRate: isInterState ? totals.igstPercent : (totals.cgstPercent + totals.sgstPercent),
       cgstPercent: totals.cgstPercent,
       cgstAmount: totals.cgstAmount,
       sgstPercent: totals.sgstPercent,

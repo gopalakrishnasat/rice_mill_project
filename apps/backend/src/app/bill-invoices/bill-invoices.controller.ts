@@ -34,7 +34,7 @@ export class BillInvoicesController {
   ) {}
 
   @Get('next-number')
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.VIEW_ONLY_ADMIN)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
   async getNextBillNumber() {
     const nextBillNumber = await this.billInvoicesService.getNextBillNumber();
     return {

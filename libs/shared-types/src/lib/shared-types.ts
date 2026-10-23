@@ -363,6 +363,7 @@ export interface IInvoice {
   discount: number;
   taxableAmount: number;
   isInterState: boolean;
+  gstRate?: number;
   cgstPercent: number;
   cgstAmount: number;
   sgstPercent: number;
@@ -400,6 +401,7 @@ export interface CreateInvoiceDto {
   transportCharges?: number;
   hamaliCharges?: number;
   discount?: number;
+  gstRate?: number;
   isInterState?: boolean;
   status?: InvoiceStatus;
   notes?: string;
@@ -417,6 +419,7 @@ export interface UpdateInvoiceDto {
   transportCharges?: number;
   hamaliCharges?: number;
   discount?: number;
+  gstRate?: number;
   isInterState?: boolean;
   status?: InvoiceStatus;
   notes?: string;
