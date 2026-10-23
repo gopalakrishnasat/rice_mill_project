@@ -5,6 +5,10 @@
   "scripts": {
     "reset-browser-downloads": "node -e \"const ws = new (require('ws'))((JSON.parse(require('child_process').execSync('curl -s http://localhost:9222/json/version'))).webSocketDebuggerUrl); ws.on('open', () => { ws.send(JSON.stringify({ id: 1, method: 'Browser.setDownloadBehavior', params: { behavior: 'default' } })); setTimeout(() => { ws.close(); console.log('✅ Chrome download behavior restored to default!'); }, 300); });\""
   },
+  "engines": {
+    "node": ">=24.0.0",
+    "npm": ">=11.0.0"
+  },
   "private": true,
   "devDependencies": {
     "@angular-devkit/core": "~22.0.4",
