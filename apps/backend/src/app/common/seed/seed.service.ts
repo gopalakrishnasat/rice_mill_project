@@ -15,50 +15,20 @@ export class SeedService implements OnApplicationBootstrap {
 
   private async seedInitialUsers() {
     try {
-      const defaultUsers = [
-        {
+      const superAdminEmail = 'superadmin@ricemill.com';
+      const existing = await this.usersService.findByEmail(superAdminEmail);
+      if (!existing) {
+        const hashedPassword = await bcrypt.hash('SuperAdmin@123', 10);
+        await (this.usersService as any).userModel.create({
           name: 'Executive Super Admin',
-          email: 'superadmin@ricemill.com',
-          password: 'SuperAdmin@123',
+          email: superAdminEmail,
+          password: hashedPassword,
           employeeId: 'EMP-001',
           mobile: '+91 9876543210',
           role: UserRole.SUPER_ADMIN,
-        },
-        {
-          name: 'Mill Administrator',
-          email: 'admin@ricemill.com',
-          password: 'Admin@123',
-          employeeId: 'EMP-002',
-          mobile: '+91 9876543211',
-          role: UserRole.ADMIN,
-        },
-        {
-          name: 'View Only Auditor / Admin',
-          email: 'viewer@ricemill.com',
-          password: 'Viewer@123',
-          employeeId: 'EMP-003',
-          mobile: '+91 9876543212',
-          role: UserRole.VIEW_ONLY_ADMIN,
-        },
-      ];
-
-      for (const user of defaultUsers) {
-        const existing = await this.usersService.findByEmail(user.email);
-        if (!existing) {
-          const hashedPassword = await bcrypt.hash(user.password, 10);
-          await (this.usersService as any).userModel.create({
-            name: user.name,
-            email: user.email.toLowerCase(),
-            password: hashedPassword,
-            employeeId: user.employeeId,
-            mobile: user.mobile,
-            role: user.role,
-            isActive: true,
-          });
-          this.logger.log(
-            `🌱 Seeded initial enterprise role: ${user.email} (${user.role}) [${user.employeeId}]`,
-          );
-        }
+          isActive: true,
+        });
+        this.logger.log(`🌱 Seeded initial enterprise Super Admin: ${superAdminEmail}`);
       }
     } catch (error) {
       this.logger.error('Failed to seed initial users', error);

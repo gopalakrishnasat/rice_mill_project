@@ -125,7 +125,7 @@ export class Company implements Partial<ICompanyDetails> {
   })
   termsAndConditions!: string[];
 
-  @Prop({ type: String, trim: true, default: 'Pune' })
+  @Prop({ type: String, trim: true, default: '' })
   jurisdiction!: string;
 
   @Prop({ type: DevotionalHeadersSchema, default: () => ({}) })

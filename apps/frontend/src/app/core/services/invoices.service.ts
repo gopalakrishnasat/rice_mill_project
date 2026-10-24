@@ -135,9 +135,9 @@ export class InvoicesService {
   private normalizeInvoice(i: any): IInvoice {
     const defaultAddress = {
       line1: '',
-      city: 'Pune',
-      state: 'Maharashtra',
-      stateCode: '27',
+      city: '',
+      state: '',
+      stateCode: '',
       pincode: '',
     };
     const totalAmount = Number(i.totalAmount ?? 0);

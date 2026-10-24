@@ -69,7 +69,7 @@ export class UserManagementComponent implements OnInit {
     email: ['', [Validators.required, Validators.email]],
     mobile: ['', [Validators.pattern('^[+]?[0-9\\s-]{8,15}$')]],
     role: [UserRole.VIEW_ONLY_ADMIN, [Validators.required]],
-    password: ['Mill@2026', [Validators.required, Validators.minLength(6)]],
+    password: ['', [Validators.required, Validators.minLength(6)]],
     mustChangePassword: [true],
   });
 
@@ -81,7 +81,7 @@ export class UserManagementComponent implements OnInit {
   // Reset Password Modal State
   showPasswordModal = signal(false);
   selectedUserForPassword = signal<IUser | null>(null);
-  newPasswordInput = signal('Mill@2026');
+  newPasswordInput = signal('');
 
   // Filtered Users computed signal
   readonly filteredUsers = computed(() => {
@@ -160,7 +160,7 @@ export class UserManagementComponent implements OnInit {
   openCreateModal(): void {
     this.createUserForm.reset({
       role: UserRole.VIEW_ONLY_ADMIN,
-      password: 'Mill@2026',
+      password: '',
       mustChangePassword: true,
     });
 
@@ -292,7 +292,7 @@ export class UserManagementComponent implements OnInit {
 
   openPasswordModal(user: IUser): void {
     this.selectedUserForPassword.set(user);
-    this.newPasswordInput.set('Mill@2026');
+    this.newPasswordInput.set('');
     this.showPasswordModal.set(true);
   }
 

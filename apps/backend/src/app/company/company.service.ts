@@ -26,7 +26,7 @@ export class CompanyService {
         gstin: '',
         fssaiNumber: '',
         mobile: '',
-        jurisdiction: 'Pune',
+        jurisdiction: '',
         address: { street: '', state: '', pincode: '' },
         bankDetails: { bankName: '', accountNumber: '', ifsc: '', branch: '' },
         termsAndConditions: [],

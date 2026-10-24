@@ -42,6 +42,8 @@ import {
   UpdateInvoiceDto,
   CreateCustomerDto,
   UserRole,
+  getStateCodeFromName,
+  getStateNameFromCode,
 } from '@rice-mill-project/shared-types';
 import { convertNumberToIndianWords } from '../../core/utils/number-to-words.util';
 
@@ -307,10 +309,33 @@ export class InvoiceCreateComponent implements OnInit, OnDestroy {
       line1: ['', [Validators.required]],
       line2: [''],
       city: ['', [Validators.required]],
-      state: ['Maharashtra', [Validators.required]],
-      stateCode: ['27', [Validators.required]],
+      state: ['', [Validators.required]],
+      stateCode: ['', [Validators.required]],
       pincode: ['', [Validators.required, Validators.pattern(/^\d{6}$/)]],
       notes: [''],
+    });
+
+    // Auto-detect State and State Code from GSTIN
+    this.registerBuyerForm.get('gstin')?.valueChanges.subscribe((gstinVal) => {
+      if (gstinVal && gstinVal.trim().length >= 2) {
+        const code = gstinVal.trim().substring(0, 2);
+        const stateName = getStateNameFromCode(code);
+        if (stateName) {
+          this.registerBuyerForm.patchValue({ state: stateName, stateCode: code }, { emitEvent: false });
+        } else {
+          this.registerBuyerForm.patchValue({ stateCode: code }, { emitEvent: false });
+        }
+      }
+    });
+
+    // Auto-sync State Code when State Name is entered
+    this.registerBuyerForm.get('state')?.valueChanges.subscribe((stateVal) => {
+      if (stateVal) {
+        const code = getStateCodeFromName(stateVal);
+        if (code) {
+          this.registerBuyerForm.patchValue({ stateCode: code }, { emitEvent: false });
+        }
+      }
     });
   }
 
@@ -489,6 +514,13 @@ export class InvoiceCreateComponent implements OnInit, OnDestroy {
 
   openRegisterBuyerModal(prefillName?: string): void {
     this.closeBuyerDropdown();
+    const comp = this.company();
+    const defaultState = comp?.address?.state || '';
+    const defaultCode =
+      (comp?.gstin && comp.gstin.trim().length >= 2 ? comp.gstin.trim().substring(0, 2) : '') ||
+      getStateCodeFromName(defaultState) ||
+      '';
+
     this.registerBuyerForm.reset({
       companyName: prefillName?.trim() || '',
       contactPerson: '',
@@ -499,8 +531,8 @@ export class InvoiceCreateComponent implements OnInit, OnDestroy {
       line1: '',
       line2: '',
       city: '',
-      state: 'Maharashtra',
-      stateCode: '27',
+      state: defaultState,
+      stateCode: defaultCode,
       pincode: '',
       notes: '',
     });

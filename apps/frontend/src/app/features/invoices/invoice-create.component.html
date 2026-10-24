@@ -537,9 +537,9 @@
               <span class="meta-label">Bill To:</span>
               <strong class="buyer-company">{{ selectedCustomerObj()?.companyName || 'Select a Buyer...' }}</strong>
               <p class="buyer-address-text" *ngIf="selectedCustomerObj() as cust">
-                <span *ngIf="cust.billingAddress?.line1">{{ cust.billingAddress.line1 }}<br /></span>
-                <span *ngIf="cust.billingAddress?.line2">{{ cust.billingAddress.line2 }}<br /></span>
-                <span *ngIf="cust.billingAddress?.city || cust.billingAddress?.pincode">
+                <span *ngIf="cust.billingAddress.line1">{{ cust.billingAddress.line1 }}<br /></span>
+                <span *ngIf="cust.billingAddress.line2">{{ cust.billingAddress.line2 }}<br /></span>
+                <span *ngIf="cust.billingAddress.city || cust.billingAddress.pincode">
                   {{ cust.billingAddress.city }}<ng-container *ngIf="cust.billingAddress.city && cust.billingAddress.pincode"> - </ng-container>{{ cust.billingAddress.pincode }}
                 </span>
               </p>
@@ -776,7 +776,7 @@
           </div>
           <div class="form-group flex-1" [class.has-error]="registerBuyerForm.get('state')?.invalid && registerBuyerForm.get('state')?.touched">
             <label>State *</label>
-            <input type="text" formControlName="state" placeholder="Maharashtra" />
+            <input type="text" formControlName="state" placeholder="Enter state" />
           </div>
           <div class="form-group flex-1" [class.has-error]="registerBuyerForm.get('pincode')?.invalid && registerBuyerForm.get('pincode')?.touched">
             <label>Pincode *</label>

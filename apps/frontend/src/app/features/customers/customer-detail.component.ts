@@ -29,6 +29,8 @@ import {
   PaymentStatus,
   InvoiceStatus,
   UserRole,
+  getStateCodeFromName,
+  getStateNameFromCode,
 } from '@rice-mill-project/shared-types';
 import { RecordPaymentModalComponent } from '../../shared/components/record-payment-modal/record-payment-modal.component';
 
@@ -500,10 +502,33 @@ export class CustomerDetailComponent implements OnInit {
       line1: ['', [Validators.required]],
       line2: [''],
       city: ['', [Validators.required]],
-      state: ['Maharashtra', [Validators.required]],
-      stateCode: ['27', [Validators.required]],
+      state: ['', [Validators.required]],
+      stateCode: ['', [Validators.required]],
       pincode: ['', [Validators.required, Validators.pattern(/^\d{6}$/)]],
       notes: [''],
+    });
+
+    // Auto-detect State and State Code from GSTIN
+    this.editCustomerForm.get('gstin')?.valueChanges.subscribe((gstinVal) => {
+      if (gstinVal && gstinVal.trim().length >= 2) {
+        const code = gstinVal.trim().substring(0, 2);
+        const stateName = getStateNameFromCode(code);
+        if (stateName) {
+          this.editCustomerForm.patchValue({ state: stateName, stateCode: code }, { emitEvent: false });
+        } else {
+          this.editCustomerForm.patchValue({ stateCode: code }, { emitEvent: false });
+        }
+      }
+    });
+
+    // Auto-sync State Code when State Name is edited
+    this.editCustomerForm.get('state')?.valueChanges.subscribe((stateVal) => {
+      if (stateVal) {
+        const code = getStateCodeFromName(stateVal);
+        if (code) {
+          this.editCustomerForm.patchValue({ stateCode: code }, { emitEvent: false });
+        }
+      }
     });
   }
 

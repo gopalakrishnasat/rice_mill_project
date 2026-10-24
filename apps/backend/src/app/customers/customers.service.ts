@@ -8,7 +8,11 @@ import { Model } from 'mongoose';
 import { Customer, CustomerDocument } from './schemas/customer.schema';
 import { CreateCustomerDto } from './dto/create-customer.dto';
 import { UpdateCustomerDto } from './dto/update-customer.dto';
-import { IUser } from '@rice-mill-project/shared-types';
+import {
+  IUser,
+  getStateCodeFromName,
+  getStateNameFromCode,
+} from '@rice-mill-project/shared-types';
 import { AuditService } from '../common/audit/audit.service';
 
 @Injectable()
@@ -109,16 +113,27 @@ export class CustomersService {
     // Opening Balance and Credit Limit are omitted from new buyer registration
     // const openingBalance = dto.openingBalance ?? 0;
 
+    const cleanGstin = dto.gstin?.toUpperCase().trim();
+    const billingAddress = { ...dto.billingAddress };
+    if (cleanGstin && cleanGstin.length >= 2) {
+      billingAddress.stateCode = cleanGstin.substring(0, 2);
+      if (!billingAddress.state) {
+        billingAddress.state = getStateNameFromCode(billingAddress.stateCode);
+      }
+    } else if (!billingAddress.stateCode && billingAddress.state) {
+      billingAddress.stateCode = getStateCodeFromName(billingAddress.state);
+    }
+
     const newCustomer = new this.customerModel({
       customerCode: finalCode,
       companyName: dto.companyName.trim(),
       contactPerson: dto.contactPerson?.trim(),
       mobile: dto.mobile.trim(),
       email: dto.email?.toLowerCase().trim(),
-      gstin: dto.gstin?.toUpperCase().trim(),
+      gstin: cleanGstin,
       pan: dto.pan?.toUpperCase().trim(),
-      billingAddress: dto.billingAddress,
-      shippingAddress: dto.shippingAddress || dto.billingAddress,
+      billingAddress,
+      shippingAddress: dto.shippingAddress || billingAddress,
       // creditLimit: dto.creditLimit ?? 0,
       creditLimit: 0,
       // openingBalance,
@@ -166,7 +181,19 @@ export class CustomersService {
     if (dto.email !== undefined) customer.email = dto.email?.toLowerCase().trim();
     if (dto.gstin !== undefined) customer.gstin = dto.gstin?.toUpperCase().trim();
     if (dto.pan !== undefined) customer.pan = dto.pan?.toUpperCase().trim();
-    if (dto.billingAddress !== undefined) customer.billingAddress = dto.billingAddress;
+    if (dto.billingAddress !== undefined) {
+      const billingAddress = { ...dto.billingAddress };
+      const activeGstin = dto.gstin !== undefined ? dto.gstin?.toUpperCase().trim() : customer.gstin;
+      if (activeGstin && activeGstin.length >= 2) {
+        billingAddress.stateCode = activeGstin.substring(0, 2);
+        if (!billingAddress.state) {
+          billingAddress.state = getStateNameFromCode(billingAddress.stateCode);
+        }
+      } else if (!billingAddress.stateCode && billingAddress.state) {
+        billingAddress.stateCode = getStateCodeFromName(billingAddress.state);
+      }
+      customer.billingAddress = billingAddress;
+    }
     if (dto.shippingAddress !== undefined) customer.shippingAddress = dto.shippingAddress;
     if (dto.creditLimit !== undefined) customer.creditLimit = dto.creditLimit;
     if (dto.isActive !== undefined) customer.isActive = dto.isActive;

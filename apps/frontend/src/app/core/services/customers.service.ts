@@ -85,9 +85,9 @@ export class CustomersService {
       id: c.id || c._id,
       billingAddress: c.billingAddress || {
         line1: '',
-        city: 'Pune',
-        state: 'Maharashtra',
-        stateCode: '27',
+        city: '',
+        state: '',
+        stateCode: '',
         pincode: '',
       },
       currentBalance: c.currentBalance ?? 0,

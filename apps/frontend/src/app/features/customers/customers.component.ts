@@ -17,10 +17,13 @@ import {
 import { CustomersService } from '../../core/services/customers.service';
 import { AuthService } from '../../core/services/auth.service';
 import { SnackbarService } from '../../core/services/snackbar.service';
+import { CompanyService } from '../../core/services/company.service';
 import {
   ICustomer,
   CreateCustomerDto,
   UserRole,
+  getStateCodeFromName,
+  getStateNameFromCode,
 } from '@rice-mill-project/shared-types';
 
 @Component({
@@ -35,6 +38,7 @@ export class CustomersComponent implements OnInit {
   private readonly customersService = inject(CustomersService);
   private readonly authService = inject(AuthService);
   private readonly snackbarService = inject(SnackbarService);
+  private readonly companyService = inject(CompanyService);
   private readonly router = inject(Router);
 
   readonly currentUser = this.authService.currentUser;
@@ -101,6 +105,9 @@ export class CustomersComponent implements OnInit {
   ngOnInit(): void {
     this.initForm();
     this.loadCustomers();
+    if (!this.companyService.company()) {
+      this.companyService.getCompanyDetails().subscribe();
+    }
   }
 
   private initForm(): void {
@@ -114,12 +121,35 @@ export class CustomersComponent implements OnInit {
       line1: ['', [Validators.required]],
       line2: [''],
       city: ['', [Validators.required]],
-      state: ['Maharashtra', [Validators.required]],
-      stateCode: ['27', [Validators.required]],
+      state: ['', [Validators.required]],
+      stateCode: ['', [Validators.required]],
       pincode: ['', [Validators.required, Validators.pattern(/^\d{6}$/)]],
       // openingBalance: [0, [Validators.min(0)]],
       // creditLimit: [0, [Validators.min(0)]],
       notes: [''],
+    });
+
+    // Auto-detect State and State Code from GSTIN
+    this.createCustomerForm.get('gstin')?.valueChanges.subscribe((gstinVal) => {
+      if (gstinVal && gstinVal.trim().length >= 2) {
+        const code = gstinVal.trim().substring(0, 2);
+        const stateName = getStateNameFromCode(code);
+        if (stateName) {
+          this.createCustomerForm.patchValue({ state: stateName, stateCode: code }, { emitEvent: false });
+        } else {
+          this.createCustomerForm.patchValue({ stateCode: code }, { emitEvent: false });
+        }
+      }
+    });
+
+    // Auto-sync State Code when State Name is entered
+    this.createCustomerForm.get('state')?.valueChanges.subscribe((stateVal) => {
+      if (stateVal) {
+        const code = getStateCodeFromName(stateVal);
+        if (code) {
+          this.createCustomerForm.patchValue({ stateCode: code }, { emitEvent: false });
+        }
+      }
     });
   }
 
@@ -147,9 +177,17 @@ export class CustomersComponent implements OnInit {
       this.showAlert('error', 'Access denied: You do not have permission to register new buyers.');
       return;
     }
+
+    const company = this.companyService.company();
+    const defaultState = company?.address?.state || '';
+    const defaultCode =
+      (company?.gstin && company.gstin.trim().length >= 2 ? company.gstin.trim().substring(0, 2) : '') ||
+      getStateCodeFromName(defaultState) ||
+      '';
+
     this.createCustomerForm.reset({
-      state: 'Maharashtra',
-      stateCode: '27',
+      state: defaultState,
+      stateCode: defaultCode,
       // openingBalance: 0,
       // creditLimit: 0,
     });

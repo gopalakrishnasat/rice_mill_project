@@ -22,20 +22,20 @@ import {
   IUser,
   IInvoiceBankDetails,
   ICustomerLedgerEntry,
+  getStateCodeFromName,
 } from '@rice-mill-project/shared-types';
 import { convertNumberToIndianWords } from './utils/number-to-words.util';
 import { AuditService } from '../common/audit/audit.service';
 import { CompanyService } from '../company/company.service';
 
 const MILL_BANK_DETAILS: IInvoiceBankDetails = {
-  bankName: 'HDFC Bank Ltd',
-  accountNo: '50200067891234',
-  ifsc: 'HDFC0001234',
-  branch: 'Narayangaon Branch, Pune',
-  upiId: 'slricemill@hdfcbank',
+  bankName: '',
+  accountNo: '',
+  ifsc: '',
+  branch: '',
+  upiId: '',
 };
 
-const MILL_STATE_CODE = '27'; // Maharashtra State Code
 
 @Injectable()
 export class InvoicesService {
@@ -199,12 +199,23 @@ export class InvoicesService {
 
     const invoiceNumber = dto.invoiceNumber || (await this.getNextInvoiceNumber());
 
-    // Detect Inter-State based on customer stateCode vs Maharashtra ('27')
-    const customerStateCode = customer.billingAddress?.stateCode || '27';
+    const company = await this.companyService.getCompanyDetails();
+    const millStateCode =
+      (company.gstin && company.gstin.trim().length >= 2 ? company.gstin.trim().substring(0, 2) : '') ||
+      (company.address?.state ? getStateCodeFromName(company.address.state) : '') ||
+      '27';
+
+    // Detect Inter-State based on customer stateCode vs Mill State Code
+    const customerStateCode =
+      customer.billingAddress?.stateCode ||
+      (customer.gstin && customer.gstin.trim().length >= 2 ? customer.gstin.trim().substring(0, 2) : '') ||
+      (customer.billingAddress?.state ? getStateCodeFromName(customer.billingAddress.state) : '') ||
+      millStateCode;
+
     const isInterState =
       dto.isInterState !== undefined
         ? dto.isInterState
-        : customerStateCode !== MILL_STATE_CODE;
+        : customerStateCode !== millStateCode;
 
     const totals = this.calculateTotals(
       dto.items,
@@ -216,7 +227,6 @@ export class InvoicesService {
       dto.gstRate,
     );
 
-    const company = await this.companyService.getCompanyDetails();
     const bankDetails: IInvoiceBankDetails = {
       bankName: company.bankDetails?.bankName || MILL_BANK_DETAILS.bankName,
       accountNo: company.bankDetails?.accountNumber || MILL_BANK_DETAILS.accountNo,
@@ -224,9 +234,10 @@ export class InvoicesService {
       branch: company.bankDetails?.branch || MILL_BANK_DETAILS.branch,
       upiId: company.bankDetails?.upiId || MILL_BANK_DETAILS.upiId,
     };
+    const jurisdictionClause = company.jurisdiction ? ` Subject to ${company.jurisdiction} jurisdiction.` : '';
     const terms = company.termsAndConditions?.length
       ? company.termsAndConditions.join(' ')
-      : '1. Goods once sold will not be taken back. 2. Interest @ 18% p.a. will be charged if bill is not paid on due date. 3. Subject to Pune jurisdiction.';
+      : `1. Goods once sold will not be taken back. 2. Interest @ 18% p.a. will be charged if bill is not paid on due date.${jurisdictionClause}`;
 
     const newInvoice = new this.invoiceModel({
       invoiceNumber,

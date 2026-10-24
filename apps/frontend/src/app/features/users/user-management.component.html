@@ -207,7 +207,7 @@
           [class.has-error]="createUserForm.get('email')?.invalid && createUserForm.get('email')?.touched">
           <label for="newEmail">Work Email Address *</label>
           <div class="input-wrapper">
-            <input id="newEmail" type="email" formControlName="email" placeholder="e.g. ramesh@ricemill.com" required />
+            <input id="newEmail" type="email" formControlName="email" placeholder="Enter work email address" required />
           </div>
           <div class="field-error" *ngIf="createUserForm.get('email')?.invalid && createUserForm.get('email')?.touched">
             Please enter a valid work email address.
@@ -218,7 +218,7 @@
         <div class="form-group">
           <label for="newMobile">Mobile Contact</label>
           <div class="input-wrapper">
-            <input id="newMobile" type="tel" formControlName="mobile" placeholder="e.g. +91 9876543210" />
+            <input id="newMobile" type="tel" formControlName="mobile" placeholder="Enter 10-digit mobile number" />
           </div>
         </div>
 
@@ -237,7 +237,7 @@
           [class.has-error]="createUserForm.get('password')?.invalid && createUserForm.get('password')?.touched">
           <label for="newPass">Initial Temporary Password *</label>
           <div class="input-wrapper">
-            <input id="newPass" type="text" formControlName="password" required />
+            <input id="newPass" type="text" formControlName="password" placeholder="Enter temporary password" required />
           </div>
           <div class="field-error"
             *ngIf="createUserForm.get('password')?.invalid && createUserForm.get('password')?.touched">
@@ -317,7 +317,7 @@
           <label for="resetPassInput">New Temporary Password</label>
           <div class="input-wrapper">
             <input id="resetPassInput" type="text" [ngModel]="newPasswordInput()"
-              (ngModelChange)="newPasswordInput.set($event)" />
+              (ngModelChange)="newPasswordInput.set($event)" placeholder="Enter new temporary password" />
           </div>
         </div>
 

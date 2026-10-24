@@ -10,19 +10,13 @@ import { ApiResponse } from '@rice-mill-project/shared-types';
 
 @Injectable()
 export class TransformInterceptor<T>
-  implements NestInterceptor<T, ApiResponse<T>>
-{
+  implements NestInterceptor<T, ApiResponse<T>> {
   intercept(
     context: ExecutionContext,
     next: CallHandler,
   ): Observable<ApiResponse<T>> {
     return next.handle().pipe(
       map((data) => {
-        const httpResponse = context.switchToHttp().getResponse();
-        if (httpResponse?.headersSent) {
-          return data;
-        }
-
         // If already structured as an ApiResponse, pass through
         if (data && typeof data === 'object' && 'success' in data) {
           return data;

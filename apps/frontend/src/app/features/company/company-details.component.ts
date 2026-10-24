@@ -15,6 +15,7 @@ import {
   ICompanyDetails,
   UpdateCompanyDetailsDto,
   UserRole,
+  getStateNameFromCode,
 } from '@rice-mill-project/shared-types';
 
 @Component({
@@ -75,7 +76,7 @@ export class CompanyDetailsComponent implements OnInit {
         street: ['', [Validators.required]],
         taluka: [''],
         district: [''],
-        state: ['Maharashtra', [Validators.required]],
+        state: ['', [Validators.required]],
         pincode: ['', [Validators.required, Validators.pattern('^[0-9]{6}$')]],
       }),
       bankDetails: this.fb.group({
@@ -91,6 +92,18 @@ export class CompanyDetailsComponent implements OnInit {
         right: ['|| Shree Mukatai Prasana ||'],
       }),
       termsAndConditions: this.fb.array([]),
+    });
+
+    // Auto-populate State from Mill GSTIN if empty
+    this.companyForm.get('gstin')?.valueChanges.subscribe((gstinVal) => {
+      if (gstinVal && gstinVal.trim().length >= 2) {
+        const code = gstinVal.trim().substring(0, 2);
+        const stateName = getStateNameFromCode(code);
+        const currentState = this.companyForm.get('address.state')?.value;
+        if (stateName && !currentState) {
+          this.companyForm.patchValue({ address: { state: stateName } });
+        }
+      }
     });
 
     if (!this.canEdit) {
@@ -125,12 +138,12 @@ export class CompanyDetailsComponent implements OnInit {
       alternatePhone: details.alternatePhone || '',
       email: details.email || '',
       contactPerson: details.contactPerson || '',
-      jurisdiction: details.jurisdiction || 'Pune',
+      jurisdiction: details.jurisdiction || '',
       address: {
         street: details.address?.street || '',
         taluka: details.address?.taluka || '',
         district: details.address?.district || '',
-        state: details.address?.state || 'Maharashtra',
+        state: details.address?.state || '',
         pincode: details.address?.pincode || '',
       },
       bankDetails: {

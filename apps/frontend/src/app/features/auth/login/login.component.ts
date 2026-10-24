@@ -22,9 +22,9 @@ export class LoginComponent {
   private readonly router = inject(Router);
 
   loginForm: FormGroup = this.fb.group({
-    email: ['superadmin@ricemill.com', [Validators.required, Validators.email]],
-    password: ['SuperAdmin@123', [Validators.required, Validators.minLength(6)]],
-    rememberMe: [true],
+    email: ['', [Validators.required, Validators.email]],
+    password: ['', [Validators.required, Validators.minLength(6)]],
+    rememberMe: [false],
   });
 
   forgotPasswordForm: FormGroup = this.fb.group({

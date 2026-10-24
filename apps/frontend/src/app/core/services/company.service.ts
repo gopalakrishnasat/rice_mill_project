@@ -17,6 +17,7 @@ export class CompanyService {
 
   // Reactive signal of current company details for fast and reactive reads across components
   readonly currentCompany = signal<ICompanyDetails | null>(null);
+  readonly company = this.currentCompany;
 
   getCompanyDetails(): Observable<ICompanyDetails> {
     return this.http.get<ApiResponse<ICompanyDetails>>(this.apiUrl).pipe(
