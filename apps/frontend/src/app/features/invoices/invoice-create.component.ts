@@ -605,7 +605,7 @@ export class InvoiceCreateComponent implements OnInit, OnDestroy {
         transportCharges: Number(val.transportCharges) || 0,
         hamaliCharges: Number(val.hamaliCharges) || 0,
         discount: Number(val.discount) || 0,
-        gstRate: Number(val.gstRate) !== undefined && !isNaN(Number(val.gstRate)) ? Number(val.gstRate) : 5.0,
+        gstRate: val.gstRate !== undefined && val.gstRate !== null && !isNaN(Number(val.gstRate)) ? Number(val.gstRate) : 5.0,
         isInterState: val.isInterState,
         notes: val.notes !== undefined && val.notes !== null ? val.notes.trim() : undefined,
       };
@@ -643,7 +643,7 @@ export class InvoiceCreateComponent implements OnInit, OnDestroy {
         transportCharges: Number(val.transportCharges) || 0,
         hamaliCharges: Number(val.hamaliCharges) || 0,
         discount: Number(val.discount) || 0,
-        gstRate: Number(val.gstRate) !== undefined && !isNaN(Number(val.gstRate)) ? Number(val.gstRate) : 5.0,
+        gstRate: val.gstRate !== undefined && val.gstRate !== null && !isNaN(Number(val.gstRate)) ? Number(val.gstRate) : 5.0,
         isInterState: val.isInterState,
         status: InvoiceStatus.ISSUED,
         notes: val.notes?.trim() || undefined,

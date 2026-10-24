@@ -13,7 +13,7 @@ import {
 })
 export class UsersService {
   private readonly http = inject(HttpClient);
-  private readonly API_URL = 'http://localhost:3000/api/users';
+  private readonly API_URL = '/api/users';
 
   getUsers(query?: {
     role?: string;

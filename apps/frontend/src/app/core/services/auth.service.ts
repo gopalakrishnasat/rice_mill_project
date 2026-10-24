@@ -19,7 +19,7 @@ export class AuthService {
   private readonly http = inject(HttpClient);
   private readonly router = inject(Router);
 
-  private readonly API_URL = 'http://localhost:3000/api/auth';
+  private readonly API_URL = '/api/auth';
   private readonly TOKEN_KEY = 'rice_mill_token';
   private readonly USER_KEY = 'rice_mill_user';
 
